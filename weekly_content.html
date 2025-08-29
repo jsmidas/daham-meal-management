@@ -1,0 +1,396 @@
+<!-- 주간 식단표 페이지 컨텐츠 (마스터 레이아웃용) -->
+<div style="padding: 0; margin: 0;">
+    <!-- 페이지 헤더 -->
+    <div style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.2);">
+        <h1 style="font-size: 24px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-calendar-week"></i>
+            주간 식단표 관리
+        </h1>
+        <p style="opacity: 0.9; font-size: 14px; margin: 0;" id="weeklyPageDate">
+            주간 단위로 식단을 계획하고 관리할 수 있습니다.
+        </p>
+    </div>
+
+    <!-- 주차 선택 -->
+    <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; color: #333; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-calendar-alt" style="color: #6f42c1;"></i>
+                주차 선택
+            </h3>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button onclick="changeWeek(-1)" style="background: #6f42c1; color: white; border: none; width: 35px; height: 35px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#5a2d91'" onmouseout="this.style.backgroundColor='#6f42c1'">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div style="background: #f8f9fa; padding: 8px 20px; border-radius: 6px; font-weight: bold; min-width: 200px; text-align: center;" id="weekDisplay">
+                    2025년 8월 4째주 (8.26~9.1)
+                </div>
+                <button onclick="changeWeek(1)" style="background: #6f42c1; color: white; border: none; width: 35px; height: 35px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#5a2d91'" onmouseout="this.style.backgroundColor='#6f42c1'">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 주간 식단표 그리드 -->
+    <div style="background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                <thead>
+                    <tr>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91; width: 80px;">구분</th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">월요일<br><small style="opacity: 0.8;">8/26</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">화요일<br><small style="opacity: 0.8;">8/27</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">수요일<br><small style="opacity: 0.8;">8/28</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">목요일<br><small style="opacity: 0.8;">8/29</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">금요일<br><small style="opacity: 0.8;">8/30</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">토요일<br><small style="opacity: 0.8;">8/31</small></th>
+                        <th style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%); color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #5a2d91;">일요일<br><small style="opacity: 0.8;">9/1</small></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 조식 -->
+                    <tr>
+                        <td style="background: #28a745; color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #e0e0e0;">조식</td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top; min-height: 100px;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="monday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="tuesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="wednesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="thursday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="friday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="saturday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="breakfast" data-day="sunday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- 중식 -->
+                    <tr>
+                        <td style="background: #F5881F; color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #e0e0e0;">중식</td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="monday">
+                                <div style="font-size: 12px; line-height: 1.4;">
+                                    • 김치찌개<br>
+                                    • 계란말이<br>
+                                    • 배추김치<br>
+                                    • 현미밥
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="tuesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="wednesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="thursday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="friday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="saturday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="lunch" data-day="sunday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- 석식 -->
+                    <tr>
+                        <td style="background: #dc3545; color: white; padding: 15px 8px; text-align: center; font-weight: bold; border: 1px solid #e0e0e0;">석식</td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="monday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="tuesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="wednesday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="thursday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="friday">
+                                <div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="saturday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                        <td style="padding: 15px 10px; border: 1px solid #e0e0e0; vertical-align: top;">
+                            <div class="meal-cell" data-meal="dinner" data-day="sunday">
+                                <div style="color: #666; font-size: 12px; opacity: 0.5;">휴무</div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 하단 액션 버튼 -->
+    <div style="display: flex; justify-content: center; gap: 15px; margin-top: 25px;">
+        <button onclick="saveWeeklyPlan()" style="background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);" onmouseover="this.style.backgroundColor='#218838'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#28a745'; this.style.transform='translateY(0)'">
+            <i class="fas fa-save"></i>
+            주간 식단표 저장
+        </button>
+        <button onclick="copyFromPrevious()" style="background: #6f42c1; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);" onmouseover="this.style.backgroundColor='#5a2d91'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#6f42c1'; this.style.transform='translateY(0)'">
+            <i class="fas fa-copy"></i>
+            이전 주 복사
+        </button>
+        <button onclick="clearWeeklyPlan()" style="background: #dc3545; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);" onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='translateY(0)'">
+            <i class="fas fa-trash"></i>
+            전체 초기화
+        </button>
+    </div>
+</div>
+
+<style>
+/* 주간 식단표 전용 스타일 */
+.meal-cell {
+    min-height: 80px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.meal-cell:hover {
+    background: #f8f9fa;
+    border: 1px dashed #6f42c1;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    table {
+        font-size: 11px !important;
+    }
+    
+    .meal-cell {
+        min-height: 60px;
+    }
+    
+    th, td {
+        padding: 8px 4px !important;
+    }
+}
+</style>
+
+<script>
+// 주간 식단표 전용 변수
+let currentWeek = new Date();
+let weeklyPlan = {};
+
+// 페이지 초기화
+function weeklyInit() {
+    console.log('주간 식단표 페이지 초기화');
+    
+    // 날짜 정보 업데이트
+    updateWeeklyPageDate();
+    
+    // 주차 표시 업데이트
+    updateWeekDisplay();
+    
+    // 식단셀 클릭 이벤트 설정
+    setupMealCellEvents();
+}
+
+// 날짜 정보 업데이트
+function updateWeeklyPageDate() {
+    if (typeof getCurrentContext === 'function') {
+        const context = getCurrentContext();
+        document.getElementById('weeklyPageDate').textContent = 
+            `${context.businessName} - 주간 단위로 식단을 계획하고 관리할 수 있습니다.`;
+    }
+}
+
+// 주차 표시 업데이트
+function updateWeekDisplay() {
+    // 현재 주의 시작일(월요일)과 종료일(일요일) 계산
+    const startOfWeek = new Date(currentWeek);
+    startOfWeek.setDate(currentWeek.getDate() - currentWeek.getDay() + 1); // 월요일
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // 일요일
+    
+    const year = startOfWeek.getFullYear();
+    const month = startOfWeek.getMonth() + 1;
+    const weekNum = Math.ceil((startOfWeek.getDate() + new Date(year, month - 1, 1).getDay()) / 7);
+    
+    const startDate = `${startOfWeek.getMonth() + 1}.${startOfWeek.getDate()}`;
+    const endDate = `${endOfWeek.getMonth() + 1}.${endOfWeek.getDate()}`;
+    
+    document.getElementById('weekDisplay').textContent = 
+        `${year}년 ${month}월 ${weekNum}째주 (${startDate}~${endDate})`;
+        
+    // 테이블 헤더 날짜 업데이트
+    updateTableHeaders(startOfWeek);
+}
+
+// 테이블 헤더 날짜 업데이트
+function updateTableHeaders(startOfWeek) {
+    const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+    const headers = document.querySelectorAll('th');
+    
+    for (let i = 1; i < headers.length; i++) { // 첫 번째는 '구분' 헤더
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + (i - 1));
+        
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+        headers[i].innerHTML = `${days[i - 1]}<br><small style="opacity: 0.8;">${dateStr}</small>`;
+    }
+}
+
+// 주차 변경
+function changeWeek(direction) {
+    currentWeek.setDate(currentWeek.getDate() + (direction * 7));
+    updateWeekDisplay();
+    // TODO: 새 주차의 식단 데이터 로드
+}
+
+// 식단셀 클릭 이벤트 설정
+function setupMealCellEvents() {
+    const mealCells = document.querySelectorAll('.meal-cell');
+    
+    mealCells.forEach(cell => {
+        cell.addEventListener('click', function() {
+            const meal = this.dataset.meal;
+            const day = this.dataset.day;
+            
+            if (this.querySelector('div').textContent.includes('휴무')) {
+                return; // 휴무일은 클릭 불가
+            }
+            
+            editMealCell(meal, day, this);
+        });
+    });
+}
+
+// 식단셀 편집
+function editMealCell(meal, day, cellElement) {
+    const currentContent = cellElement.innerHTML;
+    const isEmptyCell = currentContent.includes('클릭하여 식단 설정');
+    
+    // 간단한 프롬프트로 식단 입력 (향후 모달로 개선)
+    const mealContent = prompt(
+        `${day} ${meal}의 식단을 입력하세요:\n(한 줄씩 메뉴를 입력하면 • 기호로 표시됩니다)`,
+        isEmptyCell ? '' : cellElement.textContent.replace(/• /g, '').replace(/\n/g, '\n')
+    );
+    
+    if (mealContent !== null) {
+        if (mealContent.trim() === '') {
+            // 빈 입력시 초기 상태로
+            cellElement.innerHTML = '<div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>';
+        } else {
+            // 메뉴 목록으로 변환
+            const menuItems = mealContent.split('\n')
+                .filter(item => item.trim() !== '')
+                .map(item => `• ${item.trim()}`)
+                .join('<br>');
+            
+            cellElement.innerHTML = `<div style="font-size: 12px; line-height: 1.4;">${menuItems}</div>`;
+        }
+        
+        // 데이터 저장 (메모리에)
+        if (!weeklyPlan[day]) weeklyPlan[day] = {};
+        weeklyPlan[day][meal] = mealContent.trim();
+    }
+}
+
+// 주간 식단표 저장
+async function saveWeeklyPlan() {
+    const context = getCurrentContext();
+    
+    try {
+        // TODO: 실제 API 호출 구현
+        console.log('저장할 주간 식단표:', weeklyPlan);
+        console.log('컨텍스트:', context);
+        
+        alert('주간 식단표가 성공적으로 저장되었습니다!');
+        
+    } catch (error) {
+        console.error('주간 식단표 저장 오류:', error);
+        alert('저장 중 오류가 발생했습니다.');
+    }
+}
+
+// 이전 주 복사
+async function copyFromPrevious() {
+    if (confirm('이전 주의 식단을 현재 주에 복사하시겠습니까?')) {
+        try {
+            // TODO: 실제 API 호출 구현
+            alert('이전 주 식단을 복사했습니다.');
+            
+        } catch (error) {
+            console.error('이전 주 복사 오류:', error);
+            alert('복사 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// 전체 초기화
+function clearWeeklyPlan() {
+    if (confirm('현재 주의 모든 식단을 초기화하시겠습니까?')) {
+        const mealCells = document.querySelectorAll('.meal-cell');
+        
+        mealCells.forEach(cell => {
+            if (!cell.querySelector('div').textContent.includes('휴무')) {
+                cell.innerHTML = '<div style="color: #666; font-size: 12px;">클릭하여 식단 설정</div>';
+            }
+        });
+        
+        weeklyPlan = {};
+        alert('주간 식단표가 초기화되었습니다.');
+    }
+}
+</script>

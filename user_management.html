@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사원 관리 - 다함 메뉴관리 시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        /* Header Navigation */
+        .top-nav {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            background: white;
+            color: #F5881F;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #F5881F;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #F5881F;
+            margin-bottom: 10px;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: linear-gradient(135deg, #ffeee6 0%, #ffcc9a 100%);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-info {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .stat-number {
+            background: #F5881F;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #F5881F;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #E67309;
+        }
+
+        /* User Activities */
+        .user-activities {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            line-height: 1.8;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .activity-text {
+            color: #666;
+        }
+
+        .activity-link {
+            color: #F5881F;
+            text-decoration: none;
+        }
+
+        .activity-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Table Section */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .user-table th {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #E67309;
+            font-size: 12px;
+        }
+
+        .user-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            vertical-align: middle;
+            font-size: 11px;
+        }
+
+        .user-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .user-table tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        /* User Role Badges */
+        .role-admin {
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .role-manager {
+            background: #F5881F;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .role-user {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        /* Status Badges */
+        .status-active {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .status-inactive {
+            background: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 3px;
+        }
+
+        .btn-edit {
+            background: #F5881F;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Phone Checkbox */
+        .phone-checkbox {
+            margin-right: 5px;
+        }
+
+        /* Permission Dropdown */
+        .permission-select {
+            width: 100%;
+            padding: 2px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        /* Business Locations Popup */
+        .business-locations {
+            position: absolute;
+            background: white;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 11px;
+            line-height: 1.4;
+            max-width: 200px;
+            display: none;
+        }
+
+        .business-locations.show {
+            display: block;
+        }
+
+        .business-location-item {
+            padding: 2px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .business-location-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .user-table {
+                font-size: 10px;
+            }
+            
+            .user-table th,
+            .user-table td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="logo-section">
+            <div class="logo">다함</div>
+            <h2>사원 관리</h2>
+        </div>
+        <div class="nav-buttons">
+            <a href="/" class="nav-btn"><i class="fas fa-home"></i> 본사/구매</a>
+            <a href="/weekly" class="nav-btn"><i class="fas fa-calendar-week"></i> 업장</a>
+            <a href="/meal-counts" class="nav-btn"><i class="fas fa-truck"></i> 배송팀</a>
+            <a href="/preprocessing" class="nav-btn"><i class="fas fa-warehouse"></i> 창고</a>
+            <a href="/cooking" class="nav-btn"><i class="fas fa-chart-line"></i> 통계</a>
+            <a href="/distribution" class="nav-btn"><i class="fas fa-cog"></i> 관리</a>
+            <a href="#" class="nav-btn active"><i class="fas fa-user"></i> 본사</a>
+            <a href="#" class="nav-btn"><i class="fas fa-sign-out-alt"></i> 로그아웃</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">사원 관리</div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stats-info">
+                <div class="stat-item">
+                    <span>2025-08</span>
+                </div>
+                <div class="stat-item">
+                    <span>모든 직접 급여 입력자적</span>
+                </div>
+            </div>
+            <button class="btn btn-primary">모든 직접 급여 입력자적</button>
+        </div>
+
+        <!-- User Activities -->
+        <div class="user-activities">
+            <span class="activity-text">고인휘성분 수정:</span>
+            <a href="#" class="activity-link">새로운 사업사재고사</a>
+            <span class="activity-text">|</span>
+            <a href="#" class="activity-link">2.외판영업 연한</a>
+            <span class="activity-text">|</span>
+            <a href="#" class="activity-link">3.시사원 조회 목적 예배</a>
+            <span class="activity-text">|</span>
+            <a href="#" class="activity-link">4.식사원,기타 |</a>
+            <a href="#" class="activity-link">5.통계,재료 관리 |</a>
+            <a href="#" class="activity-link">6.조영 등</a>
+            <span class="activity-text">|</span>
+            <a href="#" class="activity-link">8.뉴스 |</a>
+            <a href="#" class="activity-link">9.외책,재료 관리 |</a>
+            <a href="#" class="activity-link">10.대검,관리자 |</a>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-container">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>NO</th>
+                        <th>기능</th>
+                        <th>출허</th>
+                        <th>아이디</th>
+                        <th>직책</th>
+                        <th>이름</th>
+                        <th>권한</th>
+                        <th style="width: 50px;">핸드폰</th>
+                        <th>업무</th>
+                        <th>업장(비목)</th>
+                        <th>비고</th>
+                        <th>일차</th>
+                        <th>급여(10만)</th>
+                        <th>최근 로그인</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td>1</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-admin">정보담당자</span></td>
+                        <td><span class="role-admin">재직원정보사</span></td>
+                        <td>admin</td>
+                        <td>본사장</td>
+                        <td>본사</td>
+                        <td>10</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td>관리자</td>
+                        <td>일.시.2-02:01</td>
+                        <td>1</td>
+                        <td>2025-04</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-manager">정보담당자</span></td>
+                        <td><span class="role-manager">재직원정보사</span></td>
+                        <td>다함영업</td>
+                        <td>대표이사</td>
+                        <td>다함</td>
+                        <td>10</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>Dong1</td>
+                        <td>대리</td>
+                        <td>손동엽</td>
+                        <td>10</td>
+                        <td><input type="checkbox" class="phone-checkbox">010-5678-1898</td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>chiwan891</td>
+                        <td>본부장</td>
+                        <td>최창환</td>
+                        <td>10</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>hbh60621</td>
+                        <td>시사장</td>
+                        <td>허명호</td>
+                        <td>10</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>JS169321</td>
+                        <td>대리</td>
+                        <td>장성재</td>
+                        <td>10</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>leekangro1</td>
+                        <td>대리</td>
+                        <td>이강호</td>
+                        <td>9</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>asdf1</td>
+                        <td>과장</td>
+                        <td>김종성</td>
+                        <td>9</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td><div class="action-buttons">
+                            <button class="btn-sm btn-edit">수정</button>
+                            <button class="btn-sm btn-delete">삭제</button>
+                        </div></td>
+                        <td><span class="role-user">정보담당자</span></td>
+                        <td><span class="role-user">재직원정보사</span></td>
+                        <td>kimchi05</td>
+                        <td>과장</td>
+                        <td>김명호</td>
+                        <td>9</td>
+                        <td></td>
+                        <td>본사</td>
+                        <td onmouseover="showBusinessLocations(this, event)" onmouseout="hideBusinessLocations()">
+                            <span>[본사]다람 학교<br>[본사]다람본사-운반<br>[본사]다람본사-도시락<br>[본사]다람 4거리터널사<br>[영남]영남서시 - 운반<br>[오거름]외식설시<br>[영남]영남서시 4거리터널사<br>[영남]영남서시 교육사<br>[영남]영남서시 차목사<br>이이림크리아<br>한국산업단지<br>아이위피</span>
+                            
+                            <div class="business-locations" id="businessLocations">
+                                <div class="business-location-item">[본사]다람 학교</div>
+                                <div class="business-location-item">[본사]다람본사-운반</div>
+                                <div class="business-location-item">[본사]다람본사-도시락</div>
+                                <div class="business-location-item">[본사]다람 4거리터널사</div>
+                                <div class="business-location-item">[영남]영남서시 - 운반</div>
+                                <div class="business-location-item">[오거름]외식설시</div>
+                                <div class="business-location-item">[영남]영남서시 4거리터널사</div>
+                                <div class="business-location-item">[영남]영남서시 교육사</div>
+                                <div class="business-location-item">[영남]영남서시 차목사</div>
+                                <div class="business-location-item">이이림크리아</div>
+                                <div class="business-location-item">한국산업단지</div>
+                                <div class="business-location-item">아이위피</div>
+                            </div>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 사용자 추가 기능
+        function addUser() {
+            alert('사용자 추가 기능을 구현해야 합니다.');
+        }
+
+        // 사용자 수정 기능
+        function editUser(userId) {
+            alert(`사용자 ID ${userId} 수정 기능을 구현해야 합니다.`);
+        }
+
+        // 사용자 삭제 기능
+        function deleteUser(userId) {
+            if (confirm(`사용자 ID ${userId}를 삭제하시겠습니까?`)) {
+                alert(`사용자 ID ${userId}가 삭제되었습니다.`);
+            }
+        }
+
+        // 권한 변경 기능
+        function changePermission(userId, permission) {
+            console.log(`사용자 ID ${userId}의 권한을 ${permission}로 변경`);
+        }
+
+        // 사업장 목록 표시
+        function showBusinessLocations(cell, event) {
+            const popup = document.getElementById('businessLocations');
+            popup.style.left = event.pageX + 10 + 'px';
+            popup.style.top = event.pageY + 10 + 'px';
+            popup.classList.add('show');
+        }
+
+        // 사업장 목록 숨기기
+        function hideBusinessLocations() {
+            const popup = document.getElementById('businessLocations');
+            popup.classList.remove('show');
+        }
+
+        // 전화번호 체크박스 변경
+        function togglePhoneContact(checkbox, phone) {
+            if (checkbox.checked) {
+                console.log(`전화번호 ${phone} 활성화됨`);
+            } else {
+                console.log(`전화번호 ${phone} 비활성화됨`);
+            }
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 수정 버튼들
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const row = e.target.closest('tr');
+                    const userId = row.querySelector('td:nth-child(5)').textContent;
+                    editUser(userId);
+                });
+            });
+
+            // 삭제 버튼들
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const row = e.target.closest('tr');
+                    const userId = row.querySelector('td:nth-child(5)').textContent;
+                    deleteUser(userId);
+                });
+            });
+
+            // 전화번호 체크박스들
+            document.querySelectorAll('.phone-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const phone = this.nextSibling.textContent.trim();
+                    togglePhoneContact(this, phone);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+INFO:     Will watch for changes in these directories: ['C:\\Dev\\daham-meal-management']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [14300] using StatReload
+INFO:     Started server process [14688]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Using PostgreSQL database
+INFO:     127.0.0.1:13311 - "GET /menu-items?limit=3 HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:13325 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13334 - "GET /menu-items/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:13358 - "POST /calculate-requirements HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'file_validator.py'. Reloading...
+ INFO:     127.0.0.1:1900 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14031 - "GET /suppliers/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14042 - "GET /suppliers HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14052 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8692 - "POST /calculate-requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1796 - "GET /suppliers/ HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:1796 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14250 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12850 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12851 - "GET /suppliers HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:12852 - "POST /calculate-requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14185 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:9903 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:9903 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13073 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:13074 - "GET /suppliers HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:13075 - "POST /calculate-requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8967 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8967 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:6172 - "POST /calculate-requirements HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:7284 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7300 - "GET /suppliers HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:7323 - "GET /suppliers HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:7331 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8559 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:8559 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3379 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:3379 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12723 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12723 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14518 - "GET / HTTP/1.1" 200 OK

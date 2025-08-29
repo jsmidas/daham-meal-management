@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식자재 파일 내용 조회 - 다함 메뉴관리 시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        /* Header Navigation */
+        .top-nav {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            background: white;
+            color: #F5881F;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #F5881F;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* File Info Header */
+        .file-info-header {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .file-info-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .file-main-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .file-icon-large {
+            font-size: 48px;
+            color: #28a745;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #F5881F;
+            margin-bottom: 8px;
+        }
+
+        .file-meta {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .file-stats {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #F5881F;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .file-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #F5881F;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .search-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pagination-info {
+            text-align: right;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Table Section */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .ingredient-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .ingredient-table th {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #E67309;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .ingredient-table td {
+            padding: 10px 8px;
+            border: 1px solid #e0e0e0;
+            vertical-align: middle;
+            font-size: 11px;
+        }
+
+        .ingredient-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .ingredient-table tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        /* Column specific styles */
+        .col-no { 
+            width: 50px; 
+            text-align: center;
+        }
+
+        .col-category { 
+            width: 100px; 
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .col-subcategory { 
+            width: 120px; 
+            font-size: 10px;
+        }
+
+        .col-code { 
+            width: 80px; 
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        .col-name { 
+            min-width: 200px; 
+            max-width: 300px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .col-origin { 
+            width: 80px; 
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .col-unit { 
+            width: 60px; 
+            text-align: center;
+        }
+
+        .col-price { 
+            width: 80px; 
+            text-align: right;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .col-supplier { 
+            width: 100px; 
+            text-align: center;
+        }
+
+        .col-notes { 
+            width: 150px; 
+            font-size: 10px;
+        }
+
+        /* Category colors */
+        .category-meat { background-color: #ffebee; }
+        .category-vegetable { background-color: #e8f5e8; }
+        .category-seafood { background-color: #ffeee6; }
+        .category-grain { background-color: #fff3e0; }
+        .category-seasoning { background-color: #f3e5f5; }
+        .category-dairy { background-color: #f9fbe7; }
+        .category-frozen { background-color: #e0f2f1; }
+
+        /* Price formatting */
+        .price-high { color: #dc3545; font-weight: bold; }
+        .price-medium { color: #fd7e14; }
+        .price-low { color: #28a745; }
+
+        /* Status indicators */
+        .status-available { 
+            background: #28a745; 
+            color: white; 
+            padding: 2px 6px; 
+            border-radius: 10px; 
+            font-size: 9px;
+        }
+
+        .status-limited { 
+            background: #ffc107; 
+            color: #333; 
+            padding: 2px 6px; 
+            border-radius: 10px; 
+            font-size: 9px;
+        }
+
+        .status-unavailable { 
+            background: #6c757d; 
+            color: white; 
+            padding: 2px 6px; 
+            border-radius: 10px; 
+            font-size: 9px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .file-info-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .ingredient-table {
+                font-size: 10px;
+            }
+        }
+
+        /* Scrollable table */
+        .table-wrapper {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        /* Loading animation */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="logo-section">
+            <div class="logo">다함</div>
+            <h2>식자재 파일 내용 조회</h2>
+        </div>
+        <div class="nav-buttons">
+            <a href="/ingredient-file-upload" class="nav-btn"><i class="fas fa-upload"></i> 파일 등록</a>
+            <a href="/ingredient-selection" class="nav-btn"><i class="fas fa-search"></i> 식자재 검색</a>
+            <a href="/supplier-management" class="nav-btn"><i class="fas fa-building"></i> 업체 관리</a>
+            <a href="/" class="nav-btn"><i class="fas fa-home"></i> 홈</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- File Info Header -->
+        <div class="file-info-header">
+            <div class="file-info-grid">
+                <div class="file-main-info">
+                    <i class="fas fa-file-excel file-icon-large"></i>
+                    <div class="file-details">
+                        <div class="file-title">사조푸디스트 08월 하반기 단가표</div>
+                        <div class="file-meta">
+                            <strong>파일명:</strong> 사조푸디스트_08월_하반기_단가표.xlsx<br>
+                            <strong>등록일시:</strong> 2025-08-28 14:32:15<br>
+                            <strong>파일크기:</strong> 2.3MB<br>
+                            <strong>공급업체:</strong> 사조푸디스트
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="file-stats">
+                    <span class="stat-number">15,344</span>
+                    <span class="stat-label">총 식자재 수</span>
+                </div>
+                
+                <div class="file-actions">
+                    <button class="btn btn-primary" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Excel 다운로드
+                    </button>
+                    <button class="btn btn-success" onclick="updatePrices()">
+                        <i class="fas fa-sync-alt"></i> 가격 업데이트
+                    </button>
+                    <button class="btn btn-warning" onclick="compareWithOther()">
+                        <i class="fas fa-balance-scale"></i> 타업체 비교
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteFile()">
+                        <i class="fas fa-trash"></i> 파일 삭제
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="search-group">
+                    <input type="text" class="search-input" placeholder="식자재명, 코드, 원산지로 검색..." 
+                           onkeyup="searchIngredients(this.value)">
+                    <button class="btn btn-primary" onclick="searchIngredients(document.querySelector('.search-input').value)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <input type="radio" id="all" name="category" value="all" checked onchange="filterByCategory(this.value)">
+                        <label for="all">전체</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="radio" id="meat" name="category" value="육류" onchange="filterByCategory(this.value)">
+                        <label for="meat">육류</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="radio" id="vegetable" name="category" value="채소" onchange="filterByCategory(this.value)">
+                        <label for="vegetable">채소</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="radio" id="seafood" name="category" value="수산물" onchange="filterByCategory(this.value)">
+                        <label for="seafood">수산물</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="radio" id="seasoning" name="category" value="조미료" onchange="filterByCategory(this.value)">
+                        <label for="seasoning">조미료</label>
+                    </div>
+                </div>
+                
+                <div class="pagination-info">
+                    <span>1-50 / 15,344개</span>
+                    <button class="btn btn-primary" style="margin-left: 10px;" onclick="loadMore()">더보기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table class="ingredient-table" id="ingredientTable">
+                    <thead>
+                        <tr>
+                            <th class="col-no">No</th>
+                            <th class="col-category">대분류</th>
+                            <th class="col-subcategory">세분류</th>
+                            <th class="col-code">고유코드</th>
+                            <th class="col-name">식자재명</th>
+                            <th class="col-origin">원산지</th>
+                            <th class="col-unit">단위</th>
+                            <th>면세</th>
+                            <th>선발주일</th>
+                            <th class="col-price">입고가</th>
+                            <th class="col-price">판매가</th>
+                            <th class="col-supplier">거래처명</th>
+                            <th class="col-notes">비고</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ingredientTableBody">
+                        <!-- 데이터는 JavaScript로 동적 로드 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 샘플 데이터
+        const sampleIngredients = [
+            {
+                no: 1,
+                category: "육류",
+                subcategory: "돼지고기",
+                code: "P001",
+                name: "삼겹살(냉동) 1kg",
+                origin: "국산",
+                unit: "kg",
+                taxFree: "N",
+                leadDays: 1,
+                purchasePrice: 15000,
+                sellPrice: 18000,
+                supplier: "사조푸디스트",
+                notes: "특가상품",
+                status: "available"
+            },
+            {
+                no: 2,
+                category: "채소",
+                subcategory: "엽채류",
+                code: "V001",
+                name: "배추 10kg",
+                origin: "국산",
+                unit: "포",
+                taxFree: "Y",
+                leadDays: 0,
+                purchasePrice: 25000,
+                sellPrice: 28000,
+                supplier: "사조푸디스트",
+                notes: "",
+                status: "available"
+            },
+            {
+                no: 3,
+                category: "수산물",
+                subcategory: "생선류",
+                code: "F001",
+                name: "고등어 20마리",
+                origin: "국산",
+                unit: "박스",
+                taxFree: "N",
+                leadDays: 1,
+                purchasePrice: 45000,
+                sellPrice: 52000,
+                supplier: "사조푸디스트",
+                notes: "냉동보관",
+                status: "limited"
+            },
+            {
+                no: 4,
+                category: "조미료",
+                subcategory: "장류",
+                code: "S001",
+                name: "된장 5kg",
+                origin: "국산",
+                unit: "통",
+                taxFree: "N",
+                leadDays: 7,
+                purchasePrice: 18000,
+                sellPrice: 21000,
+                supplier: "사조푸디스트",
+                notes: "유기농",
+                status: "available"
+            },
+            {
+                no: 5,
+                category: "곡류",
+                subcategory: "쌀류",
+                code: "G001",
+                name: "백미 20kg",
+                origin: "국산",
+                unit: "포",
+                taxFree: "Y",
+                leadDays: 3,
+                purchasePrice: 65000,
+                sellPrice: 72000,
+                supplier: "사조푸디스트",
+                notes: "햅쌀",
+                status: "available"
+            }
+        ];
+
+        // 테이블 데이터 로드
+        function loadTableData() {
+            const tbody = document.getElementById('ingredientTableBody');
+            tbody.innerHTML = '';
+
+            // 실제로는 더 많은 데이터를 반복 생성
+            for (let i = 0; i < 50; i++) {
+                const ingredient = {...sampleIngredients[i % sampleIngredients.length]};
+                ingredient.no = i + 1;
+                ingredient.code = ingredient.code.replace(/\d+/, String(i + 1).padStart(3, '0'));
+                
+                const row = createTableRow(ingredient);
+                tbody.appendChild(row);
+            }
+        }
+
+        // 테이블 행 생성
+        function createTableRow(ingredient) {
+            const row = document.createElement('tr');
+            
+            const categoryClass = getCategoryClass(ingredient.category);
+            const statusClass = `status-${ingredient.status}`;
+            const statusText = getStatusText(ingredient.status);
+            
+            row.className = categoryClass;
+            row.innerHTML = `
+                <td class="col-no">${ingredient.no}</td>
+                <td class="col-category">${ingredient.category}</td>
+                <td class="col-subcategory">${ingredient.subcategory}</td>
+                <td class="col-code">${ingredient.code}</td>
+                <td class="col-name">${ingredient.name}</td>
+                <td class="col-origin">${ingredient.origin}</td>
+                <td class="col-unit">${ingredient.unit}</td>
+                <td>${ingredient.taxFree}</td>
+                <td>${ingredient.leadDays}일</td>
+                <td class="col-price">₩${ingredient.purchasePrice.toLocaleString()}</td>
+                <td class="col-price">₩${ingredient.sellPrice.toLocaleString()}</td>
+                <td class="col-supplier">${ingredient.supplier}</td>
+                <td class="col-notes">${ingredient.notes}</td>
+                <td><span class="${statusClass}">${statusText}</span></td>
+            `;
+            
+            return row;
+        }
+
+        // 카테고리별 CSS 클래스
+        function getCategoryClass(category) {
+            const categoryMap = {
+                '육류': 'category-meat',
+                '채소': 'category-vegetable',
+                '수산물': 'category-seafood',
+                '곡류': 'category-grain',
+                '조미료': 'category-seasoning',
+                '유제품': 'category-dairy',
+                '냉동식품': 'category-frozen'
+            };
+            return categoryMap[category] || '';
+        }
+
+        // 상태별 텍스트
+        function getStatusText(status) {
+            const statusMap = {
+                'available': '공급가능',
+                'limited': '한정수량',
+                'unavailable': '공급중단'
+            };
+            return statusMap[status] || '알수없음';
+        }
+
+        // 검색 기능
+        function searchIngredients(query) {
+            const rows = document.querySelectorAll('#ingredientTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const showRow = query === '' || text.includes(query.toLowerCase());
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        // 카테고리별 필터
+        function filterByCategory(category) {
+            const rows = document.querySelectorAll('#ingredientTableBody tr');
+            
+            rows.forEach(row => {
+                const rowCategory = row.cells[1].textContent;
+                const showRow = category === 'all' || rowCategory === category;
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        // 더보기 기능
+        function loadMore() {
+            alert('더 많은 데이터를 로드합니다.');
+        }
+
+        // Excel 다운로드
+        function exportToExcel() {
+            alert('Excel 파일을 다운로드합니다.');
+        }
+
+        // 가격 업데이트
+        function updatePrices() {
+            if (confirm('최신 가격 정보로 업데이트하시겠습니까?')) {
+                alert('가격 정보를 업데이트합니다.');
+            }
+        }
+
+        // 타업체 비교
+        function compareWithOther() {
+            alert('다른 업체와 가격을 비교합니다.');
+        }
+
+        // 파일 삭제
+        function deleteFile() {
+            if (confirm('이 파일을 삭제하시겠습니까?\n모든 관련 데이터가 삭제됩니다.')) {
+                alert('파일이 삭제되었습니다.');
+                window.close();
+            }
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTableData();
+        });
+    </script>
+</body>
+</html>

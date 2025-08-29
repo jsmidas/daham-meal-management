@@ -1,0 +1,8 @@
+INFO:     Will watch for changes in these directories: ['C:\\Dev\\daham-meal-management']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [14216] using StatReload
+INFO:     Started server process [13936]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'test_system.py'. Reloading...
+ 

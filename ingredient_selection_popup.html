@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식자재 선택 - 다함 메뉴관리 시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Popup Container */
+        .popup-container {
+            display: flex;
+            height: 100vh;
+            background: white;
+        }
+
+        /* Left Panel - Search & Categories */
+        .left-panel {
+            width: 300px;
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .popup-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 15px;
+        }
+
+        .popup-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .popup-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Search Section */
+        .search-section {
+            margin-bottom: 25px;
+        }
+
+        .search-group {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #F5881F;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-chip:hover,
+        .filter-chip.active {
+            background: white;
+            color: #F5881F;
+        }
+
+        /* Category Section */
+        .category-section {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .category-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .category-tree {
+            list-style: none;
+        }
+
+        .category-item {
+            margin-bottom: 8px;
+        }
+
+        .category-main {
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .category-main:hover,
+        .category-main.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .category-main i {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .category-main.expanded i {
+            transform: rotate(90deg);
+        }
+
+        .category-sub {
+            margin-top: 8px;
+            margin-left: 15px;
+            display: none;
+        }
+
+        .category-sub.show {
+            display: block;
+        }
+
+        .subcategory-item {
+            padding: 6px 12px;
+            border-left: 2px solid rgba(255,255,255,0.3);
+            margin-bottom: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .subcategory-item:hover,
+        .subcategory-item.active {
+            border-left-color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Right Panel - Results */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Results Header */
+        .results-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .results-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .results-count {
+            font-size: 16px;
+            font-weight: bold;
+            color: #F5881F;
+        }
+
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sort-select {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+        }
+
+        .view-btn {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .view-btn.active {
+            background: #F5881F;
+            color: white;
+        }
+
+        /* Results Content */
+        .results-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Grid View */
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .ingredient-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .ingredient-card:hover {
+            border-color: #F5881F;
+            box-shadow: 0 4px 12px rgba(44, 90, 160, 0.1);
+        }
+
+        .ingredient-card.selected {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .ingredient-card.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .ingredient-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ingredient-name {
+            font-weight: bold;
+            color: #F5881F;
+            font-size: 14px;
+        }
+
+        .ingredient-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ingredient-price {
+            font-weight: bold;
+            color: #dc3545;
+            font-size: 14px;
+            text-align: right;
+            margin-top: 8px;
+        }
+
+        .ingredient-tags {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #f8f9fa;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .tag.origin { background: #ffeee6; color: #F5881F; }
+        .tag.category { background: #f3e5f5; color: #7b1fa2; }
+        .tag.supplier { background: #e8f5e8; color: #388e3c; }
+
+        /* List View */
+        .ingredient-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .ingredient-table th {
+            background: #f8f9fa;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 12px;
+        }
+
+        .ingredient-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 12px;
+        }
+
+        .ingredient-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .ingredient-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .ingredient-table tbody tr.selected {
+            background-color: #f8fff8;
+        }
+
+        .ingredient-table tbody tr.selected td:first-child::before {
+            content: '✓ ';
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        /* Bottom Panel - Selected Items */
+        .bottom-panel {
+            background: white;
+            border-top: 2px solid #e0e0e0;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .selected-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .selected-title {
+            font-weight: bold;
+            color: #F5881F;
+        }
+
+        .selected-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #F5881F;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .selected-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .selected-item {
+            background: #ffeee6;
+            border: 1px solid #F5881F;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selected-item .remove-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .selected-item .remove-btn:hover {
+            color: #dc3545;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .popup-container {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .ingredient-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Hidden class for view toggle */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="popup-header">
+                <div class="popup-title">식자재 선택</div>
+                <div class="popup-subtitle">레시피에 사용할 식자재를 선택하세요</div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-group">
+                    <input type="text" class="search-input" placeholder="식자재명, 코드로 검색..." 
+                           onkeyup="searchIngredients(this.value)">
+                    <button class="search-button" onclick="searchIngredients(document.querySelector('.search-input').value)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="search-filters">
+                    <span class="filter-chip active" onclick="filterBySupplier('all')">전체</span>
+                    <span class="filter-chip" onclick="filterBySupplier('사조푸디스트')">사조푸디스트</span>
+                    <span class="filter-chip" onclick="filterBySupplier('동원홈푸드')">동원홈푸드</span>
+                    <span class="filter-chip" onclick="filterBySupplier('CJ')">CJ</span>
+                    <span class="filter-chip" onclick="filterBySupplier('현대그린푸드')">현대그린푸드</span>
+                </div>
+            </div>
+
+            <!-- Category Section -->
+            <div class="category-section">
+                <div class="category-title">카테고리</div>
+                <ul class="category-tree">
+                    <li class="category-item">
+                        <div class="category-main" onclick="toggleCategory(this)">
+                            <span>육류 (1,245개)</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="category-sub">
+                            <div class="subcategory-item" onclick="selectSubcategory('돼지고기')">돼지고기 (523개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('소고기')">소고기 (312개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('닭고기')">닭고기 (267개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('기타육류')">기타육류 (143개)</div>
+                        </div>
+                    </li>
+                    <li class="category-item">
+                        <div class="category-main" onclick="toggleCategory(this)">
+                            <span>채소류 (2,156개)</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="category-sub">
+                            <div class="subcategory-item" onclick="selectSubcategory('엽채류')">엽채류 (456개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('근채류')">근채류 (234개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('과채류')">과채류 (567개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('버섯류')">버섯류 (123개)</div>
+                        </div>
+                    </li>
+                    <li class="category-item">
+                        <div class="category-main" onclick="toggleCategory(this)">
+                            <span>수산물 (1,567개)</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="category-sub">
+                            <div class="subcategory-item" onclick="selectSubcategory('생선류')">생선류 (678개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('패류')">패류 (234개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('갑각류')">갑각류 (123개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('기타수산물')">기타수산물 (532개)</div>
+                        </div>
+                    </li>
+                    <li class="category-item">
+                        <div class="category-main" onclick="toggleCategory(this)">
+                            <span>조미료 (856개)</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="category-sub">
+                            <div class="subcategory-item" onclick="selectSubcategory('장류')">장류 (156개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('양념류')">양념류 (234개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('향신료')">향신료 (178개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('기타조미료')">기타조미료 (288개)</div>
+                        </div>
+                    </li>
+                    <li class="category-item">
+                        <div class="category-main" onclick="toggleCategory(this)">
+                            <span>곡류 (445개)</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div class="category-sub">
+                            <div class="subcategory-item" onclick="selectSubcategory('쌀류')">쌀류 (89개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('면류')">면류 (156개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('가루류')">가루류 (123개)</div>
+                            <div class="subcategory-item" onclick="selectSubcategory('기타곡류')">기타곡류 (77개)</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Results Header -->
+            <div class="results-header">
+                <div class="results-info">
+                    <div class="results-count">전체 6,269개 식자재</div>
+                    <div class="sort-group">
+                        <label>정렬:</label>
+                        <select class="sort-select" onchange="sortIngredients(this.value)">
+                            <option value="name">이름순</option>
+                            <option value="price">가격순</option>
+                            <option value="supplier">업체순</option>
+                            <option value="category">카테고리순</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active" onclick="toggleView('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" onclick="toggleView('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Content -->
+            <div class="results-content">
+                <!-- Grid View -->
+                <div class="ingredient-grid" id="gridView">
+                    <!-- 그리드 아이템들이 JavaScript로 동적 생성 -->
+                </div>
+
+                <!-- List View -->
+                <table class="ingredient-table hidden" id="listView">
+                    <thead>
+                        <tr>
+                            <th>식자재명</th>
+                            <th>카테고리</th>
+                            <th>원산지</th>
+                            <th>단위</th>
+                            <th>가격</th>
+                            <th>업체</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 리스트 아이템들이 JavaScript로 동적 생성 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="bottom-panel">
+            <div class="selected-header">
+                <div class="selected-title">선택된 식자재 (<span id="selectedCount">0</span>개)</div>
+                <div class="selected-actions">
+                    <button class="btn btn-secondary" onclick="clearSelection()">모두 해제</button>
+                    <button class="btn btn-primary" onclick="addToRecipe()">레시피에 추가</button>
+                    <button class="btn btn-success" onclick="confirmSelection()">선택 완료</button>
+                </div>
+            </div>
+            <div class="selected-list" id="selectedList">
+                <!-- 선택된 아이템들이 JavaScript로 동적 생성 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let allIngredients = [];
+        let filteredIngredients = [];
+        let selectedIngredients = [];
+        let currentView = 'grid';
+
+        // 샘플 데이터
+        const sampleIngredients = [
+            { id: 1, name: "삼겹살(냉동) 1kg", category: "육류", subcategory: "돼지고기", origin: "국산", unit: "kg", price: 18000, supplier: "사조푸디스트", code: "P001" },
+            { id: 2, name: "배추 10kg", category: "채소류", subcategory: "엽채류", origin: "국산", unit: "포", price: 28000, supplier: "사조푸디스트", code: "V001" },
+            { id: 3, name: "고등어 20마리", category: "수산물", subcategory: "생선류", origin: "국산", unit: "박스", price: 52000, supplier: "동원홈푸드", code: "F001" },
+            { id: 4, name: "된장 5kg", category: "조미료", subcategory: "장류", origin: "국산", unit: "통", price: 21000, supplier: "CJ", code: "S001" },
+            { id: 5, name: "백미 20kg", category: "곡류", subcategory: "쌀류", origin: "국산", unit: "포", price: 72000, supplier: "현대그린푸드", code: "G001" },
+            { id: 6, name: "양파 5kg", category: "채소류", subcategory: "근채류", origin: "국산", unit: "망", price: 15000, supplier: "사조푸디스트", code: "V002" },
+            { id: 7, name: "소고기(등심) 1kg", category: "육류", subcategory: "소고기", origin: "국산", unit: "kg", price: 45000, supplier: "동원홈푸드", code: "P002" },
+            { id: 8, name: "새우 1kg", category: "수산물", subcategory: "갑각류", origin: "국산", unit: "kg", price: 35000, supplier: "CJ", code: "F002" }
+        ];
+
+        // 데이터 초기화
+        function initializeData() {
+            // 실제로는 더 많은 샘플 데이터 생성
+            for (let i = 0; i < 50; i++) {
+                const base = sampleIngredients[i % sampleIngredients.length];
+                allIngredients.push({
+                    ...base,
+                    id: i + 1,
+                    code: base.code.replace(/\d+/, String(i + 1).padStart(3, '0')),
+                    name: base.name + (i > 7 ? ` (${Math.floor(i/8) + 1})` : ''),
+                    price: base.price + (Math.random() * 5000 - 2500)
+                });
+            }
+            filteredIngredients = [...allIngredients];
+            renderIngredients();
+        }
+
+        // 식자재 렌더링
+        function renderIngredients() {
+            if (currentView === 'grid') {
+                renderGridView();
+            } else {
+                renderListView();
+            }
+        }
+
+        // 그리드 뷰 렌더링
+        function renderGridView() {
+            const grid = document.getElementById('gridView');
+            grid.innerHTML = '';
+            
+            filteredIngredients.forEach(ingredient => {
+                const card = document.createElement('div');
+                card.className = `ingredient-card ${selectedIngredients.some(s => s.id === ingredient.id) ? 'selected' : ''}`;
+                card.onclick = () => toggleSelection(ingredient);
+                
+                card.innerHTML = `
+                    <div class="ingredient-info">
+                        <div class="ingredient-name">${ingredient.name}</div>
+                        <div class="ingredient-details">
+                            <span>코드: ${ingredient.code}</span>
+                            <span>단위: ${ingredient.unit}</span>
+                            <span>카테고리: ${ingredient.subcategory}</span>
+                            <span>원산지: ${ingredient.origin}</span>
+                        </div>
+                        <div class="ingredient-price">₩${Math.round(ingredient.price).toLocaleString()}</div>
+                        <div class="ingredient-tags">
+                            <span class="tag origin">${ingredient.origin}</span>
+                            <span class="tag category">${ingredient.category}</span>
+                            <span class="tag supplier">${ingredient.supplier}</span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        // 리스트 뷰 렌더링
+        function renderListView() {
+            const tbody = document.querySelector('#listView tbody');
+            tbody.innerHTML = '';
+            
+            filteredIngredients.forEach(ingredient => {
+                const row = document.createElement('tr');
+                row.className = selectedIngredients.some(s => s.id === ingredient.id) ? 'selected' : '';
+                row.onclick = () => toggleSelection(ingredient);
+                
+                row.innerHTML = `
+                    <td>${ingredient.name}</td>
+                    <td>${ingredient.subcategory}</td>
+                    <td>${ingredient.origin}</td>
+                    <td>${ingredient.unit}</td>
+                    <td>₩${Math.round(ingredient.price).toLocaleString()}</td>
+                    <td>${ingredient.supplier}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // 선택 토글
+        function toggleSelection(ingredient) {
+            const index = selectedIngredients.findIndex(s => s.id === ingredient.id);
+            if (index > -1) {
+                selectedIngredients.splice(index, 1);
+            } else {
+                selectedIngredients.push(ingredient);
+            }
+            updateSelectedDisplay();
+            renderIngredients();
+        }
+
+        // 선택된 항목 표시 업데이트
+        function updateSelectedDisplay() {
+            const count = document.getElementById('selectedCount');
+            const list = document.getElementById('selectedList');
+            
+            count.textContent = selectedIngredients.length;
+            
+            list.innerHTML = '';
+            selectedIngredients.forEach(ingredient => {
+                const item = document.createElement('div');
+                item.className = 'selected-item';
+                item.innerHTML = `
+                    <span>${ingredient.name}</span>
+                    <button class="remove-btn" onclick="removeSelection(${ingredient.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // 선택 해제
+        function removeSelection(ingredientId) {
+            selectedIngredients = selectedIngredients.filter(s => s.id !== ingredientId);
+            updateSelectedDisplay();
+            renderIngredients();
+        }
+
+        // 뷰 토글
+        function toggleView(view) {
+            currentView = view;
+            
+            const gridView = document.getElementById('gridView');
+            const listView = document.getElementById('listView');
+            const buttons = document.querySelectorAll('.view-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (view === 'grid') {
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                buttons[0].classList.add('active');
+            } else {
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+                buttons[1].classList.add('active');
+            }
+            
+            renderIngredients();
+        }
+
+        // 카테고리 토글
+        function toggleCategory(element) {
+            const subCategory = element.nextElementSibling;
+            const icon = element.querySelector('i');
+            
+            element.classList.toggle('expanded');
+            subCategory.classList.toggle('show');
+        }
+
+        // 서브카테고리 선택
+        function selectSubcategory(subcategory) {
+            // 기존 선택 해제
+            document.querySelectorAll('.subcategory-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 새 선택 표시
+            event.target.classList.add('active');
+            
+            // 필터링
+            filteredIngredients = allIngredients.filter(ingredient => 
+                ingredient.subcategory === subcategory
+            );
+            
+            renderIngredients();
+        }
+
+        // 공급업체 필터
+        function filterBySupplier(supplier) {
+            // 버튼 상태 업데이트
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 필터링
+            if (supplier === 'all') {
+                filteredIngredients = [...allIngredients];
+            } else {
+                filteredIngredients = allIngredients.filter(ingredient => 
+                    ingredient.supplier === supplier
+                );
+            }
+            
+            renderIngredients();
+        }
+
+        // 검색
+        function searchIngredients(query) {
+            if (!query) {
+                filteredIngredients = [...allIngredients];
+            } else {
+                filteredIngredients = allIngredients.filter(ingredient => 
+                    ingredient.name.toLowerCase().includes(query.toLowerCase()) ||
+                    ingredient.code.toLowerCase().includes(query.toLowerCase())
+                );
+            }
+            renderIngredients();
+        }
+
+        // 정렬
+        function sortIngredients(sortBy) {
+            filteredIngredients.sort((a, b) => {
+                switch(sortBy) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'price':
+                        return a.price - b.price;
+                    case 'supplier':
+                        return a.supplier.localeCompare(b.supplier);
+                    case 'category':
+                        return a.category.localeCompare(b.category);
+                    default:
+                        return 0;
+                }
+            });
+            renderIngredients();
+        }
+
+        // 모든 선택 해제
+        function clearSelection() {
+            selectedIngredients = [];
+            updateSelectedDisplay();
+            renderIngredients();
+        }
+
+        // 레시피에 추가
+        function addToRecipe() {
+            if (selectedIngredients.length === 0) {
+                alert('선택된 식자재가 없습니다.');
+                return;
+            }
+            
+            // 부모 창으로 데이터 전달
+            if (window.opener && window.opener.addIngredientsToRecipe) {
+                window.opener.addIngredientsToRecipe(selectedIngredients);
+            }
+            
+            alert(`${selectedIngredients.length}개 식자재가 레시피에 추가되었습니다.`);
+        }
+
+        // 선택 완료
+        function confirmSelection() {
+            if (selectedIngredients.length === 0) {
+                alert('선택된 식자재가 없습니다.');
+                return;
+            }
+            
+            if (confirm(`${selectedIngredients.length}개 식자재를 선택하시겠습니까?`)) {
+                // 부모 창으로 데이터 전달
+                if (window.opener && window.opener.receiveSelectedIngredients) {
+                    window.opener.receiveSelectedIngredients(selectedIngredients);
+                }
+                
+                window.close();
+            }
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeData();
+            updateSelectedDisplay();
+        });
+
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+            if (e.ctrlKey && e.key === 'Enter') {
+                confirmSelection();
+            }
+        });
+    </script>
+</body>
+</html>

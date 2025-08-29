@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식자재업체관리 - 다함 메뉴관리 시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        /* Header Navigation */
+        .top-nav {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            background: white;
+            color: #F5881F;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #F5881F;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #F5881F;
+            margin-bottom: 10px;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            background: linear-gradient(135deg, #ffeee6 0%, #ffcc9a 100%);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 200px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #F5881F;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #E67309;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        /* Table Section */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .supplier-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .supplier-table th {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #E67309;
+            font-size: 13px;
+        }
+
+        .supplier-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            vertical-align: middle;
+            font-size: 12px;
+        }
+
+        .supplier-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .supplier-table tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        /* Status Badges */
+        .status-active {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .status-inactive {
+            background: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="logo-section">
+            <div class="logo">다함</div>
+            <h2>식자재업체관리</h2>
+        </div>
+        <div class="nav-buttons">
+            <a href="/" class="nav-btn"><i class="fas fa-home"></i> 본사/구매</a>
+            <a href="/weekly" class="nav-btn"><i class="fas fa-calendar-week"></i> 업장</a>
+            <a href="/meal-counts" class="nav-btn"><i class="fas fa-truck"></i> 배송팀</a>
+            <a href="/preprocessing" class="nav-btn"><i class="fas fa-warehouse"></i> 창고</a>
+            <a href="/cooking" class="nav-btn"><i class="fas fa-chart-line"></i> 통계</a>
+            <a href="/distribution" class="nav-btn active"><i class="fas fa-cog"></i> 관리</a>
+            <a href="#" class="nav-btn"><i class="fas fa-user"></i> 본사</a>
+            <a href="#" class="nav-btn"><i class="fas fa-sign-out-alt"></i> 로그아웃</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">거래처 관리</div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="radio-group">
+                <div class="radio-item">
+                    <input type="radio" id="all" name="status" value="all" checked>
+                    <label for="all">전체</label>
+                </div>
+                <div class="radio-item">
+                    <input type="radio" id="active" name="status" value="active">
+                    <label for="active">거래처사</label>
+                </div>
+                <div class="radio-item">
+                    <input type="radio" id="contact" name="status" value="contact">
+                    <label for="contact">연락처</label>
+                </div>
+                <div class="radio-item">
+                    <input type="radio" id="notes" name="status" value="notes">
+                    <label for="notes">주소</label>
+                </div>
+            </div>
+            
+            <div class="search-group">
+                <button class="btn btn-primary">검색</button>
+                <button class="btn btn-success">거래처 추가</button>
+                <button class="btn btn-info">업신 엑셀 파일시(님의 기간)</button>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-container">
+            <table class="supplier-table">
+                <thead>
+                    <tr>
+                        <th>NO</th>
+                        <th>기능</th>
+                        <th>거래</th>
+                        <th>거래처명</th>
+                        <th>연락처</th>
+                        <th style="width: 50px;">핸드폰</th>
+                        <th>주소</th>
+                        <th>ID번호</th>
+                        <th>비고</th>
+                        <th>유무</th>
+                        <th>미입금</th>
+                    </tr>
+                </thead>
+                <tbody id="supplierTableBody">
+                    <tr>
+                        <td>1</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>영유통</td>
+                        <td></td>
+                        <td>대구 서구</td>
+                        <td>young</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>CJ</td>
+                        <td></td>
+                        <td></td>
+                        <td>daham_cj</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>삼성벤스터리</td>
+                        <td></td>
+                        <td></td>
+                        <td>daham_wet</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>한국그린푸드</td>
+                        <td></td>
+                        <td></td>
+                        <td>daham_hd</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>삼보마트</td>
+                        <td></td>
+                        <td></td>
+                        <td>daham_sambo</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>삼성</td>
+                        <td></td>
+                        <td></td>
+                        <td>daham_ss</td>
+                        <td></td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>유</td>
+                        <td>동원홈푸드</td>
+                        <td>010-3519-8911</td>
+                        <td>서울 서초구 마법루 68 (양지동, 동원잡업빌딩) 지도</td>
+                        <td>daham_dw</td>
+                        <td>자동상성</td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>무</td>
+                        <td>다람푸드_시사체</td>
+                        <td>010-3542-1898</td>
+                        <td>대구 서구 국제산상조단 12-12 지도</td>
+                        <td></td>
+                        <td>대구 서구</td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td><button class="btn btn-sm btn-primary">수정</button></td>
+                        <td><span class="status-active">한국.제상사</span></td>
+                        <td>무</td>
+                        <td>푸디스트 한국산업</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>한국산업단지공단</td>
+                        <td></td>
+                        <td>0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 검색 기능
+        function searchSuppliers() {
+            const selectedFilter = document.querySelector('input[name="status"]:checked').value;
+            // 실제 검색 로직 구현
+            console.log('검색 필터:', selectedFilter);
+        }
+
+        // 거래처 추가 기능
+        function addSupplier() {
+            alert('거래처 추가 기능');
+        }
+
+        // 엑셀 업로드 기능
+        function uploadExcel() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.xlsx,.xls';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    console.log('업로드된 파일:', file.name);
+                    alert('엑셀 파일 업로드 기능을 구현해야 합니다.');
+                }
+            };
+            input.click();
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 검색 버튼
+            document.querySelector('.btn-primary').addEventListener('click', searchSuppliers);
+            
+            // 거래처 추가 버튼
+            document.querySelector('.btn-success').addEventListener('click', addSupplier);
+            
+            // 엑셀 업로드 버튼
+            document.querySelector('.btn-info').addEventListener('click', uploadExcel);
+
+            // 라디오 버튼 변경 시 자동 검색
+            document.querySelectorAll('input[name="status"]').forEach(radio => {
+                radio.addEventListener('change', searchSuppliers);
+            });
+        });
+    </script>
+</body>
+</html>

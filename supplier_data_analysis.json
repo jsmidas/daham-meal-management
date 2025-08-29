@@ -1,0 +1,302 @@
+{
+  "82_(사조푸디스트) 08월 하반기 단가표 _ 다함푸드 귀하..xlsx": {
+    "filename_info": {
+      "original_name": "82_(사조푸디스트) 08월 하반기 단가표 _ 다함푸드 귀하..xlsx",
+      "supplier": "사조푸디스트",
+      "period": "8월 하반기",
+      "type": null
+    },
+    "sheets": {
+      "8월하반기": {
+        "shape": [
+          15344,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "text",
+          "text",
+          "unit",
+          "unit",
+          "text",
+          "text",
+          "numeric",
+          "numeric",
+          "text",
+          "text"
+        ]
+      }
+    }
+  },
+  "82_동원홈푸드(다함푸드-영남)-25년 8월 16-31일.xlsx": {
+    "filename_info": {
+      "original_name": "82_동원홈푸드(다함푸드-영남)-25년 8월 16-31일.xlsx",
+      "supplier": "동원홈푸드",
+      "period": "25년 8월 16-31일",
+      "type": null
+    },
+    "sheets": {
+      "동원홈푸드-8월 하순기(오후 3시 30분마감)": {
+        "shape": [
+          15849,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "numeric",
+          "unit",
+          "text",
+          "text",
+          "unit",
+          "text",
+          "text",
+          "numeric",
+          "numeric",
+          "text"
+        ]
+      },
+      "동원홈푸드 경쟁력 있는 품목": {
+        "shape": [
+          64,
+          7
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "기본식자재(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "입고가",
+          "판매가",
+          "거래처명"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "numeric",
+          "unit",
+          "numeric",
+          "numeric",
+          "text"
+        ]
+      }
+    }
+  },
+  "82_영유통_단가표.xls-8월18~24.xlsx": {
+    "filename_info": {
+      "original_name": "82_영유통_단가표.xls-8월18~24.xlsx",
+      "supplier": "영유통",
+      "period": "8월18~24",
+      "type": null
+    },
+    "sheets": {
+      "Sheet1 (2)": {
+        "shape": [
+          91,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "unit",
+          "text",
+          "text",
+          "text",
+          "text",
+          "numeric",
+          "numeric",
+          "text"
+        ]
+      }
+    }
+  },
+  "82_현대그린푸드8월2차수견적서(다함푸드.요청양식)-송부용.xlsx": {
+    "filename_info": {
+      "original_name": "82_현대그린푸드8월2차수견적서(다함푸드.요청양식)-송부용.xlsx",
+      "supplier": "현대그린푸드",
+      "period": "8월2차",
+      "type": null
+    },
+    "sheets": {
+      "송부용": {
+        "shape": [
+          17190,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "numeric",
+          "text",
+          "text",
+          "text",
+          "unit",
+          "text",
+          "text",
+          "numeric",
+          "numeric",
+          "text"
+        ]
+      }
+    }
+  },
+  "82다함푸드 8월 하순 단가표 씨제이 0813.xlsx": {
+    "filename_info": {
+      "original_name": "82다함푸드 8월 하순 단가표 씨제이 0813.xlsx",
+      "supplier": "CJ",
+      "period": "8월 하순",
+      "type": null
+    },
+    "sheets": {
+      "양식": {
+        "shape": [
+          16714,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "numeric",
+          "unit",
+          "text",
+          "unit",
+          "text",
+          "numeric",
+          "numeric",
+          "numeric",
+          "text",
+          "unit"
+        ]
+      }
+    }
+  },
+  "food_sample.xls": {
+    "filename_info": {
+      "original_name": "food_sample.xls",
+      "supplier": "Sample",
+      "period": null,
+      "type": "template"
+    },
+    "sheets": {
+      "Sheet1": {
+        "shape": [
+          5,
+          13
+        ],
+        "has_header": true,
+        "data_start_row": 1,
+        "columns_info": [
+          "분류(대분류)",
+          "기본식자재(세분류)",
+          "고유코드",
+          "식자재명",
+          "원산지",
+          "게시유무",
+          "단위",
+          "면세",
+          "선발주일",
+          "입고가",
+          "판매가",
+          "거래처명",
+          "비고"
+        ],
+        "data_types": [
+          "text",
+          "text",
+          "text",
+          "numeric",
+          "text",
+          "text"
+        ]
+      }
+    }
+  }
+}

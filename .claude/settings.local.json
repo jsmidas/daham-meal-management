@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(.run_server.bat)",
+      "Bash(sqlite3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

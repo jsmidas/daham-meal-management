@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식단표 관리 - 다함식단관리시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+            line-height: 1.4;
+        }
+        
+        .navigation-bar {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .nav-item {
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            font-weight: 600;
+        }
+        
+        .nav-logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-right: 30px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .main-container {
+            height: calc(100vh - 140px);
+            padding: 20px;
+        }
+        
+        /* 캘린더 영역 (전체 화면 사용) */
+        .calendar-section {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        /* 캘린더 헤더 */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .calendar-nav button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .calendar-nav button:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .current-date {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        /* 캘린더 그리드 */
+        .calendar-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .calendar-grid th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        
+        .calendar-grid td {
+            height: auto;
+            min-height: calc(240px + var(--meal-slots, 15) * 25px);
+            width: 14.28%;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+            padding: 8px;
+            position: relative;
+            background: white;
+            transition: all 0.3s;
+        }
+        
+        .calendar-grid td:hover {
+            background: #f8fafc;
+        }
+        
+        .calendar-grid td.other-month {
+            background: #f8f9fa;
+            color: #a0aec0;
+        }
+        
+        .calendar-grid td.today {
+            background: #e6f3ff;
+            border-color: #3182ce;
+        }
+        
+        .date-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .date-number {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .manage-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .manage-btn:hover {
+            background: #38a169;
+            transform: scale(1.05);
+        }
+        
+        .total-cost {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .meal-summary {
+            font-size: 11px;
+            color: #555;
+            line-height: 1.3;
+            margin-top: 5px;
+            max-height: calc(var(--meal-slots, 15) * 25px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .meal-item {
+            background: #e2e8f0;
+            padding: 3px 5px;
+            margin: 2px 0;
+            border-radius: 3px;
+            font-size: 9px;
+            color: #4a5568;
+            line-height: 1.2;
+        }
+
+        .meal-item.meal-header {
+            background: #d1ecf1;
+            font-weight: bold;
+            border-left: 3px solid #007bff;
+            font-size: 11px;
+            padding: 4px 6px;
+        }
+
+        .meal-item.menu-detail {
+            background: #f8f9fa;
+            margin-left: 8px;
+            border-left: 2px solid #dee2e6;
+            padding: 4px 6px;
+        }
+        
+        /* 우측 메뉴 목록 스타일 */
+        .menu-list-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .menu-list-header h3 {
+            font-size: 16px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        
+        .menu-category {
+            margin-bottom: 20px;
+        }
+        
+        .menu-category h4 {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .menu-item {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            font-size: 12px;
+        }
+        
+        .menu-item:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+            transform: translateX(3px);
+        }
+        
+        .menu-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .menu-price {
+            float: right;
+            color: #38a169;
+            font-weight: 600;
+        }
+        
+        /* 식단 입력 모달 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .meal-input-modal {
+            background: white;
+            width: 98%;
+            max-width: 1600px;
+            height: 95%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        /* 새로운 드래그 앤 드롭 레이아웃 */
+        .meal-planning-layout {
+            display: flex;
+            gap: 30px;
+            height: 100%;
+            min-height: 500px;
+        }
+        
+        .meal-slots-section {
+            flex: 6.5;
+            background: #f8f9fb;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .meal-slots-section h4 {
+            margin: 0 0 15px 0;
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .menu-search-section {
+            flex: 3.5;
+            background: #fafbfc;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .menu-search-section h4, .menu-search-section h5 {
+            margin: 0 0 15px 0;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        
+        .menu-search-section h4 {
+            font-size: 16px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .menu-search-section h5 {
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        /* 축소된 식단 슬롯들 (2/3 크기) */
+        .meal-input-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
+        .meal-slot {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 12px;
+            background: white;
+            transition: all 0.3s;
+            min-height: 80px;
+            position: relative;
+        }
+        
+        .meal-slot.drag-over {
+            border-color: #667eea;
+            background: #eef2ff;
+            transform: scale(1.05);
+        }
+        
+        .meal-slot:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        
+        .meal-slot.has-menu {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .meal-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .menu-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+        }
+        
+        .menu-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-actions {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        /* 메뉴 검색 관련 스타일 */
+        .menu-search-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        
+        .menu-search {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .menu-search:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .menu-search-btn {
+            padding: 8px 10px;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .menu-search-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .selected-menu-info {
+            margin-top: 5px;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* 메뉴 검색 모달 */
+        .menu-search-modal {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            height: 70%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .search-input-container {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .search-input-container input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input-container input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .menu-search-results {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .menu-result-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .menu-result-item:hover {
+            border-color: #667eea;
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+        
+        .menu-result-item.selected {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .menu-result-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .menu-result-info {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* 메뉴 이력 및 검색 결과 스타일 */
+        .menu-list-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .menu-history, .menu-search-results-inline {
+            margin-bottom: 25px;
+        }
+        
+        .menu-history-items {
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            background: white;
+        }
+        
+        .menu-results-grid {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            background: white;
+        }
+        
+        /* 드래그 가능한 메뉴 아이템 - 컴팩트 디자인 */
+        .draggable-menu-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            margin: 2px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            cursor: grab;
+            transition: all 0.3s;
+            user-select: none;
+            font-size: 12px;
+            min-width: 120px;
+            max-width: 150px;
+        }
+        
+        .draggable-menu-item:hover {
+            border-color: #667eea;
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+        
+        .draggable-menu-item:active {
+            cursor: grabbing;
+        }
+        
+        .draggable-menu-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .menu-item-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .menu-item-details {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .menu-item-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .menu-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            margin-top: 2px;
+        }
+        
+        .menu-item-rating {
+            font-size: 9px;
+            color: #667eea;
+            white-space: nowrap;
+        }
+
+        .menu-item-ingredients {
+            color: #666;
+            font-size: 9px;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+        
+        .menu-item-cost {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        
+        /* 선택된 메뉴들 */
+        .selected-menu-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .selected-menu-name {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .selected-menu-cost {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+        .selected-menus-container {
+            min-height: 30px;
+            margin-top: 8px;
+        }
+        
+        .selected-menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 8px 10px;
+            margin: 4px 0;
+            background: #e6f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: move;
+            min-height: 50px;
+        }
+
+        .selected-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .selected-menu-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selected-menu-name {
+            font-weight: 600;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .selected-menu-cost {
+            color: #e74c3c;
+            font-weight: 600;
+            font-size: 10px;
+        }
+
+        .menu-color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            display: inline-block;
+            font-size: 0;
+            border: 1px solid #ddd;
+        }
+
+        .selected-menu-ingredients {
+            color: #666;
+            font-size: 10px;
+            margin-top: 4px;
+            line-height: 1.3;
+            width: 100%;
+        }
+        
+        .selected-menu-item:hover {
+            background: #cce7ff;
+        }
+        
+        .selected-menu-remove {
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .meal-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-total-cost {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <nav class="navigation-bar">
+        <div class="nav-logo">🍽️ 다함식단관리</div>
+        <a href="/" class="nav-item">메뉴 관리</a>
+        <a href="/meal-plan" class="nav-item active">식단 관리</a>
+        <a href="#" class="nav-item">발주 관리</a>
+        <a href="#" class="nav-item">통계</a>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="header">
+        <h1>📅 식단표 관리</h1>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="main-container">
+        <!-- 캘린더 영역 (전체 화면 사용) -->
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button onclick="previousMonth()">◀ 이전</button>
+                    <div class="current-date" id="currentDate">2025년 8월</div>
+                    <button onclick="nextMonth()">다음 ▶</button>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="goToToday()">오늘</button>
+                    <button class="btn btn-secondary" onclick="openMealInputModal('2025-08-29')" style="margin-left: 10px;">테스트</button>
+                </div>
+            </div>
+            
+            <table class="calendar-grid" id="calendar">
+                <thead>
+                    <tr>
+                        <th>일</th>
+                        <th>월</th>
+                        <th>화</th>
+                        <th>수</th>
+                        <th>목</th>
+                        <th>금</th>
+                        <th>토</th>
+                    </tr>
+                </thead>
+                <tbody id="calendarBody">
+                    <!-- 캘린더 내용이 여기에 동적으로 생성됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 식단 입력 모달 -->
+    <div class="modal-overlay" id="mealInputModal" style="z-index: 9999;" onclick="closeMealInputModal()">
+        <div class="meal-input-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalTitle">2025년 8월 29일 식단 입력</h3>
+                <button class="modal-close-btn" onclick="closeMealInputModal()">×</button>
+            </div>
+            
+            <div class="modal-content">
+                <!-- 새로운 레이아웃: 좌측은 식단 슬롯, 우측은 검색 및 메뉴 목록 -->
+                <div class="meal-planning-layout">
+                    <!-- 좌측: 식단 슬롯들 -->
+                    <div class="meal-slots-section">
+                        <h4>📋 식단 구성</h4>
+                        <div class="meal-input-grid" id="mealInputGrid">
+                            <!-- 15개 식단 입력 슬롯이 여기에 동적으로 생성됩니다 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 우측: 메뉴 검색 및 목록 -->
+                    <div class="menu-search-section">
+                        <h4>🔍 메뉴 검색</h4>
+                        <div class="search-input-container">
+                            <input type="text" id="mealPlanSearchInput" placeholder="메뉴명을 입력하세요..." 
+                                   onkeyup="searchMenusInMealPlan()" autocomplete="off">
+                        </div>
+                        
+                        <!-- 검색 결과 및 이력 -->
+                        <div class="menu-list-container">
+                            <div class="menu-history" id="menuHistory">
+                                <h5>📌 최근 검색한 메뉴</h5>
+                                <div class="menu-history-items" id="menuHistoryItems">
+                                    <!-- 검색 이력 메뉴들이 여기에 표시 -->
+                                </div>
+                            </div>
+                            
+                            <div class="menu-search-results-inline" id="menuSearchResultsInline">
+                                <h5>🍽️ 검색 결과</h5>
+                                <div class="menu-results-grid" id="menuResultsGrid">
+                                    <!-- 검색 결과가 여기에 표시 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeMealInputModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveMealPlan()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메뉴 검색 모달 -->
+    <div class="modal-overlay" id="menuSearchModal" style="z-index: 10000;">
+        <div class="menu-search-modal">
+            <div class="modal-header">
+                <h3>메뉴 검색 및 선택</h3>
+                <button class="modal-close-btn" onclick="closeMenuSearchModal()">×</button>
+            </div>
+            
+            <div class="modal-content">
+                <div class="search-input-container">
+                    <input type="text" id="menuSearchInput" placeholder="메뉴명을 입력하세요..." 
+                           onkeyup="searchMenus()" autocomplete="off">
+                </div>
+                
+                <div class="menu-search-results" id="menuSearchResults">
+                    <!-- 검색 결과가 여기에 표시됩니다 -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeMenuSearchModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentDate = new Date();
+        let selectedDate = null;
+        let mealData = {}; // 날짜별 식단 데이터 저장
+        let allMenus = []; // 전체 메뉴 데이터
+        let menuHistory = []; // 검색 이력
+        let menuCostsCache = {}; // 메뉴 원가 캐시
+        let menuIngredientsCache = {}; // 메뉴 식재료 캐시
+        let currentMealSlotIndex = -1; // 현재 선택 중인 식단 슬롯
+        
+        // 페이지 로드 시 캐시된 데이터 복원
+        function loadCachedData() {
+            try {
+                const cachedCosts = localStorage.getItem('menuCostsCache');
+                if (cachedCosts) {
+                    menuCostsCache = JSON.parse(cachedCosts);
+                }
+                
+                const cachedIngredients = localStorage.getItem('menuIngredientsCache');
+                if (cachedIngredients) {
+                    menuIngredientsCache = JSON.parse(cachedIngredients);
+                }
+                
+                console.log(`캐시 로드 완료: 원가 ${Object.keys(menuCostsCache).length}개, 식재료 ${Object.keys(menuIngredientsCache).length}개`);
+            } catch (error) {
+                console.error('캐시 데이터 로드 실패:', error);
+            }
+        }
+        
+        // 기본 15개 식단명 (수정 가능)
+        const defaultMealNames = [
+            '조식A', '조식B', '조식C',
+            '중식A', '중식B', '중식C',
+            '석식A', '석식B', '석식C',
+            '간식A', '간식B', '간식C',
+            '특식A', '특식B', '특식C'
+        ];
+        
+        // CSS 변수 설정으로 캘린더 크기 조정
+        function adjustCalendarSize() {
+            const mealSlotsCount = defaultMealNames.length;
+            document.documentElement.style.setProperty('--meal-slots', mealSlotsCount);
+            console.log(`캘린더 크기 조정: ${mealSlotsCount}개 식단으로 설정`);
+        }
+        
+        // 메뉴별 색상 결정 함수 (메뉴 종류에 따라 색상 구분)
+        function getMenuColor(menuName) {
+            // 메뉴명을 기반으로 색상을 결정하는 간단한 로직
+            // 실제로는 데이터베이스에 메뉴별 카테고리 정보가 있어야 함
+            const colorMap = {
+                '밥': '#ff6b6b',     // 빨간색 - 주식
+                '국': '#4ecdc4',     // 청록색 - 국물류
+                '찌개': '#4ecdc4',   // 청록색 - 국물류
+                '볶음': '#45b7d1',   // 파란색 - 볶음류
+                '무침': '#96ceb4',   // 초록색 - 나물류
+                '조림': '#feca57',   // 노란색 - 조림류
+                '구이': '#ff9ff3',   // 핑크색 - 구이류
+                '튀김': '#ff7675',   // 주황색 - 튀김류
+                '김치': '#fd79a8',   // 분홍색 - 김치류
+                '양념': '#fdcb6e'    // 연노란색 - 양념류
+            };
+            
+            // 메뉴명에서 키워드를 찾아 색상 결정
+            for (let [keyword, color] of Object.entries(colorMap)) {
+                if (menuName.includes(keyword)) {
+                    return color;
+                }
+            }
+            
+            // 기본 색상 (보라색)
+            return '#a29bfe';
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadCachedData(); // 캐시된 데이터 먼저 복원
+            adjustCalendarSize(); // 캘린더 크기 먼저 조정
+            await loadMenuData();
+            generateCalendar();
+            loadMealData();
+        });
+        
+        // 메뉴 데이터 로드
+        async function loadMenuData() {
+            try {
+                const response = await fetch('/recipes');
+                const result = await response.json();
+                if (result.success) {
+                    allMenus = result.data;
+                    console.log('메뉴 데이터 로드 완료:', allMenus.length, '개');
+                }
+            } catch (error) {
+                console.error('메뉴 데이터 로드 실패:', error);
+            }
+        }
+        
+        // 캘린더 생성
+        async function generateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // 현재 월 첫째 날과 마지막 날
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // 헤더 업데이트
+            document.getElementById('currentDate').textContent = 
+                `${year}년 ${month + 1}월`;
+            
+            // 캘린더 바디 생성
+            const calendarBody = document.getElementById('calendarBody');
+            calendarBody.innerHTML = '';
+            
+            let currentWeekDate = new Date(startDate);
+            
+            for (let week = 0; week < 6; week++) {
+                const row = document.createElement('tr');
+                
+                for (let day = 0; day < 7; day++) {
+                    const cell = document.createElement('td');
+                    const dateKey = formatDate(currentWeekDate);
+                    const isCurrentMonth = currentWeekDate.getMonth() === month;
+                    const isToday = dateKey === formatDate(new Date());
+                    
+                    // 셀 클래스 설정
+                    if (!isCurrentMonth) {
+                        cell.classList.add('other-month');
+                    }
+                    if (isToday) {
+                        cell.classList.add('today');
+                    }
+                    
+                    // 날짜 헤더 (날짜 + 관리 버튼을 나란히 배치)
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'date-header';
+                    
+                    const dateNumber = document.createElement('div');
+                    dateNumber.className = 'date-number';
+                    dateNumber.textContent = currentWeekDate.getDate();
+                    dateHeader.appendChild(dateNumber);
+                    
+                    // 관리 버튼 (현재 월만)
+                    if (isCurrentMonth) {
+                        const manageBtn = document.createElement('button');
+                        manageBtn.className = 'manage-btn';
+                        manageBtn.textContent = '관리';
+                        manageBtn.onclick = () => openMealInputModal(dateKey);
+                        dateHeader.appendChild(manageBtn);
+                    }
+                    
+                    cell.appendChild(dateHeader);
+                    
+                    // 식단 요약 표시 (현재 월만)
+                    if (isCurrentMonth) {
+                        const mealSummary = document.createElement('div');
+                        mealSummary.className = 'meal-summary';
+                        
+                        if (mealData[dateKey] && mealData[dateKey].length > 0) {
+                            // 모든 메뉴의 식재료 정보를 먼저 로드
+                            const allMenuNames = [];
+                            mealData[dateKey].forEach(meal => {
+                                const menus = meal.menus || [meal.menu].filter(Boolean);
+                                allMenuNames.push(...menus);
+                            });
+                            
+                            if (allMenuNames.length > 0) {
+                                await getMenuIngredients(allMenuNames);
+                            }
+                            
+                            mealData[dateKey].forEach(meal => {
+                                const menus = meal.menus || [meal.menu].filter(Boolean);
+                                if (menus.length > 0) {
+                                    // 식단명과 총 금액 표시
+                                    let mealTotalCost = 0;
+                                    menus.forEach(menuName => {
+                                        const cost = menuCostsCache[menuName] || 0;
+                                        mealTotalCost += cost;
+                                    });
+                                    
+                                    const mealHeaderItem = document.createElement('div');
+                                    mealHeaderItem.className = 'meal-item meal-header';
+                                    mealHeaderItem.innerHTML = `
+                                        <div style="font-weight: bold; color: #2d3748; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+                                            <span>${meal.name}</span>
+                                            <span style="color: #e74c3c; font-size: 10px;">￦${mealTotalCost.toLocaleString()}</span>
+                                        </div>
+                                    `;
+                                    mealSummary.appendChild(mealHeaderItem);
+                                    
+                                    // 각 메뉴별 상세 표시
+                                    menus.forEach((menuName) => {
+                                        const cost = menuCostsCache[menuName] || 0;
+                                        const costDisplay = cost > 0 ? `￦${cost}` : '원가미산정';
+                                        
+                                        // 식재료 정보 가져오기
+                                        const ingredientInfo = menuIngredientsCache[menuName];
+                                        let ingredientsDisplay = '';
+                                        if (ingredientInfo && ingredientInfo.ingredients) {
+                                            const ingredients = ingredientInfo.ingredients.slice(0, 7); // 최대 7개
+                                            ingredientsDisplay = ingredients.map(ing => `■다)${ing}`).join('<br>');
+                                        }
+                                        
+                                        const menuDetailItem = document.createElement('div');
+                                        menuDetailItem.className = 'meal-item menu-detail';
+                                        menuDetailItem.innerHTML = `
+                                            <div style="font-size: 10px; line-height: 1.4; color: #555;">
+                                                <div style="font-weight: 600; margin-bottom: 2px; color: #2d3748; display: flex; align-items: center; gap: 5px;">
+                                                    <span class="menu-color-box" style="background-color: ${getMenuColor(menuName)}; width: 10px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid #ccc;">□</span>
+                                                    <span>${menuName}</span>
+                                                    <span style="color: #e74c3c; font-weight: bold; font-size: 9px;">${costDisplay}</span>
+                                                </div>
+                                                ${ingredientsDisplay ? `<div style="color: #777; font-size: 8px; margin-left: 15px; line-height: 1.3;">${ingredientsDisplay}</div>` : ''}
+                                            </div>
+                                        `;
+                                        mealSummary.appendChild(menuDetailItem);
+                                    });
+                                }
+                            });
+                        }
+                        
+                        cell.appendChild(mealSummary);
+                        
+                        // 총 금액 표시
+                        const totalCost = calculateDayTotal(dateKey);
+                        if (totalCost > 0) {
+                            const totalCostDiv = document.createElement('div');
+                            totalCostDiv.className = 'total-cost';
+                            totalCostDiv.textContent = `${totalCost.toLocaleString()}원`;
+                            cell.appendChild(totalCostDiv);
+                        }
+                    }
+                    
+                    row.appendChild(cell);
+                    currentWeekDate.setDate(currentWeekDate.getDate() + 1);
+                }
+                
+                calendarBody.appendChild(row);
+            }
+        }
+        
+        // 날짜 형식 변환
+        function formatDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        
+        // 이전/다음 월
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            generateCalendar();
+        }
+        
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            generateCalendar();
+        }
+        
+        function goToToday() {
+            currentDate = new Date();
+            generateCalendar();
+        }
+        
+        // 식단 입력 모달 열기
+        function openMealInputModal(dateKey) {
+            console.log('Opening meal input modal for date:', dateKey);
+            selectedDate = dateKey;
+            const date = new Date(dateKey);
+            const modalTitle = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 식단 입력`;
+            document.getElementById('modalTitle').textContent = modalTitle;
+            
+            // 15개 식단 입력 슬롯 생성
+            const mealInputGrid = document.getElementById('mealInputGrid');
+            mealInputGrid.innerHTML = '';
+            
+            const currentMealData = mealData[dateKey] || defaultMealNames.map(name => ({ name, menu: '' }));
+            
+            currentMealData.forEach((meal, index) => {
+                const mealSlot = document.createElement('div');
+                mealSlot.className = 'meal-slot';
+                mealSlot.setAttribute('data-slot-index', index);
+                
+                // 드롭 이벤트 리스너 추가
+                mealSlot.addEventListener('dragover', handleDragOver);
+                mealSlot.addEventListener('drop', handleDrop);
+                mealSlot.addEventListener('dragleave', handleDragLeave);
+                
+                const selectedMenus = meal.menus || [meal.menu].filter(Boolean);
+                
+                mealSlot.innerHTML = `
+                    <div class="meal-name">
+                        ${meal.name}
+                        <span class="meal-total-cost" id="totalCost${index}">0원</span>
+                    </div>
+                    <div class="selected-menus-container" id="selectedMenus${index}">
+                        ${selectedMenus.map((menuName, menuIndex) => {
+                            const cost = menuCostsCache[menuName] || 0;
+                            const costDisplay = cost > 0 ? `${cost.toLocaleString()}원` : '원가미산정';
+                            return `
+                            <div class="selected-menu-item" draggable="true" 
+                                 data-menu-name="${menuName}" data-menu-index="${menuIndex}">
+                                <div class="selected-menu-header">
+                                    <div class="selected-menu-name">
+                                        <span class="menu-color-box" style="background-color: ${getMenuColor(menuName)};">□</span>
+                                        ${menuName}
+                                    </div>
+                                    <div class="selected-menu-actions">
+                                        <span class="selected-menu-cost">${costDisplay}</span>
+                                        <button class="selected-menu-remove" onclick="removeSelectedMenu(${index}, ${menuIndex})">×</button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+                mealInputGrid.appendChild(mealSlot);
+                
+                // 각 식단의 총 금액 업데이트
+                updateMealTotalCost(index);
+            });
+            
+            // 검색창 초기화 및 이력 표시
+            document.getElementById('mealPlanSearchInput').value = '';
+            displayMenuHistory();
+            displayInitialMenus();
+            
+            const modal = document.getElementById('mealInputModal');
+            modal.classList.add('active');
+            console.log('Modal should now be visible:', modal.classList.contains('active'));
+        }
+        
+        // 식단 입력 모달 닫기
+        function closeMealInputModal() {
+            document.getElementById('mealInputModal').classList.remove('active');
+            selectedDate = null;
+        }
+        
+        // 식단 저장
+        function saveMealPlan() {
+            if (!selectedDate) return;
+            
+            const mealPlan = defaultMealNames.map((name, index) => {
+                const container = document.getElementById(`selectedMenus${index}`);
+                const selectedMenus = Array.from(container.querySelectorAll('.selected-menu-item'))
+                    .map(item => item.dataset.menuName);
+                
+                return {
+                    name,
+                    menus: selectedMenus,
+                    menu: selectedMenus[0] || '' // 호환성을 위해 첫 번째 메뉴를 menu로도 저장
+                };
+            });
+            
+            mealData[selectedDate] = mealPlan;
+            
+            // 로컬 스토리지에 저장
+            localStorage.setItem('mealPlanData', JSON.stringify(mealData));
+            
+            // 캘린더 다시 그리기
+            generateCalendar();
+            
+            // 모달 닫기
+            closeMealInputModal();
+            
+            alert('식단이 저장되었습니다.');
+        }
+        
+        // 데이터 로드
+        function loadMealData() {
+            const saved = localStorage.getItem('mealPlanData');
+            if (saved) {
+                mealData = JSON.parse(saved);
+            }
+        }
+        
+        // 하루 총 금액 계산 (임시로 고정 가격 사용)
+        function calculateDayTotal(dateKey) {
+            if (!mealData[dateKey] || mealData[dateKey].length === 0) {
+                return 0;
+            }
+            
+            let total = 0;
+            mealData[dateKey].forEach(meal => {
+                const menus = meal.menus || [meal.menu].filter(Boolean);
+                menus.forEach(menuName => {
+                    const cost = menuCostsCache[menuName] || 0;
+                    total += cost;
+                });
+            });
+            
+            return total;
+        }
+        
+        // 메뉴 검색 모달 열기
+        function openMenuSearch(slotIndex) {
+            currentMealSlotIndex = slotIndex;
+            document.getElementById('menuSearchInput').value = '';
+            document.getElementById('menuSearchResults').innerHTML = '';
+            
+            // 초기 메뉴 목록 표시 (최대 50개)
+            displayMenuResults(allMenus.slice(0, 50));
+            
+            document.getElementById('menuSearchModal').classList.add('active');
+            document.getElementById('menuSearchInput').focus();
+        }
+        
+        // 메뉴 검색 모달 닫기
+        function closeMenuSearchModal() {
+            document.getElementById('menuSearchModal').classList.remove('active');
+            currentMealSlotIndex = -1;
+        }
+        
+        // 메뉴 검색 실행
+        function searchMenus() {
+            const searchTerm = document.getElementById('menuSearchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                // 검색어가 없으면 전체 목록 일부 표시
+                displayMenuResults(allMenus.slice(0, 50));
+                return;
+            }
+            
+            // 검색어로 필터링
+            const filteredMenus = allMenus.filter(menu => 
+                menu.name.toLowerCase().includes(searchTerm) ||
+                (menu.notes && menu.notes.toLowerCase().includes(searchTerm))
+            );
+            
+            displayMenuResults(filteredMenus.slice(0, 100)); // 최대 100개 결과
+        }
+        
+        // 검색 결과 표시
+        function displayMenuResults(menus) {
+            const resultsContainer = document.getElementById('menuSearchResults');
+            
+            if (menus.length === 0) {
+                resultsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">검색 결과가 없습니다.</div>';
+                return;
+            }
+            
+            resultsContainer.innerHTML = menus.map(menu => `
+                <div class="menu-result-item" onclick="selectMenu('${menu.name}', ${menu.id})">
+                    <div>
+                        <div class="menu-result-name">${menu.name}</div>
+                        <div class="menu-result-info">${menu.notes || '메뉴 설명 없음'} • 평점: ${menu.evaluation_score || 'N/A'}/5</div>
+                    </div>
+                    <div class="menu-result-score" style="color: #667eea; font-weight: 600;">
+                        ★${menu.evaluation_score || 'N/A'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 새로운 검색 기능
+        // 검색된 메뉴들의 원가 계산
+        async function calculateMenuCosts(menuNames) {
+            try {
+                // 이미 캐시된 메뉴들 제외
+                const uncachedMenus = menuNames.filter(name => !menuCostsCache[name]);
+                
+                if (uncachedMenus.length > 0) {
+                    const response = await fetch('/api/calculate_menu_costs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ menu_names: uncachedMenus })
+                    });
+                    
+                    const costs = await response.json();
+                    
+                    // 캐시에 저장 (로컬 스토리지에도 저장하여 영구 보존)
+                    Object.assign(menuCostsCache, costs);
+                    localStorage.setItem('menuCostsCache', JSON.stringify(menuCostsCache));
+                }
+                
+                return menuNames.map(name => menuCostsCache[name] || 0);
+                
+            } catch (error) {
+                console.error('메뉴 원가 계산 실패:', error);
+                return menuNames.map(() => 0);
+            }
+        }
+
+        // 메뉴별 식재료 정보 가져오기 - 배치 처리로 성능 최적화
+        async function getMenuIngredients(menuNames) {
+            try {
+                // 이미 캐시된 메뉴들 제외
+                const uncachedMenus = menuNames.filter(name => !menuIngredientsCache[name]);
+                
+                if (uncachedMenus.length > 0) {
+                    // 50개씩 배치로 나누어 처리하여 서버 부하 감소
+                    const batchSize = 50;
+                    for (let i = 0; i < uncachedMenus.length; i += batchSize) {
+                        const batch = uncachedMenus.slice(i, i + batchSize);
+                        
+                        const response = await fetch('/api/menus_ingredients', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ menu_names: batch })
+                        });
+                        
+                        if (response.ok) {
+                            const ingredients = await response.json();
+                            
+                            // 캐시에 저장 (로컬 스토리지에도 저장하여 영구 보존)
+                            Object.assign(menuIngredientsCache, ingredients);
+                            localStorage.setItem('menuIngredientsCache', JSON.stringify(menuIngredientsCache));
+                        }
+                        
+                        // 배치 간 짧은 지연으로 서버 부하 방지
+                        if (i + batchSize < uncachedMenus.length) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                    }
+                }
+                
+                return menuNames.map(name => menuIngredientsCache[name] || { ingredients: ['정보없음'] });
+                
+            } catch (error) {
+                console.error('메뉴 식재료 정보 로드 실패:', error);
+                return menuNames.map(() => ({ ingredients: ['정보없음'] }));
+            }
+        }
+
+        async function searchMenusInMealPlan() {
+            const searchTerm = document.getElementById('mealPlanSearchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                displayInitialMenus();
+                return;
+            }
+            
+            const filteredMenus = allMenus.filter(menu => 
+                menu.name.toLowerCase().includes(searchTerm) ||
+                (menu.notes && menu.notes.toLowerCase().includes(searchTerm))
+            );
+            
+            // 검색된 메뉴들의 원가 계산 및 식재료 정보 로드
+            const menuNames = filteredMenus.slice(0, 50).map(menu => menu.name); // 최대 50개까지만
+            await calculateMenuCosts(menuNames);
+            await getMenuIngredients(menuNames); // 식재료 정보도 함께 로드
+            
+            displaySearchResults(filteredMenus.slice(0, 100)); // 더 많은 검색 결과 표시
+        }
+        
+        // 초기 메뉴 목록 표시
+        async function displayInitialMenus() {
+            const container = document.getElementById('menuResultsGrid');
+            const popularMenus = allMenus
+                .filter(menu => menu.evaluation_score >= 4)
+                .slice(0, 50); // 더 많은 인기 메뉴 표시
+            
+            // 인기 메뉴들의 원가 및 식재료 정보 계산
+            const menuNames = popularMenus.map(menu => menu.name);
+            await calculateMenuCosts(menuNames);
+            await getMenuIngredients(menuNames);
+            
+            displayMenuItems(container, popularMenus, '인기 메뉴');
+        }
+        
+        // 검색 결과 표시
+        function displaySearchResults(menus) {
+            const container = document.getElementById('menuResultsGrid');
+            displayMenuItems(container, menus, '검색 결과');
+        }
+        
+        // 메뉴 이력 표시
+        async function displayMenuHistory() {
+            const container = document.getElementById('menuHistoryItems');
+            const uniqueHistory = [...new Set(menuHistory)].slice(0, 30); // 더 많은 이력 표시
+            
+            if (uniqueHistory.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">검색 이력이 없습니다.</div>';
+                return;
+            }
+            
+            const historyMenus = allMenus.filter(menu => uniqueHistory.includes(menu.name));
+            
+            // 이력 메뉴들의 원가 및 식재료 정보 계산
+            const menuNames = historyMenus.map(menu => menu.name);
+            await calculateMenuCosts(menuNames);
+            await getMenuIngredients(menuNames);
+            
+            displayMenuItems(container, historyMenus, '최근 사용');
+        }
+        
+        // 드래그 가능한 메뉴 아이템들 표시 (원가 정보 포함)
+        function displayMenuItems(container, menus, category) {
+            if (menus.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: #666; padding: 20px;">${category} 없음</div>`;
+                return;
+            }
+            
+            container.innerHTML = menus.map(menu => {
+                const cost = menuCostsCache[menu.name];
+                const costDisplay = cost !== undefined 
+                    ? (cost > 0 ? `${cost.toLocaleString()}원` : '원가미산정')
+                    : '계산중...';
+                
+                const ingredientInfo = menuIngredientsCache[menu.name];
+                const ingredients = ingredientInfo ? ingredientInfo.ingredients : ['정보없음'];
+                const ingredientDisplay = ingredients.slice(0, 5).join(', '); // 최대 5개까지만
+                
+                return `
+                    <div class="draggable-menu-item" 
+                         draggable="true" 
+                         data-menu-name="${menu.name}"
+                         data-menu-id="${menu.id}">
+                        <div class="menu-item-content">
+                            <div class="menu-item-icon">🍽️</div>
+                            <div class="menu-item-details">
+                                <div class="menu-item-name">
+                                    <span class="menu-color-box" style="background-color: ${getMenuColor(menu.name)};">□</span>
+                                    ${menu.name}
+                                </div>
+                                <div class="menu-item-ingredients">${ingredientDisplay}</div>
+                                <div class="menu-item-meta">
+                                    <span class="menu-item-rating">★${menu.evaluation_score || 'N/A'}</span>
+                                    <span class="menu-item-cost">${costDisplay}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 드래그 이벤트 리스너 추가
+            container.querySelectorAll('.draggable-menu-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+        
+        // 드래그 시작
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.menuName);
+            e.dataTransfer.effectAllowed = 'copy';
+        }
+        
+        // 드래그 종료
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+        
+        // 드래그 오버
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        // 드래그 리브
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        // 드롭 처리
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const menuName = e.dataTransfer.getData('text/plain');
+            const slotIndex = parseInt(e.currentTarget.dataset.slotIndex);
+            
+            if (menuName && slotIndex >= 0) {
+                addMenuToSlot(slotIndex, menuName);
+            }
+        }
+        
+        // 슬롯에 메뉴 추가
+        function addMenuToSlot(slotIndex, menuName) {
+            const container = document.getElementById(`selectedMenus${slotIndex}`);
+            
+            // 이미 존재하는 메뉴인지 확인
+            const existingMenus = container.querySelectorAll('.selected-menu-item');
+            for (let item of existingMenus) {
+                if (item.dataset.menuName === menuName) {
+                    return; // 이미 존재함
+                }
+            }
+            
+            // 새 메뉴 아이템 생성
+            const menuIndex = existingMenus.length;
+            const menuItem = document.createElement('div');
+            menuItem.className = 'selected-menu-item';
+            menuItem.setAttribute('draggable', 'true');
+            menuItem.setAttribute('data-menu-name', menuName);
+            menuItem.setAttribute('data-menu-index', menuIndex);
+            
+            // 메뉴 원가 정보 가져오기
+            const cost = menuCostsCache[menuName];
+            const costDisplay = cost !== undefined 
+                ? (cost > 0 ? `${cost.toLocaleString()}원` : '원가미산정')
+                : '계산중...';
+                
+            // 메뉴 식재료 정보 가져오기
+            const ingredientInfo = menuIngredientsCache[menuName];
+            const ingredients = ingredientInfo ? ingredientInfo.ingredients : ['정보없음'];
+            const ingredientDisplay = ingredients.slice(0, 4).join(', '); // 최대 4개까지만
+            
+            menuItem.innerHTML = `
+                <div class="selected-menu-header">
+                    <div class="selected-menu-name">
+                        <span class="menu-color-box" style="background-color: ${getMenuColor(menuName)};">□</span>
+                        ${menuName}
+                    </div>
+                    <div class="selected-menu-actions">
+                        <span class="selected-menu-cost">${costDisplay}</span>
+                        <button class="selected-menu-remove" onclick="removeSelectedMenu(${slotIndex}, ${menuIndex})">×</button>
+                    </div>
+                </div>
+                <div class="selected-menu-ingredients">${ingredientDisplay}</div>
+            `;
+            
+            container.appendChild(menuItem);
+            
+            // 검색 이력에 추가
+            if (!menuHistory.includes(menuName)) {
+                menuHistory.unshift(menuName);
+                menuHistory = menuHistory.slice(0, 50); // 최대 50개만 보관
+                displayMenuHistory();
+            }
+            
+            // 식단 데이터 저장
+            saveMealData();
+            
+            // 총 금액 업데이트 (캘린더용)
+            updateTotalCost(slotIndex);
+            
+            // 식단 입력 모달용 총 금액 업데이트
+            updateMealTotalCost(slotIndex);
+        }
+
+        // 식단 입력 모달에서 개별 식단의 총 금액 업데이트
+        async function updateMealTotalCost(slotIndex) {
+            const container = document.getElementById(`selectedMenus${slotIndex}`);
+            if (!container) return;
+            
+            const menuItems = container.querySelectorAll('.selected-menu-item');
+            const menuNames = Array.from(menuItems).map(item => item.getAttribute('data-menu-name'));
+            
+            if (menuNames.length > 0) {
+                // 메뉴들의 원가 계산
+                await calculateMenuCosts(menuNames);
+                
+                let totalCost = 0;
+                menuNames.forEach(menuName => {
+                    const cost = menuCostsCache[menuName] || 0;
+                    totalCost += cost;
+                });
+                
+                // 식단별 총 금액 표시 업데이트
+                const totalCostElement = document.getElementById(`totalCost${slotIndex}`);
+                if (totalCostElement) {
+                    totalCostElement.textContent = `${totalCost.toLocaleString()}원`;
+                }
+            } else {
+                // 메뉴가 없으면 0원 표시
+                const totalCostElement = document.getElementById(`totalCost${slotIndex}`);
+                if (totalCostElement) {
+                    totalCostElement.textContent = '0원';
+                }
+            }
+        }
+        
+        // 선택된 메뉴 제거
+        function removeSelectedMenu(slotIndex, menuIndex) {
+            const container = document.getElementById(`selectedMenus${slotIndex}`);
+            const menuItems = container.querySelectorAll('.selected-menu-item');
+            if (menuItems[menuIndex]) {
+                menuItems[menuIndex].remove();
+                
+                // 인덱스 재정렬
+                container.querySelectorAll('.selected-menu-item').forEach((item, index) => {
+                    item.setAttribute('data-menu-index', index);
+                    const removeBtn = item.querySelector('.selected-menu-remove');
+                    removeBtn.setAttribute('onclick', `removeSelectedMenu(${slotIndex}, ${index})`);
+                });
+                
+                // 식단 데이터 저장
+                saveMealData();
+                
+                // 총 금액 업데이트 (캘린더용)
+                updateTotalCost(slotIndex);
+                
+                // 식단 입력 모달용 총 금액 업데이트
+                updateMealTotalCost(slotIndex);
+            }
+        }
+        
+        // 식단 데이터 저장
+        function saveMealData() {
+            const mealPlanData = {};
+            
+            // 현재 표시되는 모든 날짜의 식단 데이터 수집
+            document.querySelectorAll('[data-date]').forEach(dateCell => {
+                const dateStr = dateCell.getAttribute('data-date');
+                const dayData = {};
+                
+                // 각 식단 슬롯의 메뉴들 수집
+                for (let slotIndex = 0; slotIndex < defaultMealNames.length; slotIndex++) {
+                    const container = dateCell.querySelector(`#selectedMenus${slotIndex}`);
+                    if (container) {
+                        const menus = [];
+                        container.querySelectorAll('.selected-menu-item').forEach(item => {
+                            const menuName = item.getAttribute('data-menu-name');
+                            if (menuName) {
+                                menus.push(menuName);
+                            }
+                        });
+                        if (menus.length > 0) {
+                            dayData[defaultMealNames[slotIndex]] = menus;
+                        }
+                    }
+                }
+                
+                if (Object.keys(dayData).length > 0) {
+                    mealPlanData[dateStr] = dayData;
+                }
+            });
+            
+            localStorage.setItem('mealPlanData', JSON.stringify(mealPlanData));
+            console.log('식단 데이터 저장완료:', mealPlanData);
+        }
+        
+        // 식단 데이터 로드
+        function loadMealData() {
+            try {
+                const savedData = localStorage.getItem('mealPlanData');
+                if (savedData) {
+                    const mealPlanData = JSON.parse(savedData);
+                    console.log('저장된 식단 데이터 로드:', mealPlanData);
+                    
+                    // 저장된 데이터를 캘린더에 적용
+                    Object.keys(mealPlanData).forEach(dateStr => {
+                        const dayData = mealPlanData[dateStr];
+                        const dateCell = document.querySelector(`[data-date="${dateStr}"]`);
+                        
+                        if (dateCell) {
+                            Object.keys(dayData).forEach(mealName => {
+                                const slotIndex = defaultMealNames.indexOf(mealName);
+                                if (slotIndex >= 0) {
+                                    const menus = dayData[mealName];
+                                    menus.forEach(menuName => {
+                                        addMenuToSlot(slotIndex, menuName);
+                                    });
+                                    // 총 금액 업데이트
+                                    updateTotalCost(slotIndex);
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('식단 데이터 로드 실패:', error);
+            }
+        }
+        
+        // 슬롯별 총 금액 계산 및 표시
+        async function updateTotalCost(slotIndex) {
+            const containers = document.querySelectorAll(`[id^="selectedMenus${slotIndex}"]`);
+            
+            containers.forEach(async container => {
+                const menuItems = container.querySelectorAll('.selected-menu-item');
+                const menuNames = Array.from(menuItems).map(item => item.getAttribute('data-menu-name'));
+                
+                if (menuNames.length > 0) {
+                    // 메뉴들의 원가 계산
+                    await calculateMenuCosts(menuNames);
+                    
+                    let totalCost = 0;
+                    menuNames.forEach(menuName => {
+                        const cost = menuCostsCache[menuName] || 0;
+                        totalCost += cost;
+                    });
+                    
+                    // 날짜 셀에서 총합계 표시 업데이트
+                    const dateCell = container.closest('[data-date]');
+                    if (dateCell) {
+                        let totalCostElement = dateCell.querySelector('.total-cost');
+                        if (!totalCostElement) {
+                            totalCostElement = document.createElement('div');
+                            totalCostElement.className = 'total-cost';
+                            dateCell.appendChild(totalCostElement);
+                        }
+                        
+                        // 해당 날짜의 모든 식단 총합계 계산
+                        let dayTotalCost = 0;
+                        for (let i = 0; i < defaultMealNames.length; i++) {
+                            const slotContainer = dateCell.querySelector(`#selectedMenus${i}`);
+                            if (slotContainer) {
+                                const slotMenus = slotContainer.querySelectorAll('.selected-menu-item');
+                                Array.from(slotMenus).forEach(item => {
+                                    const menuName = item.getAttribute('data-menu-name');
+                                    const cost = menuCostsCache[menuName] || 0;
+                                    dayTotalCost += cost;
+                                });
+                            }
+                        }
+                        
+                        totalCostElement.textContent = `${dayTotalCost.toLocaleString()}원`;
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

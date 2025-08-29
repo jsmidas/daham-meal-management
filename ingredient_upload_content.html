@@ -1,0 +1,555 @@
+<!-- 식자재 파일 업로드 페이지 컨텐츠 (마스터 레이아웃용) -->
+<!-- Enhanced Upload Client -->
+<script src="enhanced_upload_client.js"></script>
+
+<div style="padding: 0; margin: 0;">
+    <!-- 페이지 헤더 -->
+    <div style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.2);">
+        <h1 style="font-size: 24px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-upload"></i>
+            식자재 파일 등록
+        </h1>
+        <p style="opacity: 0.9; font-size: 14px; margin: 0;" id="uploadPageDate">
+            공급업체별 식자재 단가표 엑셀 파일을 업로드하고 관리할 수 있습니다.
+        </p>
+    </div>
+
+    <!-- 업로드 섹션 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+        <!-- 단일 파일 업로드 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 2px dashed #e0e0e0; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#17a2b8'; this.style.backgroundColor='#f0f9ff'" onmouseout="this.style.borderColor='#e0e0e0'; this.style.backgroundColor='white'">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <i class="fas fa-file-excel" style="font-size: 20px; color: #17a2b8;"></i>
+                <h3 style="font-size: 16px; font-weight: bold; color: #17a2b8; margin: 0;">단일 파일 업로드</h3>
+            </div>
+            
+            <div onclick="document.getElementById('singleFile').click()" style="text-align: center; padding: 25px; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; margin-bottom: 15px; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#17a2b8'; this.style.backgroundColor='#f0f9ff'" onmouseout="this.style.borderColor='#ccc'; this.style.backgroundColor='transparent'">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 36px; color: #ccc; margin-bottom: 10px;"></i>
+                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">클릭하거나 파일을 드래그하여 업로드</div>
+                <div style="font-size: 12px; color: #999;">지원 형식: .xlsx, .xls (최대 100MB)</div>
+                <input type="file" id="singleFile" style="display: none;" accept=".xlsx,.xls" onchange="handleSingleFileUpload(this)">
+            </div>
+
+            <div id="singleFileList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- 다중 파일 업로드 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 2px dashed #e0e0e0; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#28a745'; this.style.backgroundColor='#f8fff8'" onmouseout="this.style.borderColor='#e0e0e0'; this.style.backgroundColor='white'">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <i class="fas fa-files" style="font-size: 20px; color: #28a745;"></i>
+                <h3 style="font-size: 16px; font-weight: bold; color: #28a745; margin: 0;">다중 파일 업로드</h3>
+            </div>
+            
+            <div onclick="document.getElementById('multipleFiles').click()" style="text-align: center; padding: 25px; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; margin-bottom: 15px; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#28a745'; this.style.backgroundColor='#f8fff8'" onmouseout="this.style.borderColor='#ccc'; this.style.backgroundColor='transparent'">
+                <i class="fas fa-copy" style="font-size: 36px; color: #ccc; margin-bottom: 10px;"></i>
+                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">여러 파일을 한번에 업로드</div>
+                <div style="font-size: 12px; color: #999;">최대 5개 파일, 각 파일당 100MB 이하</div>
+                <input type="file" id="multipleFiles" style="display: none;" accept=".xlsx,.xls" multiple onchange="handleMultipleFileUpload(this)">
+            </div>
+
+            <div id="multipleFileList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- 등록된 파일 목록 -->
+    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 15px;">
+            <h3 style="font-size: 18px; font-weight: bold; color: #17a2b8; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-list"></i>
+                등록된 식자재 파일 목록
+            </h3>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="refreshFileList()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#138496'" onmouseout="this.style.backgroundColor='#17a2b8'">
+                    <i class="fas fa-sync-alt"></i> 새로고침
+                </button>
+                <button onclick="downloadTemplate()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                    <i class="fas fa-download"></i> 템플릿 다운로드
+                </button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;" id="registeredFilesTable">
+                <thead>
+                    <tr>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">No</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">파일명</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">공급업체</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">등록일시</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">파일크기</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">식자재 수</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">상태</th>
+                        <th style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 8px; text-align: center; font-weight: bold; border: 1px solid #138496;">작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 데이터는 JavaScript로 동적 로드 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 식자재 업로드 전용 스타일 */
+.file-item {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-left: 4px solid #28a745;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.file-icon {
+    color: #28a745;
+    font-size: 16px;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #333;
+    font-size: 13px;
+}
+
+.file-meta {
+    font-size: 11px;
+    color: #666;
+}
+
+.file-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #333;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.progress-container {
+    width: 100%;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    margin: 5px 0;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.status-success {
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+.status-processing {
+    background: #ffc107;
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+.status-error {
+    background: #dc3545;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+}
+
+#registeredFilesTable td {
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+#registeredFilesTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+#registeredFilesTable tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+}
+</style>
+
+<script>
+// Enhanced File Uploader 인스턴스
+const fileUploader = new EnhancedFileUploader({
+    chunkSize: 2 * 1024 * 1024, // 2MB
+    maxRetries: 3,
+    statusPollInterval: 2000
+});
+
+// 현재 업로드 상태 추적
+const currentUploads = new Map();
+
+// 페이지 초기화
+function ingredientFileUploadInit() {
+    console.log('식자재 파일 업로드 페이지 초기화');
+    
+    // 날짜 정보 업데이트
+    updateUploadPageDate();
+    
+    // 드래그 앤 드롭 설정
+    setupDragAndDrop();
+    
+    // 페이지 로드 시 파일 목록 새로고침
+    refreshFileList();
+    
+    // 페이지 언로드 시 모든 업로드 취소
+    window.addEventListener('beforeunload', function() {
+        fileUploader.cancelAllUploads();
+    });
+}
+
+// 날짜 정보 업데이트
+function updateUploadPageDate() {
+    if (typeof getCurrentContext === 'function') {
+        const context = getCurrentContext();
+        const date = new Date(context.date);
+        const dateStr = date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+        });
+        document.getElementById('uploadPageDate').textContent = 
+            `${dateStr} ${context.businessName} - 공급업체별 식자재 단가표 엑셀 파일을 업로드하고 관리할 수 있습니다.`;
+    }
+}
+
+// 드래그 앤 드롭 설정
+function setupDragAndDrop() {
+    const uploadAreas = document.querySelectorAll('[onclick*="click()"]');
+    
+    uploadAreas.forEach(area => {
+        area.addEventListener('dragover', handleDragOver);
+        area.addEventListener('dragleave', handleDragLeave);
+        area.addEventListener('drop', handleDrop);
+    });
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = '#17a2b8';
+    e.currentTarget.style.backgroundColor = '#f0f9ff';
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = '#ccc';
+    e.currentTarget.style.backgroundColor = 'transparent';
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = '#ccc';
+    e.currentTarget.style.backgroundColor = 'transparent';
+    
+    const files = Array.from(e.dataTransfer.files);
+    const validFiles = files.filter(file => 
+        file.type.includes('spreadsheet') || 
+        file.name.endsWith('.xlsx') || 
+        file.name.endsWith('.xls')
+    );
+
+    if (validFiles.length > 0) {
+        processFiles(validFiles, document.getElementById('singleFileList'));
+    } else {
+        alert('Excel 파일(.xlsx, .xls)만 업로드 가능합니다.');
+    }
+}
+
+// 단일 파일 업로드
+function handleSingleFileUpload(input) {
+    const file = input.files[0];
+    if (file) {
+        processFiles([file], document.querySelector('#singleFileList'));
+    }
+}
+
+// 다중 파일 업로드
+function handleMultipleFileUpload(input) {
+    const files = Array.from(input.files);
+    if (files.length > 0) {
+        processFiles(files, document.querySelector('#multipleFileList'));
+    }
+}
+
+// 파일 처리
+function processFiles(files, container) {
+    files.forEach(file => {
+        const fileItem = createFileItem(file);
+        container.appendChild(fileItem);
+        
+        // 실제 업로드 시작
+        startRealUpload(fileItem, file);
+    });
+}
+
+// 파일 아이템 생성
+function createFileItem(file) {
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    
+    const formatSize = (bytes) => {
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        if (bytes === 0) return '0 Bytes';
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    };
+
+    fileItem.innerHTML = `
+        <div class="file-info">
+            <i class="fas fa-file-excel file-icon"></i>
+            <div class="file-details">
+                <div class="file-name">${file.name}</div>
+                <div class="file-meta">${formatSize(file.size)} • 업로드 준비중</div>
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        <div class="file-actions">
+            <button class="btn-sm btn-danger" onclick="removeFileItem(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    return fileItem;
+}
+
+// 실제 업로드 시작
+async function startRealUpload(fileItem, file) {
+    const progressBar = fileItem.querySelector('.progress-bar');
+    const fileMeta = fileItem.querySelector('.file-meta');
+    const fileActions = fileItem.querySelector('.file-actions');
+    
+    try {
+        // 업로드 시작
+        const uploadId = await fileUploader.uploadFile(file, {
+            onProgress: (info) => {
+                progressBar.style.width = `${info.progress}%`;
+                
+                let statusText = '';
+                if (info.status === 'uploading') {
+                    statusText = `업로드 중... ${FileUploadUtils.formatProgress(info.progress)}`;
+                } else if (info.status === 'processing' || info.status === 'reading_file') {
+                    statusText = info.message || '처리 중...';
+                    progressBar.style.background = 'linear-gradient(90deg, #ffc107, #fd7e14)';
+                } else {
+                    statusText = info.message || `${info.status}...`;
+                }
+                
+                fileMeta.innerHTML = `${FileUploadUtils.formatFileSize(file.size)} • ${statusText}`;
+            },
+            
+            onComplete: (result) => {
+                progressBar.style.width = '100%';
+                progressBar.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
+                
+                if (result.status === 'done' && result.processing?.status === 'completed') {
+                    fileMeta.innerHTML = `${FileUploadUtils.formatFileSize(file.size)} • 등록 완료 (${result.processing.message || ''})`;
+                    
+                    // 성공 아이콘으로 변경
+                    fileActions.innerHTML = '<button class="btn-sm btn-success"><i class="fas fa-check"></i></button>';
+                    
+                    // 등록된 파일 목록 새로고침
+                    setTimeout(refreshFileList, 2000);
+                } else {
+                    fileMeta.innerHTML = `${FileUploadUtils.formatFileSize(file.size)} • 처리 오류`;
+                    fileActions.innerHTML = '<button class="btn-sm btn-danger"><i class="fas fa-exclamation-triangle"></i></button>';
+                }
+                
+                // 업로드 추적에서 제거
+                currentUploads.delete(uploadId);
+            },
+            
+            onError: (error) => {
+                console.error('업로드 오류:', error);
+                progressBar.style.width = '100%';
+                progressBar.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
+                fileMeta.innerHTML = `${FileUploadUtils.formatFileSize(file.size)} • 오류: ${error.message}`;
+                fileActions.innerHTML = '<button class="btn-sm btn-danger" onclick="removeFileItem(this)"><i class="fas fa-times"></i></button>';
+            }
+        });
+        
+        // 업로드 추적에 추가
+        currentUploads.set(uploadId, { fileItem, file, uploadId });
+        
+        // 취소 버튼으로 변경
+        fileActions.innerHTML = `<button class="btn-sm btn-warning" onclick="cancelUpload('${uploadId}')"><i class="fas fa-stop"></i></button>`;
+        
+    } catch (error) {
+        console.error('업로드 시작 오류:', error);
+        progressBar.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
+        fileMeta.innerHTML = `${FileUploadUtils.formatFileSize(file.size)} • 시작 실패: ${error.message}`;
+        fileActions.innerHTML = '<button class="btn-sm btn-danger" onclick="removeFileItem(this)"><i class="fas fa-times"></i></button>';
+    }
+}
+
+// 업로드 취소
+function cancelUpload(uploadId) {
+    const uploadInfo = currentUploads.get(uploadId);
+    if (uploadInfo) {
+        fileUploader.stopStatusPolling(uploadId);
+        
+        const { fileItem } = uploadInfo;
+        const fileMeta = fileItem.querySelector('.file-meta');
+        const fileActions = fileItem.querySelector('.file-actions');
+        
+        fileMeta.innerHTML = fileMeta.innerHTML.replace(/업로드 중.*/, '취소됨');
+        fileActions.innerHTML = '<button class="btn-sm btn-danger" onclick="removeFileItem(this)"><i class="fas fa-times"></i></button>';
+        
+        currentUploads.delete(uploadId);
+    }
+}
+
+// 등록된 파일 목록 새로고침 (실제 API 호출)
+async function refreshFileList() {
+    try {
+        const response = await fetch('/api/ingredients/list');
+        const result = await response.json();
+        
+        if (result.success) {
+            updateFileTable(result.files);
+        } else {
+            console.error('파일 목록 조회 실패:', result.error);
+        }
+    } catch (error) {
+        console.error('파일 목록 새로고침 오류:', error);
+    }
+}
+
+// 파일 테이블 업데이트
+function updateFileTable(files) {
+    const tbody = document.querySelector('#registeredFilesTable tbody');
+    tbody.innerHTML = '';  // 기존 내용 제거
+    
+    if (files.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 30px; color: #666;">
+                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 10px;"></i><br>
+                    등록된 파일이 없습니다
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    files.forEach((file, index) => {
+        const row = tbody.insertRow();
+        
+        // 상태 표시
+        let statusClass = 'status-success';
+        let statusText = '완료';
+        if (file.status === 'processing') {
+            statusClass = 'status-processing';
+            statusText = '처리중';
+        } else if (file.status === 'error') {
+            statusClass = 'status-error';
+            statusText = '오류';
+        }
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td style="text-align: left; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.sample_name || '알 수 없음'}">${file.sample_name || '알 수 없음'}</td>
+            <td>${file.supplier || '미지정'}</td>
+            <td>${new Date(file.upload_date).toLocaleString('ko-KR')}</td>
+            <td>-</td>
+            <td>${file.ingredient_count.toLocaleString()}개</td>
+            <td><span class="${statusClass}">${statusText}</span></td>
+            <td>
+                <button class="btn-sm" style="background: #17a2b8; color: white; margin-right: 3px;" onclick="viewFileDetails('${file.upload_id}')" ${file.status !== 'completed' ? 'disabled' : ''}> 
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn-sm btn-danger" onclick="deleteFileByUploadId('${file.upload_id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+    });
+}
+
+// 파일 아이템 제거
+function removeFileItem(button) {
+    const fileItem = button.closest('.file-item');
+    fileItem.remove();
+}
+
+// 파일 상세 보기
+function viewFileDetails(uploadId) {
+    window.open(`/ingredient-file-viewer?upload_id=${uploadId}`, '_blank');
+}
+
+// upload_id로 파일 삭제
+function deleteFileByUploadId(uploadId) {
+    if (confirm('이 파일을 삭제하시겠습니까?\n관련된 모든 식자재 데이터도 함께 삭제됩니다.')) {
+        // TODO: 실제 삭제 API 호출
+        alert(`업로드 ID ${uploadId}가 삭제되었습니다.`);
+        refreshFileList();
+    }
+}
+
+// 템플릿 다운로드
+function downloadTemplate() {
+    // 실제로는 서버에서 템플릿 파일을 다운로드
+    alert('식자재 등록 템플릿을 다운로드합니다.');
+}
+</script>

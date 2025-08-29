@@ -1,0 +1,457 @@
+<!-- 식수관리 페이지 컨텐츠 (마스터 레이아웃용) -->
+<div style="padding: 0; margin: 0;">
+    <!-- 페이지 헤더 -->
+    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);">
+        <h1 style="font-size: 24px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-users"></i>
+            식수 관리
+        </h1>
+        <p style="opacity: 0.9; font-size: 14px; margin: 0;" id="mealCountPageDate">
+            각 사업장별 식수를 입력하고 관리할 수 있습니다.
+        </p>
+    </div>
+
+    <!-- 식수 입력 카드들 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        <!-- 조식 식수 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #28a745;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <i class="fas fa-sun" style="color: #28a745; font-size: 20px;"></i>
+                <h3 style="margin: 0; color: #28a745; font-size: 18px;">조식</h3>
+                <span style="margin-left: auto; background: #28a745; color: white; padding: 4px 8px; border-radius: 10px; font-size: 11px;" id="breakfastTotal">0명</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" placeholder="식수" style="flex: 1; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="breakfastCount" oninput="updateTotal()">
+                <select style="flex: 0.8; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="breakfastUnit">
+                    <option value="adults">성인</option>
+                    <option value="children">아동</option>
+                    <option value="staff">교직원</option>
+                </select>
+            </div>
+            <button onclick="addMealCount('breakfast')" style="width: 100%; background: #28a745; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                <i class="fas fa-plus"></i> 추가
+            </button>
+            <div id="breakfastList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- 중식 식수 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #F5881F;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <i class="fas fa-sun" style="color: #F5881F; font-size: 20px;"></i>
+                <h3 style="margin: 0; color: #F5881F; font-size: 18px;">중식</h3>
+                <span style="margin-left: auto; background: #F5881F; color: white; padding: 4px 8px; border-radius: 10px; font-size: 11px;" id="lunchTotal">0명</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" placeholder="식수" style="flex: 1; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="lunchCount" oninput="updateTotal()">
+                <select style="flex: 0.8; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="lunchUnit">
+                    <option value="adults">성인</option>
+                    <option value="children">아동</option>
+                    <option value="staff">교직원</option>
+                </select>
+            </div>
+            <button onclick="addMealCount('lunch')" style="width: 100%; background: #F5881F; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#E67309'" onmouseout="this.style.backgroundColor='#F5881F'">
+                <i class="fas fa-plus"></i> 추가
+            </button>
+            <div id="lunchList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- 석식 식수 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #6f42c1;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <i class="fas fa-moon" style="color: #6f42c1; font-size: 20px;"></i>
+                <h3 style="margin: 0; color: #6f42c1; font-size: 18px;">석식</h3>
+                <span style="margin-left: auto; background: #6f42c1; color: white; padding: 4px 8px; border-radius: 10px; font-size: 11px;" id="dinnerTotal">0명</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" placeholder="식수" style="flex: 1; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="dinnerCount" oninput="updateTotal()">
+                <select style="flex: 0.8; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;" id="dinnerUnit">
+                    <option value="adults">성인</option>
+                    <option value="children">아동</option>
+                    <option value="staff">교직원</option>
+                </select>
+            </div>
+            <button onclick="addMealCount('dinner')" style="width: 100%; background: #6f42c1; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='#5a2d91'" onmouseout="this.style.backgroundColor='#6f42c1'">
+                <i class="fas fa-plus"></i> 추가
+            </button>
+            <div id="dinnerList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- 식수 요약 및 히스토리 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+        <!-- 오늘의 식수 요약 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <h3 style="color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-pie" style="color: #17a2b8;"></i>
+                오늘의 식수 요약
+            </h3>
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="summaryBreakfast">0</div>
+                    <div style="font-size: 12px; color: #666;">조식</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #F5881F;" id="summaryLunch">0</div>
+                    <div style="font-size: 12px; color: #666;">중식</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #6f42c1;" id="summaryDinner">0</div>
+                    <div style="font-size: 12px; color: #666;">석식</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #17a2b8;" id="summaryTotal">0</div>
+                    <div style="font-size: 12px; color: #666;">총계</div>
+                </div>
+            </div>
+            <div style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 13px; color: #666;">성인:</span>
+                    <span style="font-size: 13px; font-weight: bold;" id="adultTotal">0명</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 13px; color: #666;">아동:</span>
+                    <span style="font-size: 13px; font-weight: bold;" id="childrenTotal">0명</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 13px; color: #666;">교직원:</span>
+                    <span style="font-size: 13px; font-weight: bold;" id="staffTotal">0명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 식수 히스토리 -->
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <h3 style="color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-history" style="color: #17a2b8;"></i>
+                최근 식수 히스토리
+            </h3>
+            <div id="mealCountHistory" style="max-height: 250px; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: bold;">2025-08-28</div>
+                        <div style="font-size: 11px; color: #666;">중식 847명 등록</div>
+                    </div>
+                    <div style="font-size: 12px; color: #28a745;">완료</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: bold;">2025-08-28</div>
+                        <div style="font-size: 11px; color: #666;">조식 623명 등록</div>
+                    </div>
+                    <div style="font-size: 12px; color: #28a745;">완료</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: bold;">2025-08-27</div>
+                        <div style="font-size: 11px; color: #666;">중식 892명 등록</div>
+                    </div>
+                    <div style="font-size: 12px; color: #28a745;">완료</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: bold;">2025-08-27</div>
+                        <div style="font-size: 11px; color: #666;">석식 485명 등록</div>
+                    </div>
+                    <div style="font-size: 12px; color: #28a745;">완료</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 액션 버튼 -->
+    <div style="display: flex; justify-content: center; gap: 15px; margin-top: 25px;">
+        <button onclick="saveMealCounts()" style="background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);" onmouseover="this.style.backgroundColor='#218838'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#28a745'; this.style.transform='translateY(0)'">
+            <i class="fas fa-save"></i>
+            식수 저장
+        </button>
+        <button onclick="copyFromYesterday()" style="background: #17a2b8; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);" onmouseover="this.style.backgroundColor='#138496'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#17a2b8'; this.style.transform='translateY(0)'">
+            <i class="fas fa-copy"></i>
+            어제 식수 복사
+        </button>
+        <button onclick="clearAllMealCounts()" style="background: #dc3545; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);" onmouseover="this.style.backgroundColor='#c82333'; this.style.transform='translateY(-2px)'" onmouseout="this.style.backgroundColor='#dc3545'; this.style.transform='translateY(0)'">
+            <i class="fas fa-trash"></i>
+            전체 초기화
+        </button>
+    </div>
+</div>
+
+<style>
+/* 식수관리 전용 스타일 */
+.meal-count-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    border-left: 3px solid currentColor;
+}
+
+.meal-count-item .remove-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 2px;
+    transition: background 0.2s ease;
+}
+
+.meal-count-item .remove-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    [style*="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+}
+</style>
+
+<script>
+// 식수관리 전용 변수
+let mealCounts = {
+    breakfast: [],
+    lunch: [],
+    dinner: []
+};
+
+// 페이지 초기화
+function mealCountsInit() {
+    console.log('식수관리 페이지 초기화');
+    
+    // 날짜 정보 업데이트
+    updateMealCountPageDate();
+    
+    // 엔터키로 추가 가능하도록 설정
+    setupEnterKeyEvents();
+    
+    // 초기 총계 업데이트
+    updateTotal();
+}
+
+// 날짜 정보 업데이트
+function updateMealCountPageDate() {
+    if (typeof getCurrentContext === 'function') {
+        const context = getCurrentContext();
+        const date = new Date(context.date);
+        const dateStr = date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        document.getElementById('mealCountPageDate').textContent = 
+            `${dateStr} ${context.businessName} - 각 시간대별 식수를 입력하고 관리할 수 있습니다.`;
+    }
+}
+
+// 엔터키 이벤트 설정
+function setupEnterKeyEvents() {
+    ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+        const input = document.getElementById(mealType + 'Count');
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addMealCount(mealType);
+            }
+        });
+    });
+}
+
+// 식수 추가
+function addMealCount(mealType) {
+    const countInput = document.getElementById(mealType + 'Count');
+    const unitSelect = document.getElementById(mealType + 'Unit');
+    
+    const count = parseInt(countInput.value);
+    const unit = unitSelect.value;
+    
+    if (!count || count <= 0) {
+        alert('올바른 식수를 입력해주세요.');
+        countInput.focus();
+        return;
+    }
+    
+    // 식수 데이터 추가
+    const mealCountData = {
+        count: count,
+        unit: unit,
+        timestamp: new Date().toLocaleTimeString('ko-KR')
+    };
+    
+    mealCounts[mealType].push(mealCountData);
+    
+    // UI 업데이트
+    updateMealCountList(mealType);
+    updateTotal();
+    
+    // 입력 필드 초기화
+    countInput.value = '';
+    countInput.focus();
+}
+
+// 식수 목록 업데이트
+function updateMealCountList(mealType) {
+    const container = document.getElementById(mealType + 'List');
+    const colors = {
+        breakfast: '#28a745',
+        lunch: '#F5881F',
+        dinner: '#6f42c1'
+    };
+    
+    container.innerHTML = mealCounts[mealType].map((item, index) => `
+        <div class="meal-count-item" style="color: ${colors[mealType]};">
+            <span>${getUnitName(item.unit)} ${item.count}명 (${item.timestamp})</span>
+            <button class="remove-btn" onclick="removeMealCount('${mealType}', ${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+// 식수 제거
+function removeMealCount(mealType, index) {
+    mealCounts[mealType].splice(index, 1);
+    updateMealCountList(mealType);
+    updateTotal();
+}
+
+// 단위 이름 변환
+function getUnitName(unit) {
+    const unitNames = {
+        'adults': '성인',
+        'children': '아동',
+        'staff': '교직원'
+    };
+    return unitNames[unit] || unit;
+}
+
+// 총계 업데이트
+function updateTotal() {
+    const totals = {
+        breakfast: 0,
+        lunch: 0,
+        dinner: 0,
+        adults: 0,
+        children: 0,
+        staff: 0
+    };
+    
+    // 각 시간대별 합계 계산
+    Object.keys(mealCounts).forEach(mealType => {
+        mealCounts[mealType].forEach(item => {
+            totals[mealType] += item.count;
+            totals[item.unit] += item.count;
+        });
+    });
+    
+    // UI 업데이트
+    document.getElementById('breakfastTotal').textContent = totals.breakfast + '명';
+    document.getElementById('lunchTotal').textContent = totals.lunch + '명';
+    document.getElementById('dinnerTotal').textContent = totals.dinner + '명';
+    
+    document.getElementById('summaryBreakfast').textContent = totals.breakfast;
+    document.getElementById('summaryLunch').textContent = totals.lunch;
+    document.getElementById('summaryDinner').textContent = totals.dinner;
+    document.getElementById('summaryTotal').textContent = totals.breakfast + totals.lunch + totals.dinner;
+    
+    document.getElementById('adultTotal').textContent = totals.adults + '명';
+    document.getElementById('childrenTotal').textContent = totals.children + '명';
+    document.getElementById('staffTotal').textContent = totals.staff + '명';
+}
+
+// 식수 저장
+async function saveMealCounts() {
+    const context = getCurrentContext();
+    const totalCounts = {
+        breakfast: mealCounts.breakfast.reduce((sum, item) => sum + item.count, 0),
+        lunch: mealCounts.lunch.reduce((sum, item) => sum + item.count, 0),
+        dinner: mealCounts.dinner.reduce((sum, item) => sum + item.count, 0)
+    };
+    
+    if (totalCounts.breakfast + totalCounts.lunch + totalCounts.dinner === 0) {
+        alert('저장할 식수 데이터가 없습니다.');
+        return;
+    }
+    
+    try {
+        // TODO: 실제 API 호출 구현
+        console.log('저장할 식수 데이터:', {
+            date: context.date,
+            business: context.business,
+            mealCounts: mealCounts,
+            totals: totalCounts
+        });
+        
+        alert(`식수가 성공적으로 저장되었습니다!\n조식: ${totalCounts.breakfast}명\n중식: ${totalCounts.lunch}명\n석식: ${totalCounts.dinner}명`);
+        
+    } catch (error) {
+        console.error('식수 저장 오류:', error);
+        alert('저장 중 오류가 발생했습니다.');
+    }
+}
+
+// 어제 식수 복사
+async function copyFromYesterday() {
+    if (confirm('어제의 식수 데이터를 복사하시겠습니까?')) {
+        try {
+            // TODO: 실제 API 호출 구현
+            // 임시로 샘플 데이터 추가
+            mealCounts = {
+                breakfast: [
+                    { count: 150, unit: 'children', timestamp: '08:00:00' },
+                    { count: 20, unit: 'staff', timestamp: '08:05:00' }
+                ],
+                lunch: [
+                    { count: 200, unit: 'children', timestamp: '12:00:00' },
+                    { count: 25, unit: 'staff', timestamp: '12:10:00' }
+                ],
+                dinner: [
+                    { count: 100, unit: 'children', timestamp: '18:00:00' },
+                    { count: 15, unit: 'staff', timestamp: '18:05:00' }
+                ]
+            };
+            
+            // UI 업데이트
+            Object.keys(mealCounts).forEach(mealType => {
+                updateMealCountList(mealType);
+            });
+            updateTotal();
+            
+            alert('어제 식수 데이터를 복사했습니다.');
+            
+        } catch (error) {
+            console.error('식수 복사 오류:', error);
+            alert('복사 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// 전체 초기화
+function clearAllMealCounts() {
+    if (confirm('모든 식수 데이터를 초기화하시겠습니까?')) {
+        mealCounts = {
+            breakfast: [],
+            lunch: [],
+            dinner: []
+        };
+        
+        // UI 초기화
+        Object.keys(mealCounts).forEach(mealType => {
+            updateMealCountList(mealType);
+        });
+        updateTotal();
+        
+        alert('모든 식수 데이터가 초기화되었습니다.');
+    }
+}
+</script>

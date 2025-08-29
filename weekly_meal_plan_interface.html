@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다함 주간 식단표 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            font-size: 12px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #F5881F 0%, #E67309 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+        
+        .btn-primary {
+            background: #F5881F;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #E67309;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        /* 주간 식단표 테이블 */
+        .meal-plan-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .table-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .week-info {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            vertical-align: middle;
+        }
+        
+        th {
+            background: #f1f3f4;
+            font-weight: 600;
+            font-size: 11px;
+            color: #444;
+        }
+        
+        .day-header {
+            background: #F5881F !important;
+            color: white !important;
+            font-weight: 600;
+        }
+        
+        .meal-type-header {
+            background: #4a90e2 !important;
+            color: white !important;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            width: 40px;
+            font-weight: 600;
+        }
+        
+        .meal-cell {
+            height: 80px;
+            width: 140px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 4px;
+        }
+        
+        .meal-cell:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .meal-cell.has-menu {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .meal-item {
+            background: white;
+            margin: 2px 0;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            line-height: 1.2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            cursor: move;
+        }
+        
+        .meal-item.color-red { border-left: 3px solid #dc3545; }
+        .meal-item.color-blue { border-left: 3px solid #F5881F; }
+        .meal-item.color-green { border-left: 3px solid #28a745; }
+        .meal-item.color-yellow { border-left: 3px solid #ffc107; }
+        .meal-item.color-purple { border-left: 3px solid #6f42c1; }
+        .meal-item.color-orange { border-left: 3px solid #fd7e14; }
+        
+        .meal-item .remove-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+        }
+        
+        .meal-item:hover .remove-btn {
+            display: block;
+        }
+        
+        .empty-slot {
+            color: #999;
+            font-style: italic;
+            font-size: 10px;
+            text-align: center;
+            padding: 20px 5px;
+        }
+        
+        /* 사이드 패널 */
+        .side-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 380px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .side-panel.active {
+            right: 0;
+        }
+        
+        .panel-header {
+            background: #F5881F;
+            color: white;
+            padding: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .search-section {
+            margin-bottom: 25px;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 35px 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #F5881F;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .recipe-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .recipe-item {
+            background: #f8f9fa;
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: grab;
+            border-left: 4px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        
+        .recipe-item:hover {
+            background: #e9ecef;
+            border-left-color: #F5881F;
+            transform: translateX(4px);
+        }
+        
+        .recipe-item.dragging {
+            opacity: 0.6;
+        }
+        
+        .recipe-name {
+            font-weight: 600;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        
+        .recipe-info {
+            font-size: 10px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* 카테고리 탭 */
+        .category-tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: #F5881F;
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+        
+        /* 요약 정보 */
+        .summary-bar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            text-align: center;
+        }
+        
+        .summary-item .value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #F5881F;
+            margin-bottom: 4px;
+        }
+        
+        .summary-item .label {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 1200px) {
+            .meal-cell {
+                width: 120px;
+                height: 70px;
+            }
+            
+            .side-panel {
+                width: 320px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .meal-cell {
+                width: 100px;
+                height: 60px;
+            }
+            
+            .side-panel {
+                width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>다함 주간 식단표 관리 시스템</h1>
+            <div class="subtitle">카테고리별 주간 단위 식단표 작성 및 관리</div>
+        </div>
+        
+        <!-- 카테고리 탭 -->
+        <div class="category-tabs">
+            <button class="tab active" data-category="도시락">도시락</button>
+            <button class="tab" data-category="요양원">요양원</button>
+            <button class="tab" data-category="학교">학교</button>
+            <button class="tab" data-category="운반">운반</button>
+        </div>
+        
+        <!-- 컨트롤 패널 -->
+        <div class="controls">
+            <div class="form-group">
+                <label>기준 주차</label>
+                <input type="week" id="weekInput" value="2025-W35">
+            </div>
+            <div class="form-group">
+                <label>식수 (명)</label>
+                <input type="number" id="personsInput" value="100" min="1">
+            </div>
+            <div class="form-group">
+                <label>목표 단가 (원/인)</label>
+                <input type="number" id="targetCostInput" value="3000" min="0">
+            </div>
+            <button class="btn btn-primary" onclick="openRecipePanel()">메뉴 추가</button>
+            <button class="btn btn-success" onclick="saveWeeklyPlan()">식단표 저장</button>
+        </div>
+        
+        <!-- 주간 식단표 테이블 -->
+        <div class="meal-plan-table">
+            <div class="table-header">
+                <div class="table-title" id="currentCategory">도시락 주간 식단표</div>
+                <div class="week-info" id="weekInfo">2025년 8월 26일 ~ 9월 1일</div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="width: 60px;">식사</th>
+                        <th class="day-header">월요일<br><span style="font-size:10px;">8/26</span></th>
+                        <th class="day-header">화요일<br><span style="font-size:10px;">8/27</span></th>
+                        <th class="day-header">수요일<br><span style="font-size:10px;">8/28</span></th>
+                        <th class="day-header">목요일<br><span style="font-size:10px;">8/29</span></th>
+                        <th class="day-header">금요일<br><span style="font-size:10px;">8/30</span></th>
+                        <th class="day-header">토요일<br><span style="font-size:10px;">8/31</span></th>
+                        <th class="day-header">일요일<br><span style="font-size:10px;">9/1</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="meal-type-header">아침</td>
+                        <td class="meal-cell" data-day="0" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="1" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="2" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="3" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="4" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="5" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="6" data-meal="아침">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="meal-type-header">점심</td>
+                        <td class="meal-cell" data-day="0" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="1" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="2" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="3" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="4" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="5" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="6" data-meal="점심">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="meal-type-header">저녁</td>
+                        <td class="meal-cell" data-day="0" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="1" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="2" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="3" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="4" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="5" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                        <td class="meal-cell" data-day="6" data-meal="저녁">
+                            <div class="empty-slot">메뉴를 추가하세요</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 요약 정보 -->
+        <div class="summary-bar">
+            <div class="summary-item">
+                <div class="value" id="totalMenus">0</div>
+                <div class="label">총 메뉴 수</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="weeklyBudget">0원</div>
+                <div class="label">주간 예산</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="avgCostPerMeal">0원</div>
+                <div class="label">평균 식비</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="completionRate">0%</div>
+                <div class="label">완성률</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 사이드 패널 (레시피 검색) -->
+    <div class="side-panel" id="recipePanel">
+        <div class="panel-header">
+            <span>메뉴 추가</span>
+            <button class="close-btn" onclick="closeRecipePanel()">&times;</button>
+        </div>
+        <div class="panel-content">
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="recipeSearch" placeholder="메뉴명 검색... (예: 김치찌개)">
+                    <button class="search-btn" onclick="searchRecipes()">검색</button>
+                </div>
+                <div class="recipe-list" id="recipeList">
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        검색어를 입력하세요
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCategory = '도시락';
+        let selectedCell = null;
+        let weeklyPlan = {
+            '도시락': {},
+            '요양원': {},
+            '학교': {},
+            '운반': {}
+        };
+        
+        const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTabs();
+            initializeDragAndDrop();
+            updateWeekInfo();
+            updateSummary();
+            
+            // 검색 입력에서 Enter 키 처리
+            document.getElementById('recipeSearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchRecipes();
+                }
+            });
+        });
+
+        // 탭 초기화
+        function initializeTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    switchCategory(category);
+                });
+            });
+        }
+
+        // 카테고리 전환
+        function switchCategory(category) {
+            currentCategory = category;
+            
+            // 탭 상태 변경
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            // 제목 변경
+            document.getElementById('currentCategory').textContent = `${category} 주간 식단표`;
+            
+            // 식단표 데이터 로드
+            loadCategoryPlan(category);
+            updateSummary();
+        }
+
+        // 카테고리별 식단표 로드
+        function loadCategoryPlan(category) {
+            const plan = weeklyPlan[category] || {};
+            
+            // 모든 셀 초기화
+            document.querySelectorAll('.meal-cell').forEach(cell => {
+                cell.innerHTML = '<div class="empty-slot">메뉴를 추가하세요</div>';
+                cell.classList.remove('has-menu');
+            });
+            
+            // 저장된 메뉴 로드
+            Object.keys(plan).forEach(key => {
+                const [day, meal] = key.split('-');
+                const cell = document.querySelector(`[data-day="${day}"][data-meal="${meal}"]`);
+                if (cell && plan[key].length > 0) {
+                    updateCellDisplay(cell, plan[key]);
+                }
+            });
+        }
+
+        // 셀 표시 업데이트
+        function updateCellDisplay(cell, menus) {
+            if (menus.length === 0) {
+                cell.innerHTML = '<div class="empty-slot">메뉴를 추가하세요</div>';
+                cell.classList.remove('has-menu');
+                return;
+            }
+            
+            cell.classList.add('has-menu');
+            const menusHTML = menus.map((menu, index) => `
+                <div class="meal-item color-${colors[index % colors.length]}" data-recipe-id="${menu.id}">
+                    <div>${menu.name}</div>
+                    <button class="remove-btn" onclick="removeMenuItem(this, '${cell.dataset.day}', '${cell.dataset.meal}', ${menu.id})">×</button>
+                </div>
+            `).join('');
+            
+            cell.innerHTML = menusHTML;
+        }
+
+        // 드래그 앤 드롭 초기화
+        function initializeDragAndDrop() {
+            // 셀에 드롭 이벤트 추가
+            document.querySelectorAll('.meal-cell').forEach(cell => {
+                cell.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.style.backgroundColor = '#ffeee6';
+                });
+                
+                cell.addEventListener('dragleave', function(e) {
+                    if (!this.contains(e.relatedTarget)) {
+                        this.style.backgroundColor = '';
+                    }
+                });
+                
+                cell.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.style.backgroundColor = '';
+                    
+                    const recipeData = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    const day = this.dataset.day;
+                    const meal = this.dataset.meal;
+                    
+                    addMenuToCell(day, meal, recipeData);
+                });
+            });
+        }
+
+        // 메뉴를 셀에 추가
+        function addMenuToCell(day, meal, recipeData) {
+            const key = `${day}-${meal}`;
+            
+            if (!weeklyPlan[currentCategory][key]) {
+                weeklyPlan[currentCategory][key] = [];
+            }
+            
+            // 중복 체크
+            const exists = weeklyPlan[currentCategory][key].some(menu => menu.id == recipeData.id);
+            if (exists) {
+                alert('이미 추가된 메뉴입니다.');
+                return;
+            }
+            
+            weeklyPlan[currentCategory][key].push({
+                id: recipeData.id,
+                name: recipeData.name,
+                cost: recipeData.cost || 0
+            });
+            
+            const cell = document.querySelector(`[data-day="${day}"][data-meal="${meal}"]`);
+            updateCellDisplay(cell, weeklyPlan[currentCategory][key]);
+            updateSummary();
+        }
+
+        // 메뉴 아이템 제거
+        function removeMenuItem(button, day, meal, recipeId) {
+            const key = `${day}-${meal}`;
+            
+            if (weeklyPlan[currentCategory][key]) {
+                weeklyPlan[currentCategory][key] = weeklyPlan[currentCategory][key]
+                    .filter(menu => menu.id != recipeId);
+                
+                const cell = document.querySelector(`[data-day="${day}"][data-meal="${meal}"]`);
+                updateCellDisplay(cell, weeklyPlan[currentCategory][key]);
+                updateSummary();
+            }
+        }
+
+        // 레시피 패널 열기
+        function openRecipePanel() {
+            document.getElementById('recipePanel').classList.add('active');
+        }
+
+        // 레시피 패널 닫기
+        function closeRecipePanel() {
+            document.getElementById('recipePanel').classList.remove('active');
+        }
+
+        // 레시피 검색
+        async function searchRecipes() {
+            const keyword = document.getElementById('recipeSearch').value.trim();
+            const recipeList = document.getElementById('recipeList');
+            
+            if (!keyword) {
+                recipeList.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">검색어를 입력하세요</div>';
+                return;
+            }
+            
+            try {
+                recipeList.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">검색 중...</div>';
+                
+                const response = await fetch('/api/search_recipes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keyword: keyword, limit: 30})
+                });
+                
+                const recipes = await response.json();
+                
+                if (recipes.length === 0) {
+                    recipeList.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">검색 결과가 없습니다</div>';
+                    return;
+                }
+                
+                const recipesHTML = recipes.map(recipe => `
+                    <div class="recipe-item" draggable="true" 
+                         data-recipe-id="${recipe.id}" 
+                         data-recipe-name="${recipe.name}"
+                         data-recipe-cost="0">
+                        <div class="recipe-name">${recipe.name}</div>
+                        <div class="recipe-info">
+                            <span>평점: ${recipe.score || 0}/5</span>
+                            <span>예상비용: 계산중</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                recipeList.innerHTML = recipesHTML;
+                
+                // 드래그 이벤트 추가
+                addRecipeDragEvents();
+                
+            } catch (error) {
+                console.error('검색 오류:', error);
+                recipeList.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">검색 중 오류가 발생했습니다</div>';
+            }
+        }
+
+        // 레시피 드래그 이벤트 추가
+        function addRecipeDragEvents() {
+            document.querySelectorAll('.recipe-item').forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    const recipeData = {
+                        id: this.dataset.recipeId,
+                        name: this.dataset.recipeName,
+                        cost: this.dataset.recipeCost || 0
+                    };
+                    
+                    e.dataTransfer.setData('text/plain', JSON.stringify(recipeData));
+                    this.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+            });
+        }
+
+        // 주차 정보 업데이트
+        function updateWeekInfo() {
+            const weekInput = document.getElementById('weekInput').value;
+            if (weekInput) {
+                const [year, week] = weekInput.split('-W');
+                const weekNum = parseInt(week);
+                
+                // 간단한 날짜 계산 (실제로는 더 정확한 계산 필요)
+                const startDate = new Date(year, 0, (weekNum - 1) * 7 + 1);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+                
+                const weekInfo = `${year}년 ${startDate.getMonth() + 1}월 ${startDate.getDate()}일 ~ ${endDate.getMonth() + 1}월 ${endDate.getDate()}일`;
+                document.getElementById('weekInfo').textContent = weekInfo;
+            }
+        }
+
+        // 요약 정보 업데이트
+        function updateSummary() {
+            const currentPlan = weeklyPlan[currentCategory] || {};
+            let totalMenus = 0;
+            let totalCost = 0;
+            let totalSlots = 21; // 7일 × 3식
+            let filledSlots = 0;
+            
+            Object.keys(currentPlan).forEach(key => {
+                const menus = currentPlan[key];
+                if (menus && menus.length > 0) {
+                    totalMenus += menus.length;
+                    filledSlots++;
+                    totalCost += menus.reduce((sum, menu) => sum + (menu.cost || 0), 0);
+                }
+            });
+            
+            const persons = parseInt(document.getElementById('personsInput').value) || 100;
+            const weeklyBudget = totalCost * persons;
+            const avgCostPerMeal = totalMenus > 0 ? weeklyBudget / totalMenus : 0;
+            const completionRate = Math.round((filledSlots / totalSlots) * 100);
+            
+            document.getElementById('totalMenus').textContent = totalMenus;
+            document.getElementById('weeklyBudget').textContent = `${weeklyBudget.toLocaleString()}원`;
+            document.getElementById('avgCostPerMeal').textContent = `${Math.round(avgCostPerMeal).toLocaleString()}원`;
+            document.getElementById('completionRate').textContent = `${completionRate}%`;
+        }
+
+        // 주간 식단표 저장
+        async function saveWeeklyPlan() {
+            const weekInput = document.getElementById('weekInput').value;
+            const persons = parseInt(document.getElementById('personsInput').value);
+            const targetCost = parseInt(document.getElementById('targetCostInput').value);
+            
+            if (!weekInput || !persons) {
+                alert('주차와 식수를 입력해주세요.');
+                return;
+            }
+            
+            const planData = {
+                category: currentCategory,
+                week: weekInput,
+                persons: persons,
+                targetCost: targetCost,
+                weeklyPlan: weeklyPlan[currentCategory]
+            };
+            
+            try {
+                const response = await fetch('/api/save_weekly_plan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(planData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('주간 식단표가 저장되었습니다!');
+                } else {
+                    alert('저장 중 오류가 발생했습니다.');
+                }
+                
+            } catch (error) {
+                console.error('저장 오류:', error);
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 이벤트 리스너
+        document.getElementById('weekInput').addEventListener('change', updateWeekInfo);
+        document.getElementById('personsInput').addEventListener('change', updateSummary);
+        document.getElementById('targetCostInput').addEventListener('change', updateSummary);
+
+        // 초기 검색 (인기 메뉴)
+        setTimeout(() => {
+            document.getElementById('recipeSearch').value = '';
+        }, 500);
+    </script>
+</body>
+</html>
