@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>15일 식수 관리 - 다함식단관리시스템 v2.1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+            font-size: 13px;
+        }
+        
+        .navigation-bar {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .nav-item {
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            font-weight: 600;
+        }
+        
+        .nav-logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-right: 30px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .date-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-controls input {
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 12px;
+        }
+
+        .date-controls button {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .date-controls button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 탭 시스템 */
+        .tab-container {
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            background: white;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .tab-button:hover {
+            background: #f1f3f4;
+        }
+
+        /* 메인 타임라인 테이블 */
+        .timeline-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .timeline-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+            background: white;
+        }
+
+        .timeline-table th,
+        .timeline-table td {
+            border: 1px solid #e0e0e0;
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        /* 헤더 스타일 */
+        .timeline-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .timeline-table th.category-header {
+            background: #495057;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 날짜 열 스타일 */
+        .date-column {
+            width: 60px;
+            min-width: 60px;
+        }
+
+        .date-header {
+            writing-mode: horizontal-tb;
+            height: 60px;
+            vertical-align: middle;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* 과거/현재/미래 구분 */
+        .past-date {
+            background: #e9ecef !important;
+            color: #495057 !important;
+            font-size: 16px !important;
+        }
+
+        .today-date {
+            background: #ffeaa7 !important;
+            color: #e17055 !important;
+            font-weight: bold;
+            font-size: 18px !important;
+        }
+
+        .future-date {
+            background: #a8dadc !important;
+            color: #1d3557 !important;
+            font-size: 16px !important;
+        }
+
+        /* 입력 필드 */
+        .meal-input {
+            width: 55px;
+            text-align: right;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .meal-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .meal-input[readonly] {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .meal-input.changed {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        /* 카테고리별 그룹화 */
+        .category-group {
+            border-top: 2px solid #667eea;
+        }
+
+        .category-label {
+            background: #f8f9ff !important;
+            font-weight: 600;
+            color: #333;
+            text-align: left !important;
+            padding-left: 12px !important;
+        }
+
+        .editable-category:hover {
+            background: #e6f2ff !important;
+            cursor: pointer;
+        }
+
+        .category-edit-input {
+            background: #fff;
+            border: 2px solid #007bff;
+            padding: 2px 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            margin: 0 8px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .edit-icon:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .add-site-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .add-site-btn:hover {
+            background: #218838;
+        }
+
+        .delete-site-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .delete-site-btn:hover {
+            background: #c82333;
+        }
+
+        .category-subtotal {
+            background: #f1f3f4 !important;
+            border-top: 1px solid #d0d7de;
+        }
+
+        .subtotal-cell {
+            background: #f1f3f4 !important;
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .tab-manager-section h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .tab-manager-section p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .tab-config-item {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+        }
+
+        .tab-specific-controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .tab-specific-controls h5 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-sm:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        .simple-config-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f8ff;
+            border: 1px solid #cce7ff;
+            border-radius: 6px;
+        }
+
+        .simple-config-section h4 {
+            margin-bottom: 8px;
+            color: #0066cc;
+        }
+
+        .simple-config-section p {
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .simple-config-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .simple-config-buttons .btn {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .meal-category-checkbox {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .edit-name-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .edit-name-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .category-name-input {
+            border: 1px solid #007bff;
+            padding: 2px 4px;
+            font-size: 12px;
+            border-radius: 3px;
+            min-width: 80px;
+        }
+
+        .meal-time-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .meal-time-group {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            background: #fafafa;
+        }
+
+        .meal-time-header {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 4px;
+        }
+
+        .meal-time-group .meal-category-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .meal-time-group .meal-category-checkbox {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .tab-config-header {
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .meal-category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .meal-category-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 8px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .meal-category-checkbox:hover {
+            background: #e6f2ff;
+            border-color: #007bff;
+        }
+
+        .meal-category-checkbox input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .meal-category-checkbox.checked {
+            background: #e8f5e8;
+            border-color: #28a745;
+        }
+
+        .site-row {
+            background: white;
+        }
+
+        .site-row:hover {
+            background: #f8f9ff;
+        }
+
+        /* 합계 행 */
+        .total-row {
+            background: #e9ecef !important;
+            font-weight: 600;
+            border-top: 2px solid #6c757d;
+        }
+
+        .total-cell {
+            background: #dee2e6 !important;
+            font-weight: bold;
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        /* 도구 모음 */
+        .toolbar {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+            border-color: #ffc107;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        /* 상태 표시 */
+        .status-bar {
+            padding: 10px 20px;
+            background: #e9ecef;
+            font-size: 11px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-past { background: #f8f9fa; border: 1px solid #dee2e6; }
+        .legend-today { background: #fff3cd; border: 1px solid #ffc107; }
+        .legend-future { background: #d1ecf1; border: 1px solid #bee5eb; }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .tab-container {
+                margin: 10px;
+            }
+            
+            .timeline-container {
+                padding: 10px;
+            }
+            
+            .toolbar {
+                padding: 10px;
+            }
+            
+            .header-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* 로딩 상태 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 스크롤바 스타일 */
+        .timeline-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .timeline-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .timeline-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .timeline-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 네비게이션 메뉴 -->
+    <div class="navigation-bar">
+        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
+        <a href="/dashboard" class="nav-item">📈 대시보드</a>
+        <a href="/" class="nav-item">📋 메뉴/레시피 관리</a>
+        <a href="/meal-count" class="nav-item active">👥 식수 등록 관리</a>
+        <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
+        <a href="/ordering" class="nav-item">📈 발주 관리</a>
+        <a href="#" class="nav-item">📦 입고명세서 관리</a>
+        <a href="#" class="nav-item">📋 각종 일지</a>
+        <a href="#" class="nav-item">🔪 전처리지시서</a>
+        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="#" class="nav-item">📊 소분지시서</a>
+    </div>
+
+    <div class="header">
+        <h1>📅 15일 식수 관리 시스템</h1>
+        <div class="header-controls">
+            <div class="date-controls">
+                <label style="color: white; font-size: 12px;">기준일:</label>
+                <input type="date" id="base-date" style="color: #333;">
+                <button onclick="moveWeek(-1)">← 이전주</button>
+                <button onclick="setToday()">오늘</button>
+                <button onclick="moveWeek(1)">다음주 →</button>
+            </div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 11px;" id="period-display">
+                2025.08.27 ~ 2025.09.10 (15일)
+            </div>
+        </div>
+    </div>
+
+    <!-- 탭 컨테이너 -->
+    <div class="tab-container">
+        <!-- 탭 헤더 -->
+        <div class="tab-header">
+            <button class="tab-button active" data-tab="식수합계" onclick="switchTab('식수합계')">
+                📊 식수합계
+            </button>
+            <button class="tab-button" data-tab="도시락" onclick="switchTab('도시락')">
+                🍱 도시락
+            </button>
+            <button class="tab-button" data-tab="운반" onclick="switchTab('운반')">
+                🚚 운반
+            </button>
+            <button class="tab-button" data-tab="학교" onclick="switchTab('학교')">
+                🏫 학교
+            </button>
+            <button class="tab-button" data-tab="요양원" onclick="switchTab('요양원')">
+                🏥 요양원
+            </button>
+            <button class="tab-button" data-tab="확장1" onclick="switchTab('확장1')">
+                📋 확장1
+            </button>
+        </div>
+
+        <!-- 도구 모음 -->
+        <div class="toolbar">
+            <button class="btn btn-primary" onclick="copyPreviousDay()">
+                📋 전날 복사
+            </button>
+            <button class="btn btn-success" onclick="generatePrediction()">
+                🔮 예상값 생성
+            </button>
+            <button class="btn btn-info" onclick="openTabManagerModal()">
+                ⚙️ 탭 관리
+            </button>
+            <button class="btn btn-warning" onclick="saveAllChanges()">
+                💾 일괄 저장
+            </button>
+            <button class="btn" onclick="exportToExcel()">
+                📊 Excel 내보내기
+            </button>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 11px; color: #6c757d;">자동저장:</span>
+                <label style="font-size: 11px;">
+                    <input type="checkbox" id="auto-save" checked> 켜기
+                </label>
+            </div>
+        </div>
+
+        <!-- 타임라인 테이블 -->
+        <div class="timeline-container">
+            <table class="timeline-table" id="main-timeline-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="width: 150px;">세부식단/사업장</th>
+                        <th rowspan="2" style="width: 80px;">목표식재료비</th>
+                        <!-- 날짜 헤더들이 동적으로 추가됩니다 -->
+                    </tr>
+                    <tr>
+                        <!-- 요일 헤더들이 동적으로 추가됩니다 -->
+                    </tr>
+                </thead>
+                <tbody id="timeline-tbody">
+                    <tr>
+                        <td colspan="16" class="loading">데이터를 불러오는 중입니다...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 상태 표시줄 -->
+        <div class="status-bar">
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-past"></div>
+                    <span>과거 실적 (3일)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-today"></div>
+                    <span>오늘</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-future"></div>
+                    <span>예상 데이터</span>
+                </div>
+            </div>
+            <div id="status-info">
+                총 변경사항: <span id="change-count">0</span>개 | 
+                마지막 저장: <span id="last-save">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 탭 관리 모달 -->
+    <div id="tabManagerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ 탭 및 세부식단 관리</h3>
+                <span class="close" onclick="closeTabManagerModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tab-manager-section">
+                    <h4>📋 탭별 세부식단 구성</h4>
+                    <p>각 탭의 세부식단을 관리할 수 있습니다. 작은 사업장의 경우 필요한 식단만 선택하세요.</p>
+                    
+                    <div id="tabManagerContent">
+                        <!-- 동적으로 생성될 탭 관리 콘텐츠 -->
+                    </div>
+                    
+                    <div class="simple-config-section">
+                        <h4>🏪 작은 사업장용 간단 설정</h4>
+                        <p>작은 사업장을 위한 기본 구성을 선택하세요:</p>
+                        <div class="simple-config-buttons">
+                            <button class="btn btn-info" onclick="applySimpleConfig('basic')">🍱 기본형 (🌅조식A + 🍽️중식A + 🌆석식A)</button>
+                            <button class="btn btn-info" onclick="applySimpleConfig('lunch-only')">🍚 중식전용 (🍽️중식A만)</button>
+                            <button class="btn btn-info" onclick="applySimpleConfig('school')">🏫 학교형 (🍽️중식A,B + 🌆석식A)</button>
+                            <button class="btn btn-info" onclick="applySimpleConfig('nursing')">🏥 요양원형 (🌅조식A + 🍽️중식A,B + 🌆석식A + 🌙야식A)</button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn btn-success" onclick="saveTabConfiguration()">💾 설정 저장</button>
+                        <button class="btn btn-secondary" onclick="resetToDefault()">🔄 기본값으로 초기화</button>
+                        <button class="btn btn-secondary" onclick="closeTabManagerModal()">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentTab = '식수합계';
+        let baseDate = new Date();
+        let timelineDates = [];
+        let mealData = {};
+        let changeCount = 0;
+        let autoSaveEnabled = true;
+        
+        // 세부식단 명칭 매핑 (기본값 → 사용자 정의 명칭)
+        let mealCategoryNames = {
+            '조식A': '조식A', '조식B': '조식B', '조식C': '조식C', '조식D': '조식D', '조식E': '조식E',
+            '중식A': '중식A', '중식B': '중식B', '중식C': '중식C', '중식D': '중식D', '중식E': '중식E',
+            '석식A': '석식A', '석식B': '석식B', '석식C': '석식C',
+            '야식A': '야식A', '야식B': '야식B',
+            '특식A': '특식A', '특식B': '특식B', '특식C': '특식C', '특식D': '특식D', '특식E': '특식E'
+        };
+
+        // 샘플 데이터 구조
+        const sampleData = {
+            '식수합계': {
+                '전체합계': [['모든 탭의 합계']]
+            },
+            '도시락': {
+                '조식A': [],
+                '조식B': [],
+                '조식C': [],
+                '조식D': [],
+                '중식A': [],
+                '중식B': [],
+                '중식C': [],
+                '중식D': [],
+                '중식E': [],
+                '석식A': [],
+                '석식B': [],
+                '석식C': [],
+                '야식A': [],
+                '야식B': [],
+                '특식A': []
+            },
+            '운반': {
+                '조식A': [],
+                '조식B': [],
+                '조식C': [],
+                '조식D': [],
+                '중식A': [],
+                '중식B': [],
+                '중식C': [],
+                '중식D': [],
+                '중식E': [],
+                '석식A': [],
+                '석식B': [],
+                '야식A': [],
+                '야식B': [],
+                '특식A': [],
+                '특식B': []
+            },
+            '학교': {
+                '조식A': [],
+                '조식B': [],
+                '조식C': [],
+                '조식D': [],
+                '조식E': [],
+                '중식A': [],
+                '중식B': [],
+                '중식C': [],
+                '중식D': [],
+                '중식E': [],
+                '석식A': [],
+                '석식B': [],
+                '석식C': [],
+                '야식A': [],
+                '특식A': []
+            },
+            '요양원': {
+                '조식A': [],
+                '조식B': [],
+                '조식C': [],
+                '조식D': [],
+                '중식A': [],
+                '중식B': [],
+                '중식C': [],
+                '중식D': [],
+                '중식E': [],
+                '석식A': [],
+                '석식B': [],
+                '석식C': [],
+                '야식A': [],
+                '야식B': [],
+                '특식A': []
+            },
+            '확장1': {
+                '조식A': [],
+                '조식B': [],
+                '조식C': [],
+                '중식A': [],
+                '중식B': [],
+                '중식C': [],
+                '중식D': [],
+                '석식A': [],
+                '석식B': [],
+                '야식A': [],
+                '특식A': [],
+                '특식B': [],
+                '특식C': [],
+                '특식D': [],
+                '특식E': []
+            }
+        };
+
+        // 페이지 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 캐시 강제 새로고침 (개발용)
+            console.log('Timeline system v2.1 - Cache cleared');
+            
+            initializePage();
+            generateTimeline();
+            loadData();
+
+            // 자동저장 설정
+            document.getElementById('auto-save').addEventListener('change', function() {
+                autoSaveEnabled = this.checked;
+            });
+
+            // 기준일 변경 감지
+            document.getElementById('base-date').addEventListener('change', function() {
+                baseDate = new Date(this.value);
+                generateTimeline();
+                loadData();
+            });
+        });
+
+        // 페이지 초기화
+        function initializePage() {
+            const today = new Date();
+            baseDate = today;
+            document.getElementById('base-date').value = today.toISOString().split('T')[0];
+        }
+
+        // 타임라인 날짜 생성 (과거 3일 + 오늘 + 미래 11일)
+        function generateTimeline() {
+            timelineDates = [];
+            const startDate = new Date(baseDate);
+            startDate.setDate(startDate.getDate() - 3); // 과거 3일부터 시작
+
+            for (let i = 0; i < 15; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                timelineDates.push(date);
+            }
+
+            updatePeriodDisplay();
+            generateTableHeaders();
+        }
+
+        // 기간 표시 업데이트
+        function updatePeriodDisplay() {
+            const startDate = timelineDates[0];
+            const endDate = timelineDates[timelineDates.length - 1];
+            const periodText = `${formatDate(startDate, 'YYYY.MM.DD')} ~ ${formatDate(endDate, 'YYYY.MM.DD')} (15일)`;
+            document.getElementById('period-display').textContent = periodText;
+        }
+
+        // 테이블 헤더 생성
+        function generateTableHeaders() {
+            const table = document.getElementById('main-timeline-table');
+            const thead = table.querySelector('thead');
+            
+            // 기존 헤더 제거
+            thead.innerHTML = '';
+
+            // 날짜 헤더 행
+            const dateHeaderRow = document.createElement('tr');
+            dateHeaderRow.innerHTML = '<th rowspan="2" style="width: 150px;">세부식단/사업장</th><th rowspan="2" style="width: 80px;">목표식재료비</th>';
+            
+            // 요일 헤더 행
+            const dayHeaderRow = document.createElement('tr');
+
+            timelineDates.forEach((date, index) => {
+                const dateStr = formatDate(date, 'MM/DD');
+                const dayStr = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+                
+                // 과거/현재/미래 구분
+                let dateClass = '';
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                date.setHours(0, 0, 0, 0);
+                
+                if (date < today) {
+                    dateClass = 'past-date';
+                } else if (date.getTime() === today.getTime()) {
+                    dateClass = 'today-date';
+                } else {
+                    dateClass = 'future-date';
+                }
+
+                dateHeaderRow.innerHTML += `<th class="date-column date-header ${dateClass}">${dateStr}</th>`;
+                dayHeaderRow.innerHTML += `<th class="date-column ${dateClass}">${dayStr}</th>`;
+            });
+
+            thead.appendChild(dateHeaderRow);
+            thead.appendChild(dayHeaderRow);
+        }
+
+        // 데이터 로드
+        async function loadData() {
+            const tbody = document.getElementById('timeline-tbody');
+            tbody.innerHTML = '<tr><td colspan="16" class="loading">데이터를 불러오는 중입니다...</td></tr>';
+
+            try {
+                // 타임라인 데이터 API 호출 (인증 불필요)
+                const startDate = formatDate(timelineDates[0], 'YYYY-MM-DD');
+                const endDate = formatDate(timelineDates[timelineDates.length - 1], 'YYYY-MM-DD');
+                
+                const response = await fetch(`/api/meal-counts/timeline?tab=${currentTab}&start_date=${startDate}&end_date=${endDate}&_t=${Date.now()}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        mealData = result.data;
+                        generateTableContent();
+                    } else {
+                        throw new Error(result.message || 'API 응답 오류');
+                    }
+                } else {
+                    // API가 없거나 오류인 경우 샘플 데이터 사용
+                    console.log('API 없음, 샘플 데이터 사용');
+                    generateTableContent();
+                }
+            } catch (error) {
+                console.log('API 오류, 샘플 데이터 사용:', error.message);
+                // 오류 발생시 샘플 데이터로 표시
+                generateTableContent();
+            }
+        }
+
+        // 테이블 내용 생성
+        async function generateTableContent() {
+            const tbody = document.getElementById('timeline-tbody');
+            tbody.innerHTML = '';
+
+            try {
+                // 템플릿 데이터 가져오기
+                const templateResponse = await fetch(`/api/meal-counts/templates/${currentTab}?_t=${Date.now()}`);
+                const templateData = await templateResponse.json();
+                
+                let currentTabData;
+                if (currentTab === '식수합계') {
+                    // 식수합계 탭인 경우 모든 탭의 데이터를 합산
+                    currentTabData = generateSummaryTabData();
+                } else if (templateResponse.ok && templateData.success) {
+                    currentTabData = templateData.data;
+                } else {
+                    // 템플릿 API가 없으면 샘플 데이터 사용
+                    currentTabData = sampleData[currentTab] || {};
+                }
+
+                const dailyTotals = new Array(15).fill(0);
+                let categoryHTML = '';
+
+                // 카테고리별 데이터 생성
+                for (const [category, sites] of Object.entries(currentTabData)) {
+                    let siteList = [];
+                    if (Array.isArray(sites)) {
+                        // API에서 받은 데이터: [{site_name: string, default_count: number}, ...]
+                        siteList = sites.map(s => typeof s === 'string' ? s : (s.site_name || String(s)));
+                    } else {
+                        siteList = [String(sites)];
+                    }
+                    
+                    // 카테고리 헤더를 HTML 문자열로 추가 (편집 가능)
+                    const displayName = mealCategoryNames[category] || category;
+                    categoryHTML += `
+                        <tr class="category-group">
+                            <td class="category-label editable-category" colspan="17" 
+                                data-original-name="${category}">
+                                📍 <span class="category-name" data-original="${category}">${displayName}</span> 
+                                <span class="edit-icon" onclick="editCategoryFromTable('${category}')" title="클릭하여 식단명 수정">✏️</span>
+                                (${siteList.length}개 사업장)
+                                <button class="add-site-btn" onclick="addSiteToCategory('${category}')" title="사업장 추가">+ 추가</button>
+                            </td>
+                        </tr>
+                    `;
+
+                    // 사업장이 없는 경우 카테고리에 직접 입력할 수 있는 행 추가
+                    if (siteList.length === 0) {
+                        let directInputRowHTML = `
+                            <tr class="site-row direct-category-input" data-category="${category}" data-site="직접입력">
+                                <td class="category-label" style="padding-left: 24px;">
+                                    💡 직접 입력
+                                </td>
+                                <td class="editable-cost" style="text-align: right; padding-right: 8px; font-size: 12px; color: #666; cursor: pointer;" 
+                                    onclick="editTargetCost(this)" title="클릭하여 목표 식재료비 수정">1,700원</td>
+                        `;
+                        
+                        // 각 날짜별 입력 필드 추가
+                        timelineDates.forEach((date, dateIndex) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            date.setHours(0, 0, 0, 0);
+                            
+                            const isReadonly = date < today;
+                            const dateStr = formatDate(date, 'YYYY-MM-DD');
+                            
+                            let cellClass = '';
+                            if (date < today) {
+                                cellClass = 'past-date';
+                            } else if (date.getTime() === today.getTime()) {
+                                cellClass = 'today-date';
+                            } else {
+                                cellClass = 'future-date';
+                            }
+
+                            // 실제 데이터 또는 샘플 데이터
+                            let mealValue = 0;
+                            if (mealData[category] && mealData[category]['직접입력'] && mealData[category]['직접입력'][dateStr]) {
+                                mealValue = mealData[category]['직접입력'][dateStr].meal_count;
+                            }
+                            
+                            dailyTotals[dateIndex] += mealValue;
+
+                            directInputRowHTML += `
+                                <td class="${cellClass}">
+                                    <input type="number" 
+                                           class="meal-input" 
+                                           value="${mealValue}" 
+                                           ${isReadonly ? 'readonly' : ''}
+                                           data-category="${category}"
+                                           data-site="직접입력"
+                                           data-date="${dateStr}"
+                                           onchange="onDataChange(this)"
+                                           onblur="onInputBlur(this)">
+                                </td>
+                            `;
+                        });
+                        
+                        directInputRowHTML += '</tr>';
+                        categoryHTML += directInputRowHTML;
+                    }
+
+                    // 각 사업장별 행 생성
+                    for (const site of siteList) {
+                        const siteName = typeof site === 'string' ? site : site;
+                        // 사업장 행의 시작 부분 HTML
+                        let siteRowHTML = `
+                            <tr class="site-row" data-category="${category}" data-site="${siteName}">
+                                <td class="category-label" style="padding-left: 24px;">
+                                    • ${siteName}
+                                    <button class="delete-site-btn" onclick="deleteSiteFromCategory('${category}', '${siteName}')" title="사업장 삭제">🗑️</button>
+                                </td>
+                                <td class="editable-cost" style="text-align: right; padding-right: 8px; font-size: 12px; color: #666; cursor: pointer;" 
+                                    onclick="editTargetCost(this)" title="클릭하여 목표 식재료비 수정">1,700원</td>
+                        `;
+                        
+                        // 각 날짜별 입력 필드
+                        timelineDates.forEach((date, dateIndex) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            date.setHours(0, 0, 0, 0);
+                            
+                            const isReadonly = date < today; // 과거 날짜는 모두 읽기전용
+                            const dateStr = formatDate(date, 'YYYY-MM-DD');
+                            
+                            // 실제 데이터 또는 샘플 데이터
+                            let mealValue = 0;
+                            if (mealData[category] && mealData[category][siteName] && mealData[category][siteName][dateStr]) {
+                                mealValue = mealData[category][siteName][dateStr].meal_count;
+                            } else {
+                                mealValue = generateSampleValue(category, siteName, date);
+                            }
+                            
+                            dailyTotals[dateIndex] += mealValue;
+                            
+                            let cellClass = '';
+                            if (date < today) {
+                                cellClass = 'past-date';
+                            } else if (date.getTime() === today.getTime()) {
+                                cellClass = 'today-date';
+                            } else {
+                                cellClass = 'future-date';
+                            }
+
+                            siteRowHTML += `
+                                <td class="${cellClass}">
+                                    <input type="number" 
+                                           class="meal-input" 
+                                           value="${mealValue}" 
+                                           ${isReadonly ? 'readonly' : ''}
+                                           data-category="${category}"
+                                           data-site="${siteName}"
+                                           data-date="${dateStr}"
+                                           onchange="onDataChange(this)"
+                                           onblur="onInputBlur(this)">
+                                </td>
+                            `;
+                        });
+                        
+                        siteRowHTML += `</tr>`;
+                        categoryHTML += siteRowHTML;
+                    }
+                }
+
+                // 총계 행 생성
+                let totalRow = '<tr class="total-row"><td class="total-cell">📊 총계</td><td class="total-cell">-</td>';
+                dailyTotals.forEach((total, index) => {
+                    const date = timelineDates[index];
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    date.setHours(0, 0, 0, 0);
+                    
+                    let cellClass = 'total-cell ';
+                    if (date < today) {
+                        cellClass += 'past-date';
+                    } else if (date.getTime() === today.getTime()) {
+                        cellClass += 'today-date';
+                    } else {
+                        cellClass += 'future-date';
+                    }
+
+                    totalRow += `<td class="${cellClass}"><strong>${total.toLocaleString()}</strong></td>`;
+                });
+                totalRow += '</tr>';
+                
+                // 합계 행을 맨 앞에, 그 다음에 카테고리 데이터 추가
+                tbody.innerHTML = totalRow + categoryHTML;
+                
+                // 테이블 생성 완료 후 소계 계산
+                setTimeout(() => {
+                    recalculateAllTotals();
+                }, 100);
+                
+            } catch (error) {
+                console.error('테이블 생성 오류:', error);
+                tbody.innerHTML = '<tr><td colspan="16" class="error">데이터 로드 중 오류가 발생했습니다.</td></tr>';
+            }
+        }
+
+        // 샘플 값 생성
+        function generateSampleValue(category, site, date) {
+            // 실제로는 서버에서 가져온 데이터를 사용
+            const baseValue = category.includes('조식') ? 80 : 
+                             category.includes('중식') ? 150 : 
+                             category.includes('석식') ? 100 : 60;
+            
+            const randomFactor = 0.8 + Math.random() * 0.4; // 80%~120% 범위
+            return Math.round(baseValue * randomFactor);
+        }
+
+        // 탭 전환
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // 탭 버튼 상태 업데이트
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // 데이터 다시 로드
+            loadData();
+        }
+
+        // 데이터 변경 감지
+        function onDataChange(input) {
+            input.classList.add('changed');
+            changeCount++;
+            updateStatusInfo();
+            
+            // 합계 실시간 업데이트
+            recalculateAllTotals();
+            
+            if (autoSaveEnabled) {
+                // 실제로는 디바운싱을 적용해서 자동저장
+                setTimeout(() => {
+                    if (input.classList.contains('changed')) {
+                        saveIndividualChange(input);
+                    }
+                }, 1000);
+            }
+        }
+
+        // 입력 필드 포커스 해제
+        function onInputBlur(input) {
+            // 값 검증 및 포맷팅
+            const value = parseInt(input.value) || 0;
+            input.value = value;
+        }
+
+        // 개별 변경사항 저장
+        async function saveIndividualChange(input) {
+            try {
+                const saveData = {
+                    tab: currentTab,
+                    category: input.dataset.category,
+                    site: input.dataset.site,
+                    date: input.dataset.date,
+                    meal_count: parseInt(input.value) || 0
+                };
+                
+                const response = await fetch(`/api/meal-counts/timeline/save?_t=${Date.now()}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        input.classList.remove('changed');
+                        changeCount = Math.max(0, changeCount - 1);
+                        updateStatusInfo();
+                        console.log('저장 성공:', saveData);
+                    } else {
+                        throw new Error(result.message || '저장 실패');
+                    }
+                } else if (response.status === 401) {
+                    // 인증이 필요한 경우 알림
+                    console.log('인증이 필요하여 자동저장 실패. 나중에 일괄 저장하세요.');
+                    // 변경 상태는 유지
+                } else {
+                    throw new Error('서버 오류');
+                }
+                
+            } catch (error) {
+                console.error('저장 오류:', error);
+                // 오류 발생시에도 변경 상태는 유지 (나중에 일괄 저장 가능)
+            }
+        }
+
+        // 상태 정보 업데이트
+        function updateStatusInfo() {
+            document.getElementById('change-count').textContent = changeCount;
+            document.getElementById('last-save').textContent = new Date().toLocaleTimeString();
+        }
+
+        // 날짜 포맷팅
+        function formatDate(date, format) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            
+            return format
+                .replace('YYYY', year)
+                .replace('MM', month)
+                .replace('DD', day);
+        }
+
+        // 주 이동
+        function moveWeek(direction) {
+            baseDate.setDate(baseDate.getDate() + (direction * 7));
+            document.getElementById('base-date').value = baseDate.toISOString().split('T')[0];
+            generateTimeline();
+            loadData();
+        }
+
+        // 오늘로 설정
+        function setToday() {
+            baseDate = new Date();
+            document.getElementById('base-date').value = baseDate.toISOString().split('T')[0];
+            generateTimeline();
+            loadData();
+        }
+
+        // 전날 복사
+        function copyPreviousDay() {
+            if (confirm('전날 데이터를 오늘과 미래일에 복사하시겠습니까?')) {
+                // 실제 구현
+                alert('전날 데이터 복사 기능을 구현합니다.');
+            }
+        }
+
+        // 예상값 생성
+        function generatePrediction() {
+            if (confirm('최근 3일 평균을 기반으로 예상값을 생성하시겠습니까?')) {
+                // 실제 구현
+                alert('예상값 생성 기능을 구현합니다.');
+            }
+        }
+
+        // 세부식단명 편집 시작
+        function editCategoryName(element) {
+            const categoryNameSpan = element.querySelector('.category-name');
+            const currentName = categoryNameSpan.textContent;
+            
+            // 이미 편집 중인 경우 무시
+            if (element.querySelector('.category-edit-input')) {
+                return;
+            }
+            
+            // 입력 필드 생성
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'category-edit-input';
+            input.style.width = currentName.length * 12 + 40 + 'px';
+            
+            // 원래 텍스트 숨기기
+            categoryNameSpan.style.display = 'none';
+            categoryNameSpan.parentNode.insertBefore(input, categoryNameSpan);
+            
+            // 입력 필드에 포커스
+            input.focus();
+            input.select();
+            
+            // 엔터키 또는 포커스 아웃 시 저장
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveCategoryName(element, input, categoryNameSpan);
+                } else if (e.key === 'Escape') {
+                    cancelCategoryEdit(input, categoryNameSpan);
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                saveCategoryName(element, input, categoryNameSpan);
+            });
+        }
+
+        // 세부식단명 저장
+        function saveCategoryName(element, input, categoryNameSpan) {
+            const newName = input.value.trim();
+            const originalName = element.dataset.originalName;
+            
+            if (newName === '' || newName === originalName) {
+                cancelCategoryEdit(input, categoryNameSpan);
+                return;
+            }
+            
+            // 중복 검사 (현재 탭 내에서)
+            const existingCategories = Array.from(document.querySelectorAll('.category-name')).map(span => span.textContent);
+            if (existingCategories.includes(newName)) {
+                alert('이미 존재하는 세부식단명입니다.');
+                input.focus();
+                input.select();
+                return;
+            }
+            
+            // 이름 업데이트
+            categoryNameSpan.textContent = newName;
+            categoryNameSpan.style.display = '';
+            input.remove();
+            
+            // TODO: 서버에 변경사항 저장
+            console.log(`세부식단명 변경: ${originalName} → ${newName}`);
+            alert(`세부식단명이 "${newName}"으로 변경되었습니다.`);
+        }
+
+        // 세부식단명 편집 취소
+        function cancelCategoryEdit(input, categoryNameSpan) {
+            categoryNameSpan.style.display = '';
+            input.remove();
+        }
+
+        // 사업장 추가
+        function addSiteToCategory(categoryName) {
+            const siteName = prompt(`${categoryName}에 추가할 사업장명을 입력하세요:`);
+            if (siteName && siteName.trim()) {
+                const trimmedSiteName = siteName.trim();
+                
+                // 중복 확인
+                const existingSites = Array.from(document.querySelectorAll(`[data-category="${categoryName}"] td:first-child`))
+                    .map(td => td.textContent.replace('• ', '').replace('🗑️', '').trim());
+                
+                if (existingSites.includes(trimmedSiteName)) {
+                    alert('이미 존재하는 사업장명입니다.');
+                    return;
+                }
+                
+                // 새로운 사업장 행 추가
+                addNewSiteRow(categoryName, trimmedSiteName);
+                
+                // 합계 재계산
+                recalculateAllTotals();
+                
+                console.log(`사업장 추가: ${categoryName} → ${trimmedSiteName}`);
+            }
+        }
+
+        // 사업장 삭제
+        function deleteSiteFromCategory(categoryName, siteName) {
+            if (confirm(`"${siteName}" 사업장을 삭제하시겠습니까?`)) {
+                const siteRow = document.querySelector(`[data-category="${categoryName}"][data-site="${siteName}"]`);
+                if (siteRow) {
+                    siteRow.remove();
+                    
+                    // 사업장 개수 업데이트
+                    updateSiteCount(categoryName);
+                    
+                    // 합계 재계산
+                    recalculateAllTotals();
+                    
+                    console.log(`사업장 삭제: ${categoryName} → ${siteName}`);
+                }
+            }
+        }
+
+        // 새로운 사업장 행 추가
+        function addNewSiteRow(categoryName, siteName) {
+            const categoryRow = Array.from(document.querySelectorAll('.category-group')).find(row => {
+                const categoryNameElement = row.querySelector('.category-name');
+                return categoryNameElement && categoryNameElement.textContent === categoryName;
+            });
+            
+            if (!categoryRow) return;
+            
+            // 새로운 사업장 행 HTML 생성
+            let newSiteRowHTML = `
+                <tr class="site-row" data-category="${categoryName}" data-site="${siteName}">
+                    <td class="category-label" style="padding-left: 24px;">
+                        • ${siteName}
+                        <button class="delete-site-btn" onclick="deleteSiteFromCategory('${categoryName}', '${siteName}')" title="사업장 삭제">🗑️</button>
+                    </td>
+                    <td class="editable-cost" style="text-align: right; padding-right: 8px; font-size: 12px; color: #666; cursor: pointer;" 
+                        onclick="editTargetCost(this)" title="클릭하여 목표 식재료비 수정">1,700원</td>
+            `;
+            
+            // 각 날짜별 입력 필드 추가
+            timelineDates.forEach((date, dateIndex) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                date.setHours(0, 0, 0, 0);
+                
+                const isReadonly = date < today;
+                const dateStr = formatDate(date, 'YYYY-MM-DD');
+                
+                let cellClass = '';
+                if (date < today) {
+                    cellClass = 'past-date';
+                } else if (date.getTime() === today.getTime()) {
+                    cellClass = 'today-date';
+                } else {
+                    cellClass = 'future-date';
+                }
+
+                newSiteRowHTML += `
+                    <td class="${cellClass}">
+                        <input type="number" 
+                               class="meal-input" 
+                               value="0" 
+                               ${isReadonly ? 'readonly' : ''}
+                               data-category="${categoryName}"
+                               data-site="${siteName}"
+                               data-date="${dateStr}"
+                               onchange="onDataChange(this)"
+                               onblur="onInputBlur(this)">
+                    </td>
+                `;
+            });
+            
+            newSiteRowHTML += '</tr>';
+            
+            // 카테고리 다음에 새로운 행 삽입
+            categoryRow.insertAdjacentHTML('afterend', newSiteRowHTML);
+            
+            // 사업장 개수 업데이트
+            updateSiteCount(categoryName);
+        }
+
+        // 사업장 개수 업데이트
+        function updateSiteCount(categoryName) {
+            const categoryRow = Array.from(document.querySelectorAll('.category-group')).find(row => {
+                const categoryNameElement = row.querySelector('.category-name');
+                return categoryNameElement && categoryNameElement.textContent === categoryName;
+            });
+            
+            if (categoryRow) {
+                const siteCount = document.querySelectorAll(`tr.site-row[data-category="${categoryName}"]`).length;
+                const categoryLabel = categoryRow.querySelector('.category-label');
+                
+                // 사업장 개수 텍스트 업데이트
+                const countRegex = /\(\d+개 사업장\)/;
+                categoryLabel.innerHTML = categoryLabel.innerHTML.replace(countRegex, `(${siteCount}개 사업장)`);
+            }
+        }
+
+        // 목표 식재료비 편집
+        function editTargetCost(element) {
+            const currentCost = element.textContent.replace('원', '').replace(',', '');
+            const newCost = prompt('목표 식재료비를 입력하세요 (원 단위):', currentCost);
+            
+            if (newCost !== null && newCost.trim() !== '') {
+                const numericCost = parseInt(newCost.replace(/,/g, ''));
+                if (!isNaN(numericCost) && numericCost >= 0) {
+                    element.textContent = numericCost.toLocaleString() + '원';
+                    console.log(`목표 식재료비 변경: ${currentCost}원 → ${numericCost.toLocaleString()}원`);
+                } else {
+                    alert('올바른 숫자를 입력해주세요.');
+                }
+            }
+        }
+
+        // 모든 합계 재계산
+        function recalculateAllTotals() {
+            const dailyTotals = new Array(15).fill(0);
+            const categoryTotals = {};
+            
+            // 각 입력값을 합산
+            const allInputs = document.querySelectorAll('.meal-input');
+            allInputs.forEach(input => {
+                const value = parseInt(input.value) || 0;
+                const category = input.dataset.category;
+                const dateIndex = getDateIndexFromInput(input);
+                
+                if (dateIndex >= 0 && dateIndex < 15) {
+                    // 전체 일별 합계
+                    dailyTotals[dateIndex] += value;
+                    
+                    // 카테고리별 합계
+                    if (!categoryTotals[category]) {
+                        categoryTotals[category] = new Array(15).fill(0);
+                    }
+                    categoryTotals[category][dateIndex] += value;
+                }
+            });
+            
+            // 전체 합계 행 업데이트
+            updateTotalRow(dailyTotals);
+            
+            // 카테고리별 소계 업데이트
+            updateCategorySubtotals(categoryTotals);
+        }
+
+        // 카테고리별 소계 업데이트
+        function updateCategorySubtotals(categoryTotals) {
+            Object.keys(categoryTotals).forEach(category => {
+                const totals = categoryTotals[category];
+                const categoryRow = findCategoryRow(category);
+                
+                if (categoryRow) {
+                    // 카테고리 헤더에 소계 표시
+                    updateCategoryHeaderSubtotal(categoryRow, category, totals);
+                    
+                    // 기존 소계 행이 있으면 제거
+                    const existingSubtotalRow = document.querySelector(`[data-subtotal-category="${category}"]`);
+                    if (existingSubtotalRow) {
+                        existingSubtotalRow.remove();
+                    }
+                    
+                    // 새 소계 행 생성 (사업장이 있는 경우만)
+                    const siteCount = document.querySelectorAll(`tr.site-row[data-category="${category}"]`).length;
+                    
+                    if (siteCount > 0) {
+                        createCategorySubtotalRow(category, totals);
+                    }
+                }
+            });
+        }
+
+        // 카테고리 행 찾기
+        function findCategoryRow(category) {
+            return Array.from(document.querySelectorAll('.category-group')).find(row => {
+                const categoryNameElement = row.querySelector('.category-name');
+                if (!categoryNameElement) return false;
+                
+                // 원본 카테고리명으로 비교 (data-original 속성 사용)
+                const originalCategory = categoryNameElement.dataset.original;
+                if (originalCategory === category) return true;
+                
+                // 표시명으로도 비교 (호환성을 위해)
+                return categoryNameElement.textContent === category;
+            });
+        }
+
+        // 카테고리 헤더에 소계 표시
+        function updateCategoryHeaderSubtotal(categoryRow, category, totals) {
+            const totalSum = totals.reduce((sum, total) => sum + total, 0);
+            const categoryLabel = categoryRow.querySelector('.category-label');
+            const siteCount = document.querySelectorAll(`tr.site-row[data-category="${category}"]`).length;
+            
+            // 평균 일별 식수 계산 (0이 아닌 날들의 평균)
+            const nonZeroDays = totals.filter(total => total > 0).length;
+            const avgDaily = nonZeroDays > 0 ? (totalSum / nonZeroDays).toFixed(0) : 0;
+            
+            // 기존 소계 정보 제거 후 새로 추가
+            const countRegex = /\(\d+개 사업장.*?\)/;
+            categoryLabel.innerHTML = categoryLabel.innerHTML.replace(countRegex, 
+                `(${siteCount}개 사업장, 15일 총 ${totalSum.toLocaleString()}명, 일평균 ${avgDaily}명)`);
+        }
+
+        // 카테고리별 소계 행 생성 (일별 소계)
+        function createCategorySubtotalRow(category, totals) {
+            const categoryRow = findCategoryRow(category);
+            if (!categoryRow) return;
+            
+            // 소계 행 생성
+            const subtotalRow = document.createElement('tr');
+            subtotalRow.className = 'category-subtotal-row';
+            subtotalRow.dataset.subtotalCategory = category;
+            
+            // 첫 번째 셀 (빈 공간)
+            const emptyCell = document.createElement('td');
+            emptyCell.style.border = 'none';
+            subtotalRow.appendChild(emptyCell);
+            
+            // 두 번째 셀 (소계 라벨)
+            const labelCell = document.createElement('td');
+            labelCell.textContent = '일별소계';
+            labelCell.style.fontWeight = 'bold';
+            labelCell.style.textAlign = 'right';
+            labelCell.style.backgroundColor = '#e8f4f8';
+            labelCell.style.border = '1px solid #ddd';
+            labelCell.style.padding = '8px';
+            labelCell.style.color = '#2563eb';
+            labelCell.style.fontSize = '12px';
+            subtotalRow.appendChild(labelCell);
+            
+            // 날짜별 소계 셀들 (각 날짜별로 해당 카테고리의 모든 사업장 합계)
+            for (let i = 0; i < 15; i++) {
+                const cell = document.createElement('td');
+                const dailyTotal = totals[i] || 0;
+                
+                if (dailyTotal > 0) {
+                    cell.textContent = dailyTotal.toLocaleString();
+                    cell.style.fontWeight = 'bold';
+                    cell.style.color = '#1d4ed8';
+                } else {
+                    cell.textContent = '-';
+                    cell.style.color = '#6b7280';
+                }
+                
+                cell.style.textAlign = 'center';
+                cell.style.backgroundColor = '#f0f8ff';
+                cell.style.border = '1px solid #ddd';
+                cell.style.padding = '8px';
+                cell.style.fontSize = '12px';
+                subtotalRow.appendChild(cell);
+            }
+            
+            // 카테고리의 마지막 사업장 행 다음에 소계 행 삽입
+            const lastSiteRow = findLastSiteRowInCategory(category);
+            if (lastSiteRow) {
+                lastSiteRow.parentNode.insertBefore(subtotalRow, lastSiteRow.nextSibling);
+            }
+        }
+
+        // 카테고리의 마지막 사업장 행 찾기
+        function findLastSiteRowInCategory(category) {
+            const siteRows = document.querySelectorAll(`tr.site-row[data-category="${category}"]`);
+            return siteRows[siteRows.length - 1];
+        }
+
+        // 입력 필드에서 날짜 인덱스 가져오기
+        function getDateIndexFromInput(input) {
+            const row = input.closest('tr');
+            const cells = row.querySelectorAll('td');
+            const inputCell = input.closest('td');
+            
+            // 첫 번째와 두 번째 셀은 라벨이므로 제외하고 인덱스 계산
+            for (let i = 2; i < cells.length; i++) {
+                if (cells[i] === inputCell) {
+                    return i - 2;
+                }
+            }
+            return -1;
+        }
+
+        // 전체 합계 행 업데이트
+        function updateTotalRow(dailyTotals) {
+            const totalRow = document.querySelector('.total-row');
+            if (!totalRow) return;
+            
+            const totalCells = totalRow.querySelectorAll('.total-cell');
+            // 첫 번째와 두 번째 셀은 라벨이므로 스킵
+            for (let i = 2; i < totalCells.length && i - 2 < dailyTotals.length; i++) {
+                const cell = totalCells[i];
+                const total = dailyTotals[i - 2];
+                cell.innerHTML = `<strong>${total.toLocaleString()}</strong>`;
+            }
+        }
+
+        // 식수합계 탭 데이터 생성
+        function generateSummaryTabData() {
+            const allTabs = ['도시락', '운반', '학교', '요양원', '확장1'];
+            const summaryData = {};
+            
+            allTabs.forEach(tabName => {
+                // 각 탭의 실제 식수 데이터를 합산
+                const tabTotalKey = `${tabName} 총계`;
+                const tabData = calculateTabTotals(tabName);
+                summaryData[tabTotalKey] = [tabData];
+            });
+            
+            // 전체 합계 추가
+            summaryData['전체 합계'] = [calculateGrandTotals()];
+            
+            return summaryData;
+        }
+
+        // 특정 탭의 총계 계산
+        function calculateTabTotals(tabName) {
+            const dailyTotals = new Array(15).fill(0);
+            const tabCategories = Object.keys(sampleData[tabName] || {});
+            
+            // 각 카테고리별로 저장된 데이터 확인
+            tabCategories.forEach(category => {
+                const categoryData = mealData[tabName]?.[category] || {};
+                Object.values(categoryData).forEach(siteData => {
+                    if (Array.isArray(siteData)) {
+                        siteData.forEach((value, dateIndex) => {
+                            if (dateIndex < 15 && value) {
+                                dailyTotals[dateIndex] += parseInt(value) || 0;
+                            }
+                        });
+                    }
+                });
+            });
+            
+            return {
+                site_name: '소계',
+                daily_values: dailyTotals
+            };
+        }
+
+        // 전체 탭의 총합계 계산
+        function calculateGrandTotals() {
+            const allTabs = ['도시락', '운반', '학교', '요양원', '확장1'];
+            const grandTotals = new Array(15).fill(0);
+            
+            allTabs.forEach(tabName => {
+                const tabTotals = calculateTabTotals(tabName);
+                tabTotals.daily_values.forEach((value, index) => {
+                    grandTotals[index] += value;
+                });
+            });
+            
+            return {
+                site_name: '전체 합계',
+                daily_values: grandTotals
+            };
+        }
+
+        // 탭 관리 모달 열기
+        function openTabManagerModal() {
+            const modal = document.getElementById('tabManagerModal');
+            generateTabManagerContent();
+            modal.style.display = 'block';
+        }
+
+        // 탭 관리 모달 닫기
+        function closeTabManagerModal() {
+            const modal = document.getElementById('tabManagerModal');
+            modal.style.display = 'none';
+        }
+
+        // 탭 관리 콘텐츠 생성
+        function generateTabManagerContent() {
+            const container = document.getElementById('tabManagerContent');
+            const allTabs = ['도시락', '운반', '학교', '요양원', '확장1'];
+            const allMealCategories = [
+                '조식A', '조식B', '조식C', '조식D', '조식E',
+                '중식A', '중식B', '중식C', '중식D', '중식E', 
+                '석식A', '석식B', '석식C', 
+                '야식A', '야식B',
+                '특식A', '특식B', '특식C', '특식D', '특식E'
+            ];
+
+            let contentHTML = '';
+            
+            allTabs.forEach(tabName => {
+                const tabIcon = getTabIcon(tabName);
+                const currentCategories = Object.keys(sampleData[tabName] || {});
+                
+                contentHTML += `
+                    <div class="tab-config-item">
+                        <div class="tab-config-header">
+                            ${tabIcon} ${tabName}
+                        </div>
+                        <p>이 탭에서 사용할 세부식단을 선택하세요:</p>
+                        <div class="meal-time-groups">
+                `;
+                
+                // 식사 시간별 그룹화
+                const mealTimeGroups = {
+                    '🌅 조식': ['조식A', '조식B', '조식C', '조식D', '조식E'],
+                    '🍽️ 중식': ['중식A', '중식B', '중식C', '중식D', '중식E'],
+                    '🌆 석식': ['석식A', '석식B', '석식C'],
+                    '🌙 야식': ['야식A', '야식B'],
+                    '🎉 특식': ['특식A', '특식B', '특식C', '특식D', '특식E']
+                };
+                
+                Object.keys(mealTimeGroups).forEach(timeLabel => {
+                    const categories = mealTimeGroups[timeLabel];
+                    contentHTML += `
+                        <div class="meal-time-group">
+                            <h5 class="meal-time-header">${timeLabel}</h5>
+                            <div class="meal-category-grid">
+                    `;
+                    
+                    categories.forEach(category => {
+                        const isChecked = currentCategories.includes(category);
+                        const displayName = mealCategoryNames[category] || category;
+                        contentHTML += `
+                            <label class="meal-category-checkbox ${isChecked ? 'checked' : ''}">
+                                <input type="checkbox" 
+                                       value="${category}" 
+                                       data-tab="${tabName}"
+                                       ${isChecked ? 'checked' : ''}
+                                       onchange="toggleMealCategory(this)">
+                                <span class="category-display-name" data-category="${category}">${displayName}</span>
+                                <button class="edit-name-btn" onclick="editCategoryName('${category}')" title="명칭 변경">✏️</button>
+                            </label>
+                        `;
+                    });
+                    
+                    contentHTML += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                contentHTML += `
+                        </div>
+                        <div class="tab-specific-controls">
+                            <h5>🔧 ${tabName} 전용 설정</h5>
+                            <div class="control-buttons">
+                                <button class="btn btn-sm btn-primary" onclick="exportTabData('${tabName}')">📊 ${tabName} 데이터 내보내기</button>
+                                <button class="btn btn-sm btn-warning" onclick="copyPreviousDay('${tabName}')">📅 전일 데이터 복사</button>
+                                <button class="btn btn-sm btn-info" onclick="showTabStatistics('${tabName}')">📈 ${tabName} 통계 보기</button>
+                                <button class="btn btn-sm btn-danger" onclick="resetTabData('${tabName}')">🗑️ ${tabName} 데이터 초기화</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = contentHTML;
+        }
+
+        // 탭 아이콘 가져오기
+        function getTabIcon(tabName) {
+            const icons = {
+                '도시락': '🍱',
+                '운반': '🚚',
+                '학교': '🏫',
+                '요양원': '🏥',
+                '확장1': '📋'
+            };
+            return icons[tabName] || '📋';
+        }
+
+        // 세부식단 토글
+        function toggleMealCategory(checkbox) {
+            const label = checkbox.closest('.meal-category-checkbox');
+            if (checkbox.checked) {
+                label.classList.add('checked');
+            } else {
+                label.classList.remove('checked');
+            }
+        }
+
+        // 탭 설정 저장
+        function saveTabConfiguration() {
+            const checkboxes = document.querySelectorAll('#tabManagerContent input[type="checkbox"]');
+            const newConfig = {};
+            
+            // 각 탭별로 선택된 세부식단 수집
+            checkboxes.forEach(checkbox => {
+                const tabName = checkbox.dataset.tab;
+                const category = checkbox.value;
+                
+                if (!newConfig[tabName]) {
+                    newConfig[tabName] = {};
+                }
+                
+                if (checkbox.checked) {
+                    newConfig[tabName][category] = [];
+                }
+            });
+            
+            // 샘플 데이터 업데이트
+            Object.keys(newConfig).forEach(tabName => {
+                sampleData[tabName] = newConfig[tabName];
+            });
+            
+            // 현재 탭이 변경된 경우 데이터 다시 로드
+            loadData();
+            
+            alert('탭 설정이 저장되었습니다!');
+            closeTabManagerModal();
+        }
+
+        // 기본값으로 초기화
+        function resetToDefault() {
+            if (confirm('모든 탭 설정을 기본값으로 초기화하시겠습니까?')) {
+                // 기본 세부식단 구성으로 복원
+                const defaultConfig = {
+                    '도시락': ['조식A', '조식B', '중식A', '중식B', '석식A', '야식A'],
+                    '운반': ['조식A', '중식A', '중식B'],
+                    '학교': ['조식A', '중식A', '석식A'],
+                    '요양원': ['조식A', '중식A', '중식B', '석식A', '야식A'],
+                    '확장1': ['중식A']
+                };
+                
+                Object.keys(defaultConfig).forEach(tabName => {
+                    sampleData[tabName] = {};
+                    defaultConfig[tabName].forEach(category => {
+                        sampleData[tabName][category] = [];
+                    });
+                });
+                
+                generateTabManagerContent();
+                alert('기본값으로 초기화되었습니다!');
+            }
+        }
+
+        // 일괄 저장
+        function saveAllChanges() {
+            if (changeCount === 0) {
+                alert('저장할 변경사항이 없습니다.');
+                return;
+            }
+            
+            if (confirm(`${changeCount}개의 변경사항을 저장하시겠습니까?`)) {
+                // 모든 changed 클래스 제거
+                document.querySelectorAll('.meal-input.changed').forEach(input => {
+                    input.classList.remove('changed');
+                });
+                
+                changeCount = 0;
+                updateStatusInfo();
+                alert('모든 변경사항이 저장되었습니다.');
+            }
+        }
+
+        // Excel 내보내기
+        function exportToExcel() {
+            alert(`${currentTab} 탭의 15일 데이터를 Excel로 내보냅니다.`);
+        }
+
+        // 탭별 데이터 내보내기
+        function exportTabData(tabName) {
+            const tabData = mealData[tabName] || {};
+            const csvContent = generateCSVContent(tabName, tabData);
+            downloadCSV(csvContent, `${tabName}_식수데이터_${formatDate(new Date(), 'YYYY-MM-DD')}.csv`);
+            alert(`${tabName} 탭의 데이터를 CSV 파일로 내보냈습니다.`);
+        }
+
+        // CSV 콘텐츠 생성
+        function generateCSVContent(tabName, tabData) {
+            const headers = ['카테고리', '사업장', ...timelineDates.map(d => formatDate(d, 'MM/DD'))];
+            let csvContent = headers.join(',') + '\n';
+            
+            Object.keys(tabData).forEach(category => {
+                const categoryData = tabData[category];
+                Object.keys(categoryData).forEach(site => {
+                    const siteData = categoryData[site];
+                    const row = [category, site, ...siteData];
+                    csvContent += row.join(',') + '\n';
+                });
+            });
+            
+            return csvContent;
+        }
+
+        // CSV 파일 다운로드
+        function downloadCSV(content, filename) {
+            const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 전일 데이터 복사
+        function copyPreviousDay(tabName) {
+            if (!confirm(`${tabName} 탭의 어제 데이터를 오늘로 복사하시겠습니까?`)) {
+                return;
+            }
+            
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            // 어제 날짜의 인덱스 찾기
+            const yesterdayIndex = timelineDates.findIndex(date => 
+                date.toDateString() === yesterday.toDateString()
+            );
+            const todayIndex = timelineDates.findIndex(date => 
+                date.toDateString() === today.toDateString()
+            );
+            
+            if (yesterdayIndex >= 0 && todayIndex >= 0) {
+                // 해당 탭의 모든 입력 필드에서 어제 데이터를 오늘로 복사
+                const inputs = document.querySelectorAll('.meal-input');
+                inputs.forEach(input => {
+                    if (input.dataset.category && Object.keys(sampleData[tabName] || {}).includes(input.dataset.category)) {
+                        const yesterdayInput = document.querySelector(
+                            `input[data-category="${input.dataset.category}"][data-site="${input.dataset.site}"][data-date-index="${yesterdayIndex}"]`
+                        );
+                        const todayInput = document.querySelector(
+                            `input[data-category="${input.dataset.category}"][data-site="${input.dataset.site}"][data-date-index="${todayIndex}"]`
+                        );
+                        
+                        if (yesterdayInput && todayInput && yesterdayInput.value) {
+                            todayInput.value = yesterdayInput.value;
+                            todayInput.classList.add('changed');
+                        }
+                    }
+                });
+                
+                recalculateAllTotals();
+                alert(`${tabName} 탭의 어제 데이터를 오늘로 복사했습니다.`);
+            } else {
+                alert('어제 또는 오늘 날짜를 찾을 수 없습니다.');
+            }
+        }
+
+        // 탭 통계 보기
+        function showTabStatistics(tabName) {
+            const tabCategories = Object.keys(sampleData[tabName] || {});
+            let totalMeals = 0;
+            let activeSites = 0;
+            
+            tabCategories.forEach(category => {
+                const inputs = document.querySelectorAll(`input[data-category="${category}"]`);
+                inputs.forEach(input => {
+                    if (input.value && parseInt(input.value) > 0) {
+                        totalMeals += parseInt(input.value);
+                        activeSites++;
+                    }
+                });
+            });
+            
+            const avgDailyMeals = (totalMeals / 15).toFixed(1);
+            
+            alert(`📈 ${tabName} 탭 통계\n\n` +
+                  `• 총 식수: ${totalMeals.toLocaleString()}명\n` +
+                  `• 활성 사업장: ${activeSites}개\n` +
+                  `• 일평균 식수: ${avgDailyMeals}명\n` +
+                  `• 세부식단 종류: ${tabCategories.length}개`);
+        }
+
+        // 탭 데이터 초기화
+        function resetTabData(tabName) {
+            if (!confirm(`⚠️ ${tabName} 탭의 모든 데이터를 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            const tabCategories = Object.keys(sampleData[tabName] || {});
+            tabCategories.forEach(category => {
+                const inputs = document.querySelectorAll(`input[data-category="${category}"]`);
+                inputs.forEach(input => {
+                    input.value = '';
+                    input.classList.add('changed');
+                });
+            });
+            
+            recalculateAllTotals();
+            alert(`${tabName} 탭의 모든 데이터가 초기화되었습니다.`);
+        }
+
+        // 간단 설정 적용
+        function applySimpleConfig(configType) {
+            const simpleConfigs = {
+                'basic': {
+                    '도시락': ['🌅 조식A', '🍽️ 중식A', '🌆 석식A'],
+                    '운반': ['🍽️ 중식A'],
+                    '학교': [],
+                    '요양원': []
+                },
+                'lunch-only': {
+                    '도시락': ['🍽️ 중식A'],
+                    '운반': ['🍽️ 중식A'],
+                    '학교': ['🍽️ 중식A'],
+                    '요양원': []
+                },
+                'school': {
+                    '도시락': [],
+                    '운반': [],
+                    '학교': ['🍽️ 중식A', '🍽️ 중식B', '🌆 석식A'],
+                    '요양원': []
+                },
+                'nursing': {
+                    '도시락': [],
+                    '운반': [],
+                    '학교': [],
+                    '요양원': ['🌅 조식A', '🍽️ 중식A', '🍽️ 중식B', '🌆 석식A', '🌙 야식A']
+                }
+            };
+            
+            // 이모지 제거하고 실제 카테고리명으로 변환
+            const cleanConfigs = {};
+            Object.keys(simpleConfigs).forEach(configKey => {
+                cleanConfigs[configKey] = {};
+                Object.keys(simpleConfigs[configKey]).forEach(tabName => {
+                    cleanConfigs[configKey][tabName] = simpleConfigs[configKey][tabName].map(category => 
+                        category.replace(/^🌅 |^🍽️ |^🌆 |^🌙 |^🎉 /, '')
+                    );
+                });
+            });
+            
+            const configName = {
+                'basic': '기본형',
+                'lunch-only': '중식전용',
+                'school': '학교형',
+                'nursing': '요양원형'
+            };
+            
+            if (!confirm(`${configName[configType]} 설정을 적용하시겠습니까?\n\n현재 설정이 변경됩니다.`)) {
+                return;
+            }
+            
+            const config = cleanConfigs[configType];
+            
+            // 모든 체크박스 초기화
+            document.querySelectorAll('#tabManagerContent input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.parentElement.classList.remove('checked');
+            });
+            
+            // 설정에 따라 체크박스 선택
+            Object.keys(config).forEach(tabName => {
+                const categories = config[tabName];
+                categories.forEach(category => {
+                    const checkbox = document.querySelector(`input[value="${category}"][data-tab="${tabName}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.parentElement.classList.add('checked');
+                    }
+                });
+            });
+            
+            alert(`${configName[configType]} 설정이 적용되었습니다!\n\n'설정 저장' 버튼을 눌러 변경사항을 저장하세요.`);
+        }
+
+        // 카테고리 명칭 편집
+        function editCategoryName(category) {
+            const displaySpan = document.querySelector(`.category-display-name[data-category="${category}"]`);
+            if (!displaySpan) return;
+            
+            const currentName = mealCategoryNames[category] || category;
+            
+            // 입력 필드로 변경
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'category-name-input';
+            
+            // 저장 및 취소 기능
+            const saveEdit = () => {
+                const newName = input.value.trim();
+                if (newName && newName !== currentName) {
+                    mealCategoryNames[category] = newName;
+                    updateAllCategoryNames();
+                    alert(`"${category}"의 명칭이 "${newName}"로 변경되었습니다.\n\n모든 페이지에 적용됩니다.`);
+                }
+                displaySpan.textContent = mealCategoryNames[category];
+                displaySpan.style.display = 'inline';
+                input.remove();
+            };
+            
+            const cancelEdit = () => {
+                displaySpan.style.display = 'inline';
+                input.remove();
+            };
+            
+            // 이벤트 리스너
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveEdit();
+                else if (e.key === 'Escape') cancelEdit();
+            });
+            
+            input.addEventListener('blur', saveEdit);
+            
+            // 스팬을 숨기고 입력 필드 추가
+            displaySpan.style.display = 'none';
+            displaySpan.parentNode.insertBefore(input, displaySpan);
+            input.focus();
+            input.select();
+        }
+
+        // 모든 화면에서 카테고리 명칭 업데이트
+        function updateAllCategoryNames() {
+            // 1. 탭 관리 모달의 표시명 업데이트
+            document.querySelectorAll('.category-display-name').forEach(span => {
+                const category = span.dataset.category;
+                if (mealCategoryNames[category]) {
+                    span.textContent = mealCategoryNames[category];
+                }
+            });
+            
+            // 2. 메인 테이블의 카테고리 명칭 업데이트
+            document.querySelectorAll('.category-name[data-original]').forEach(nameElement => {
+                const originalCategory = nameElement.dataset.original;
+                if (mealCategoryNames[originalCategory]) {
+                    nameElement.textContent = mealCategoryNames[originalCategory];
+                }
+            });
+            
+            // 3. 현재 탭이 다시 로드될 때 적용되도록 sampleData 업데이트
+            Object.keys(sampleData).forEach(tabName => {
+                if (sampleData[tabName]) {
+                    const newTabData = {};
+                    Object.keys(sampleData[tabName]).forEach(category => {
+                        const displayName = mealCategoryNames[category] || category;
+                        newTabData[displayName] = sampleData[tabName][category];
+                    });
+                    sampleData[tabName] = newTabData;
+                }
+            });
+        }
+
+        // 카테고리의 표시명 가져오기
+        function getCategoryDisplayName(category) {
+            return mealCategoryNames[category] || category;
+        }
+
+        // 테이블에서 카테고리명 편집
+        function editCategoryFromTable(originalCategory) {
+            const nameSpan = document.querySelector(`.category-name[data-original="${originalCategory}"]`);
+            if (!nameSpan) return;
+            
+            const currentName = mealCategoryNames[originalCategory] || originalCategory;
+            
+            // 입력 필드로 변경
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'category-name-input';
+            
+            // 저장 및 취소 기능
+            const saveEdit = () => {
+                const newName = input.value.trim();
+                if (newName && newName !== currentName) {
+                    mealCategoryNames[originalCategory] = newName;
+                    updateAllCategoryNames();
+                    alert(`"${originalCategory}"의 명칭이 "${newName}"로 변경되었습니다.\n\n모든 페이지에 적용됩니다.`);
+                }
+                nameSpan.textContent = mealCategoryNames[originalCategory] || originalCategory;
+                nameSpan.style.display = 'inline';
+                input.remove();
+            };
+            
+            const cancelEdit = () => {
+                nameSpan.style.display = 'inline';
+                input.remove();
+            };
+            
+            // 이벤트 리스너
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveEdit();
+                else if (e.key === 'Escape') cancelEdit();
+            });
+            
+            input.addEventListener('blur', saveEdit);
+            
+            // 스팬을 숨기고 입력 필드 추가
+            nameSpan.style.display = 'none';
+            nameSpan.parentNode.insertBefore(input, nameSpan);
+            input.focus();
+            input.select();
+        }
+    </script>
+</body>
+</html>

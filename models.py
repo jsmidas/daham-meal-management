@@ -208,15 +208,27 @@ class Order(Base):
     # Relationships
     menu = relationship("Menu", back_populates="orders")
 
-# Customers: 고객사
+# Customers: 고객사 (사업장) - 계층 구조 지원
 class Customer(Base):
     __tablename__ = "customers"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
+    site_type = Column(String(20), default="detail")  # head, detail, period
+    parent_id = Column(Integer, ForeignKey("customers.id"), nullable=True)  # 상위 사업장
+    level = Column(Integer, default=0)  # 0: 헤드, 1: 세부, 2: 기간별
+    sort_order = Column(Integer, default=0)  # 정렬 순서
     portion_size = Column(Integer)  # 1인당 제공량 (g)
+    is_active = Column(Boolean, default=True)
+    contact_person = Column(String(100))  # 담당자
+    contact_phone = Column(String(50))   # 연락처
+    address = Column(Text)               # 주소
+    description = Column(Text)           # 설명
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Self-referential relationship for hierarchy
+    children = relationship("Customer", backref="parent", remote_side=[id])
     
     # Relationships
     customer_menus = relationship("CustomerMenu", back_populates="customer")
@@ -276,3 +288,47 @@ class DietPlanInstruction(Base):
     
     # Relationships
     instruction = relationship("Instruction", back_populates="diet_plan_instructions")
+
+# MealCount: 식수 등록 관리
+class MealCount(Base):
+    __tablename__ = "meal_counts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    delivery_site = Column(String(100), nullable=False)  # 운반처
+    meal_type = Column(String(20), nullable=False)  # 식사유형 (조식/중식)
+    target_material_cost = Column(DECIMAL(10, 2))  # 목표 재료비
+    site_name = Column(String(100), nullable=False)  # 사업장명
+    meal_count = Column(Integer, nullable=False)  # 식수
+    registration_date = Column(Date, nullable=False)  # 등록 날짜
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+# MealCountTimeline: 15일 타임라인 식수 관리
+class MealCountTimeline(Base):
+    __tablename__ = "meal_count_timeline"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tab_type = Column(String(50), nullable=False)  # 탭 구분 (도시락/운반/학교/요양원/확장1/확장2)
+    meal_category = Column(String(50), nullable=False)  # 세부식단 (조식A/중식A/중식B/석식A/야식A 등)
+    site_name = Column(String(100), nullable=False)  # 사업장명
+    meal_count = Column(Integer, nullable=False)  # 식수
+    target_date = Column(Date, nullable=False)  # 대상 날짜
+    is_confirmed = Column(Boolean, default=False)  # 확정 여부 (과거 데이터)
+    target_material_cost = Column(DECIMAL(10, 2))  # 목표재료비 (선택사항)
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+# MealCountTemplate: 식수 템플릿 관리 (기본 구성 정보)
+class MealCountTemplate(Base):
+    __tablename__ = "meal_count_templates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tab_type = Column(String(50), nullable=False)  # 탭 구분
+    meal_category = Column(String(50), nullable=False)  # 세부식단
+    site_name = Column(String(100), nullable=False)  # 사업장명
+    display_order = Column(Integer, default=0)  # 표시 순서
+    is_active = Column(Boolean, default=True)  # 활성화 여부
+    default_count = Column(Integer, default=0)  # 기본 식수 (예상값 계산용)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

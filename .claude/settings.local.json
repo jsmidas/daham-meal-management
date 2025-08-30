@@ -3,7 +3,26 @@
     "allow": [
       "Bash(python:*)",
       "Bash(.run_server.bat)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(copy \"meal_count_management.html\" \"meal_count_management_backup.html\")",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Bash(dir:*)",
+      "Bash(grep:*)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

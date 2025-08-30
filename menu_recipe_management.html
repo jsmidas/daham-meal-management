@@ -863,14 +863,17 @@
 <body>
     <!-- 상단 네비게이션 메뉴 -->
     <div class="navigation-bar">
-        <div class="nav-logo">🍽️ 메뉴관리 시스템</div>
+        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
+        <a href="/dashboard" class="nav-item">📈 대시보드</a>
         <a href="/" class="nav-item active">📋 메뉴/레시피 관리</a>
+        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
         <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
-        <a href="#" class="nav-item">📦 식자재 관리</a>
-        <a href="#" class="nav-item">📈 발주 관리</a>
-        <a href="#" class="nav-item">🏪 업체 관리</a>
-        <a href="#" class="nav-item">📋 조리지시서</a>
-        <a href="#" class="nav-item">📊 통계/분석</a>
+        <a href="/ordering" class="nav-item">📈 발주 관리</a>
+        <a href="#" class="nav-item">📦 입고명세서 관리</a>
+        <a href="#" class="nav-item">📋 각종 일지</a>
+        <a href="#" class="nav-item">🔪 전처리지시서</a>
+        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="#" class="nav-item">📊 소분지시서</a>
     </div>
 
     <div class="header">
@@ -1011,8 +1014,56 @@
 
         // 페이지 로드 시 메뉴 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
+            // URL 파라미터에서 메뉴명 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            const menuName = urlParams.get('menu');
+            
             loadMenus();
+            
+            // 메뉴명이 있으면 자동으로 검색
+            if (menuName) {
+                setTimeout(() => {
+                    searchMenuByName(decodeURIComponent(menuName));
+                }, 500); // 메뉴 로드 후 검색
+            }
         });
+
+        // 특정 메뉴명으로 검색하는 함수
+        async function searchMenuByName(menuName) {
+            try {
+                // 올바른 검색 필드에 값 설정
+                document.getElementById('searchMenuName').value = menuName;
+                searchMenus(); // 검색 실행
+                
+                // DOM 업데이트를 위한 짧은 대기 후 메뉴 선택
+                setTimeout(() => {
+                    // 검색 결과에서 정확히 일치하는 메뉴 찾기
+                    const menuItems = document.querySelectorAll('.menu-item');
+                    for (let item of menuItems) {
+                        const itemName = item.querySelector('h4').textContent.trim();
+                        if (itemName === menuName) {
+                            // 해당 메뉴의 ID 가져와서 selectMenu 함수 직접 호출
+                            const menuId = item.getAttribute('data-menu-id');
+                            if (menuId) {
+                                selectMenu(parseInt(menuId));
+                                // 스크롤하여 해당 메뉴로 이동
+                                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                // 강조 표시
+                                item.style.backgroundColor = '#fff3cd';
+                                item.style.border = '2px solid #ffc107';
+                                setTimeout(() => {
+                                    item.style.backgroundColor = '';
+                                    item.style.border = '';
+                                }, 3000);
+                            }
+                            break;
+                        }
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('메뉴 검색 실패:', error);
+            }
+        }
 
         // 메뉴 목록 로드
         async function loadMenus() {
@@ -2189,6 +2240,387 @@
             };
             return colorMap[hex.toLowerCase()] || hex.toUpperCase();
         }
+
+        // 식재료 일괄 대체 모달 열기
+        function openBulkReplaceModal() {
+            document.getElementById('bulkReplaceModal').style.display = 'flex';
+            document.getElementById('previewSection').style.display = 'none';
+        }
+
+        // 식재료 일괄 대체 모달 닫기
+        function closeBulkReplaceModal() {
+            document.getElementById('bulkReplaceModal').style.display = 'none';
+            // 폼 초기화
+            document.getElementById('oldIngredientCode').value = '';
+            document.getElementById('oldIngredientName').value = '';
+            document.getElementById('newIngredientCode').value = '';
+            document.getElementById('newIngredientName').value = '';
+            document.getElementById('replaceReason').value = '발주불가로 인한 대체';
+            document.getElementById('previewSection').style.display = 'none';
+        }
+
+        // 미리보기 실행
+        async function previewBulkReplace() {
+            const oldCode = document.getElementById('oldIngredientCode').value.trim();
+            const newCode = document.getElementById('newIngredientCode').value.trim();
+            const newName = document.getElementById('newIngredientName').value.trim();
+            
+            if (!oldCode || !newCode || !newName) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            try {
+                // 임시로 영향받는 레시피 목록 표시 (실제로는 API 호출 필요)
+                const previewInfo = document.getElementById('previewInfo');
+                const affectedRecipes = document.getElementById('affectedRecipes');
+                
+                previewInfo.innerHTML = `
+                    <strong>⚠️ 주의사항</strong><br>
+                    식재료 코드 '${oldCode}'를 '${newCode}'로 대체합니다.<br>
+                    이 작업은 되돌릴 수 없으니 신중히 검토해주세요.
+                `;
+                
+                // API 호출로 실제 영향받는 레시피 조회
+                const response = await fetch('/api/preview_bulk_replace', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        old_ingredient_code: oldCode,
+                        new_ingredient_code: newCode,
+                        new_ingredient_name: newName,
+                        reason: '발주불가로 인한 대체'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    previewInfo.innerHTML = `
+                        <div class="preview-summary">
+                            <strong>⚠️ 주의사항</strong><br>
+                            식재료 코드 '<span style="background-color: #ffebee; padding: 2px 4px; border-radius: 3px; color: #c62828;">${oldCode}</span>'를 '<span style="background-color: #e8f5e8; padding: 2px 4px; border-radius: 3px; color: #2e7d32;">${newCode}</span>'로 대체합니다.<br>
+                            이 작업은 되돌릴 수 없으니 신중히 검토해주세요.<br><br>
+                            <strong>📈 영향 범위:</strong> ${result.message}
+                        </div>
+                    `;
+                    
+                    if (result.affected_count > 0) {
+                        let recipeListHtml = '<div class="affected-recipes-list">';
+                        recipeListHtml += '<h4 style="margin-top: 15px; color: #1976d2;">📋 영향받는 레시피 목록:</h4>';
+                        
+                        result.affected_recipes.forEach((recipe, index) => {
+                            recipeListHtml += `
+                                <div class="recipe-item" style="padding: 8px; margin: 5px 0; background-color: #f8f9fa; border-left: 3px solid #1976d2; border-radius: 3px;">
+                                    <span style="font-weight: bold; color: #1976d2;">${index + 1}.</span>
+                                    <span style="font-weight: 500; margin-left: 8px;">${recipe.recipe_name}</span>
+                                    <span style="color: #666; margin-left: 8px; font-size: 0.9em;">(사용량: ${recipe.amount}${recipe.unit})</span>
+                                </div>
+                            `;
+                        });
+                        
+                        recipeListHtml += '</div>';
+                        affectedRecipes.innerHTML = recipeListHtml;
+                    } else {
+                        affectedRecipes.innerHTML = '<div style="text-align: center; padding: 20px; color: #4caf50; font-weight: bold;">✅ 영향받는 레시피가 없습니다.</div>';
+                    }
+                    
+                } else {
+                    previewInfo.innerHTML = `<div style="color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 5px;">❌ 오류: ${result.message}</div>`;
+                    affectedRecipes.innerHTML = '';
+                }
+                
+                document.getElementById('previewSection').style.display = 'block';
+                
+            } catch (error) {
+                console.error('미리보기 실패:', error);
+                document.getElementById('previewInfo').innerHTML = '<div style="color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 5px;">❌ 미리보기 조회 중 오류가 발생했습니다.</div>';
+                document.getElementById('affectedRecipes').innerHTML = '';
+                document.getElementById('previewSection').style.display = 'block';
+            }
+        }
+
+        // 일괄 대체 실행
+        async function executeBulkReplace() {
+            const oldCode = document.getElementById('oldIngredientCode').value.trim();
+            const newCode = document.getElementById('newIngredientCode').value.trim();
+            const newName = document.getElementById('newIngredientName').value.trim();
+            const reason = document.getElementById('replaceReason').value;
+            
+            if (!oldCode || !newCode || !newName) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            if (!confirm('정말로 식재료 일괄 대체를 실행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/bulk_replace_ingredient', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        old_ingredient_code: oldCode,
+                        new_ingredient_code: newCode,
+                        new_ingredient_name: newName,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ 식재료 일괄 대체 완료!\n${result.message}\n영향받은 레시피: ${result.affected_count}개`);
+                    closeBulkReplaceModal();
+                    
+                    // 현재 화면 새로고침하여 변경사항 반영
+                    if (currentRecipeId) {
+                        loadRecipe(currentRecipeId);
+                    }
+                } else {
+                    alert(`❌ 식재료 일괄 대체 실패:\n${result.message}`);
+                }
+                
+            } catch (error) {
+                console.error('일괄 대체 실패:', error);
+                alert('식재료 일괄 대체 중 오류가 발생했습니다.');
+            }
+        }
     </script>
+
+    <!-- 식재료 일괄 대체 모달 -->
+    <div class="modal-overlay" id="bulkReplaceModal" style="display: none;">
+        <div class="bulk-replace-modal">
+            <div class="modal-header">
+                <h3>🔄 식재료 일괄 대체</h3>
+                <button class="modal-close-btn" onclick="closeBulkReplaceModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div class="bulk-replace-form">
+                    <div class="form-section">
+                        <h4>대체할 식재료 정보</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="oldIngredientCode">기존 식재료 코드:</label>
+                                <input type="text" id="oldIngredientCode" placeholder="예: F318494" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="oldIngredientName">기존 식재료명:</label>
+                                <input type="text" id="oldIngredientName" placeholder="자동 조회됨" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>새로운 식재료 정보</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newIngredientCode">새 식재료 코드:</label>
+                                <input type="text" id="newIngredientCode" placeholder="예: F318500" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newIngredientName">새 식재료명:</label>
+                                <input type="text" id="newIngredientName" placeholder="예: (사조푸디스트)김치(포기김치)1KG" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label for="replaceReason">대체 사유:</label>
+                            <select id="replaceReason">
+                                <option value="발주불가로 인한 대체">발주불가로 인한 대체</option>
+                                <option value="가격 변동으로 인한 대체">가격 변동으로 인한 대체</option>
+                                <option value="품질 개선으로 인한 대체">품질 개선으로 인한 대체</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section" id="previewSection" style="display: none;">
+                        <h4>영향받는 레시피</h4>
+                        <div class="preview-info" id="previewInfo"></div>
+                        <div class="affected-recipes" id="affectedRecipes"></div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="previewBulkReplace()">미리보기</button>
+                        <button class="btn btn-primary" onclick="executeBulkReplace()">일괄 대체 실행</button>
+                        <button class="btn btn-default" onclick="closeBulkReplaceModal()">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .bulk-replace-modal {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .bulk-replace-form {
+            padding: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .form-section h4 {
+            margin-bottom: 15px;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .preview-section {
+            background: #fff;
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .preview-info {
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .affected-recipes {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+        }
+
+        .recipe-item {
+            padding: 5px 10px;
+            margin: 3px 0;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .modal-actions {
+            padding: 20px 0 0 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-default {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-default:hover {
+            background: #d1d5db;
+        }
+    </style>
 </body>
 </html>

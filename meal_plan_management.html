@@ -849,11 +849,17 @@
 <body>
     <!-- 네비게이션 바 -->
     <nav class="navigation-bar">
-        <div class="nav-logo">🍽️ 다함식단관리</div>
-        <a href="/" class="nav-item">메뉴 관리</a>
-        <a href="/meal-plan" class="nav-item active">식단 관리</a>
-        <a href="#" class="nav-item">발주 관리</a>
-        <a href="#" class="nav-item">통계</a>
+        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
+        <a href="/dashboard" class="nav-item">📈 대시보드</a>
+        <a href="/" class="nav-item">📋 메뉴/레시피 관리</a>
+        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
+        <a href="/meal-plan" class="nav-item active">📊 식단표 작성</a>
+        <a href="/ordering" class="nav-item">📈 발주 관리</a>
+        <a href="#" class="nav-item">📦 입고명세서 관리</a>
+        <a href="#" class="nav-item">📋 각종 일지</a>
+        <a href="#" class="nav-item">🔪 전처리지시서</a>
+        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="#" class="nav-item">📊 소분지시서</a>
     </nav>
 
     <!-- 헤더 -->
@@ -984,6 +990,7 @@
         let menuHistory = []; // 검색 이력
         let menuCostsCache = {}; // 메뉴 원가 캐시
         let menuIngredientsCache = {}; // 메뉴 식재료 캐시
+        let menuOrderabilityCache = {}; // 메뉴별 발주 가능성 캐시
         let currentMealSlotIndex = -1; // 현재 선택 중인 식단 슬롯
         
         // 페이지 로드 시 캐시된 데이터 복원
@@ -999,7 +1006,12 @@
                     menuIngredientsCache = JSON.parse(cachedIngredients);
                 }
                 
-                console.log(`캐시 로드 완료: 원가 ${Object.keys(menuCostsCache).length}개, 식재료 ${Object.keys(menuIngredientsCache).length}개`);
+                const cachedOrderability = localStorage.getItem('menuOrderabilityCache');
+                if (cachedOrderability) {
+                    menuOrderabilityCache = JSON.parse(cachedOrderability);
+                }
+                
+                console.log(`캐시 로드 완료: 원가 ${Object.keys(menuCostsCache).length}개, 식재료 ${Object.keys(menuIngredientsCache).length}개, 발주가능성 ${Object.keys(menuOrderabilityCache).length}개`);
             } catch (error) {
                 console.error('캐시 데이터 로드 실패:', error);
             }
@@ -1019,6 +1031,18 @@
             const mealSlotsCount = defaultMealNames.length;
             document.documentElement.style.setProperty('--meal-slots', mealSlotsCount);
             console.log(`캘린더 크기 조정: ${mealSlotsCount}개 식단으로 설정`);
+        }
+        
+        // 메뉴 관리 화면으로 이동하는 함수
+        function openMenuManagement(menuName) {
+            // URL 파라미터로 메뉴명을 전달하여 메뉴 관리 화면을 열기
+            const encodedMenuName = encodeURIComponent(menuName);
+            const menuManagementUrl = `/recipes?menu=${encodedMenuName}`;
+            
+            console.log('메뉴 클릭:', menuName, '-> URL:', menuManagementUrl);
+            
+            // 새 탭에서 메뉴 관리 화면 열기
+            window.open(menuManagementUrl, '_blank');
         }
         
         // 메뉴별 색상 결정 함수 (메뉴 종류에 따라 색상 구분)
@@ -1061,7 +1085,7 @@
         // 메뉴 데이터 로드
         async function loadMenuData() {
             try {
-                const response = await fetch('/recipes');
+                const response = await fetch('/api/recipes');
                 const result = await response.json();
                 if (result.success) {
                     allMenus = result.data;
@@ -1136,7 +1160,7 @@
                         mealSummary.className = 'meal-summary';
                         
                         if (mealData[dateKey] && mealData[dateKey].length > 0) {
-                            // 모든 메뉴의 식재료 정보를 먼저 로드
+                            // 모든 메뉴의 식재료 정보 및 발주 가능성을 먼저 로드
                             const allMenuNames = [];
                             mealData[dateKey].forEach(meal => {
                                 const menus = meal.menus || [meal.menu].filter(Boolean);
@@ -1145,6 +1169,7 @@
                             
                             if (allMenuNames.length > 0) {
                                 await getMenuIngredients(allMenuNames);
+                                await checkMenuOrderability(allMenuNames);
                             }
                             
                             mealData[dateKey].forEach(meal => {
@@ -1172,21 +1197,25 @@
                                         const cost = menuCostsCache[menuName] || 0;
                                         const costDisplay = cost > 0 ? `￦${cost}` : '원가미산정';
                                         
-                                        // 식재료 정보 가져오기
-                                        const ingredientInfo = menuIngredientsCache[menuName];
+                                        // 발주 가능성 체크
+                                        const orderabilityInfo = menuOrderabilityCache[menuName];
+                                        const isOrderable = orderabilityInfo?.is_orderable !== false;
+                                        
+                                        // 캘린더에서는 식자재 정보를 표시하지 않음 (간단히 유지)
                                         let ingredientsDisplay = '';
-                                        if (ingredientInfo && ingredientInfo.ingredients) {
-                                            const ingredients = ingredientInfo.ingredients.slice(0, 7); // 최대 7개
-                                            ingredientsDisplay = ingredients.map(ing => `■다)${ing}`).join('<br>');
-                                        }
                                         
                                         const menuDetailItem = document.createElement('div');
                                         menuDetailItem.className = 'meal-item menu-detail';
+                                        if (!isOrderable) {
+                                            menuDetailItem.style.borderLeft = '3px solid #e74c3c';
+                                            menuDetailItem.style.backgroundColor = '#fff5f5';
+                                        }
+                                        
                                         menuDetailItem.innerHTML = `
                                             <div style="font-size: 10px; line-height: 1.4; color: #555;">
-                                                <div style="font-weight: 600; margin-bottom: 2px; color: #2d3748; display: flex; align-items: center; gap: 5px;">
+                                                <div style="font-weight: 600; margin-bottom: 2px; color: ${isOrderable ? '#2d3748' : '#e74c3c'}; display: flex; align-items: center; gap: 5px; cursor: pointer;" onclick="openMenuManagement('${menuName}')" title="클릭하여 메뉴 관리 화면으로 이동">
                                                     <span class="menu-color-box" style="background-color: ${getMenuColor(menuName)}; width: 10px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid #ccc;">□</span>
-                                                    <span>${menuName}</span>
+                                                    <span>${menuName}${!isOrderable ? ' ⚠️' : ''}</span>
                                                     <span style="color: #e74c3c; font-weight: bold; font-size: 9px;">${costDisplay}</span>
                                                 </div>
                                                 ${ingredientsDisplay ? `<div style="color: #777; font-size: 8px; margin-left: 15px; line-height: 1.3;">${ingredientsDisplay}</div>` : ''}
@@ -1502,6 +1531,57 @@
             } catch (error) {
                 console.error('메뉴 식재료 정보 로드 실패:', error);
                 return menuNames.map(() => ({ ingredients: ['정보없음'] }));
+            }
+        }
+
+        // 메뉴별 발주 가능성 체크 함수 - 배치 처리로 성능 최적화
+        async function checkMenuOrderability(menuNames) {
+            try {
+                // 이미 캐시된 메뉴들 제외
+                const uncachedMenus = menuNames.filter(name => !menuOrderabilityCache[name]);
+                
+                if (uncachedMenus.length > 0) {
+                    // 50개씩 배치로 나누어 처리하여 서버 부하 감소
+                    const batchSize = 50;
+                    for (let i = 0; i < uncachedMenus.length; i += batchSize) {
+                        const batch = uncachedMenus.slice(i, i + batchSize);
+                        
+                        const response = await fetch('/api/check_menu_orderability', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ menu_names: batch })
+                        });
+                        
+                        if (response.ok) {
+                            const orderability = await response.json();
+                            
+                            // 캐시에 저장 (로컬 스토리지에도 저장하여 영구 보존)
+                            Object.assign(menuOrderabilityCache, orderability);
+                            localStorage.setItem('menuOrderabilityCache', JSON.stringify(menuOrderabilityCache));
+                        }
+                        
+                        // 배치 간 짧은 지연으로 서버 부하 방지
+                        if (i + batchSize < uncachedMenus.length) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                    }
+                }
+                
+                return menuNames.map(name => menuOrderabilityCache[name] || { 
+                    is_orderable: true, 
+                    non_orderable_ingredients: [], 
+                    message: '정상 발주 가능' 
+                });
+                
+            } catch (error) {
+                console.error('메뉴 발주 가능성 체크 실패:', error);
+                return menuNames.map(() => ({ 
+                    is_orderable: true, 
+                    non_orderable_ingredients: [], 
+                    message: '정상 발주 가능' 
+                }));
             }
         }
 

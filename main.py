@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, Field
@@ -9,10 +10,12 @@ from typing import List, Optional
 from decimal import Decimal
 import os
 import json
-from datetime import datetime, date
+import hashlib
+import secrets
+from datetime import datetime, date, timedelta
 
 # 로컬 임포트
-from models import Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer
+from models import Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer, User, MealCount, MealCountTimeline, MealCountTemplate
 from business_logic import MenuCalculator, NutritionCalculator, CostAnalyzer
 
 # FastAPI 앱 생성
@@ -33,6 +36,7 @@ app.add_middleware(
 
 # 정적 파일 서빙
 app.mount("/static", StaticFiles(directory="."), name="static")
+app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
 @app.get("/")
 async def serve_homepage():
@@ -42,27 +46,23 @@ async def serve_homepage():
 async def serve_meal_plan():
     return FileResponse("meal_plan_management.html")
 
-# 데이터베이스 연결
-DATABASE_URL = "postgresql://postgres:123@localhost:5432/daham_menu"
+@app.get("/meal-count")
+async def serve_meal_count():
+    return FileResponse("meal_count_timeline.html")
 
-try:
-    # PostgreSQL 드라이버가 설치되지 않은 경우 SQLite로 fallback
-    import psycopg2
-    # 엔진 생성 부분을 더 안전하게 수정
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={
-            "options": "-c client_encoding=utf8"
-        },
-        pool_pre_ping=True,
-        echo=False  # 로그 출력 비활성화
-    )
-    print("Using PostgreSQL database")
-except ImportError:
-    # SQLite로 fallback
-    DATABASE_URL = "sqlite:///./daham_menu.db"
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    print("Using SQLite database")
+@app.get("/dashboard")
+async def serve_dashboard():
+    return FileResponse("dashboard.html")
+
+@app.get("/ordering")
+async def serve_ordering():
+    return FileResponse("ordering_management.html")
+
+
+# 데이터베이스 연결 - 새로 생성한 SQLite 데이터베이스 사용
+DATABASE_URL = "sqlite:///./meal_management.db"
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+print("Using SQLite database: meal_management.db")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 데이터베이스 세션 의존성 수정
@@ -74,6 +74,226 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# ==============================================================================
+# 인증 및 권한 관리 시스템
+# ==============================================================================
+
+# 간단한 메모리 기반 세션 저장소 (실제 운영에서는 Redis 등 사용)
+active_sessions = {}
+
+# Pydantic 모델들
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginResponse(BaseModel):
+    success: bool
+    message: str
+    redirect: Optional[str] = None
+    session_token: Optional[str] = None
+    user: Optional[dict] = None
+
+# 세션 관리 클래스
+class SessionManager:
+    @staticmethod
+    def create_session(user_id: int, username: str, role: str) -> str:
+        """새 세션 생성"""
+        session_token = secrets.token_urlsafe(32)
+        session_data = {
+            'user_id': user_id,
+            'username': username,
+            'role': role,
+            'created_at': datetime.now(),
+            'last_activity': datetime.now(),
+            'expires_at': datetime.now() + timedelta(hours=8)  # 8시간 후 만료
+        }
+        active_sessions[session_token] = session_data
+        return session_token
+    
+    @staticmethod
+    def get_session(session_token: str) -> Optional[dict]:
+        """세션 정보 조회"""
+        if session_token not in active_sessions:
+            return None
+        
+        session_data = active_sessions[session_token]
+        
+        # 만료 체크
+        if datetime.now() > session_data['expires_at']:
+            del active_sessions[session_token]
+            return None
+        
+        # 활동 시간 갱신
+        session_data['last_activity'] = datetime.now()
+        return session_data
+    
+    @staticmethod
+    def delete_session(session_token: str):
+        """세션 삭제"""
+        if session_token in active_sessions:
+            del active_sessions[session_token]
+
+# 비밀번호 해싱
+def hash_password(password: str) -> str:
+    """비밀번호 해시화"""
+    return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), b'salt', 100000).hex()
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    """비밀번호 검증"""
+    return hash_password(password) == hashed_password
+
+# 의존성: 현재 사용자 정보 가져오기
+def get_current_user(request: Request):
+    """현재 로그인한 사용자 정보 반환"""
+    session_token = request.cookies.get('session_token')
+    print(f"[DEBUG] Session token from cookie: {session_token}")
+    if not session_token:
+        print("[DEBUG] No session token found")
+        return None
+    
+    session_data = SessionManager.get_session(session_token)
+    print(f"[DEBUG] Session data from SessionManager: {session_data}")
+    if not session_data:
+        print("[DEBUG] No session data found")
+        return None
+        
+    return session_data
+
+# 의존성: 관리자 권한 확인
+def require_admin(request: Request):
+    """관리자 권한이 필요한 엔드포인트용"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    
+    if user['role'] not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다")
+    
+    return user
+
+# ==============================================================================
+# 인증 관련 라우트
+# ==============================================================================
+
+@app.get("/login")
+async def serve_login_page():
+    """로그인 페이지 서빙"""
+    return FileResponse("login.html")
+
+@app.post("/api/auth/login")
+async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    """사용자 로그인 API"""
+    try:
+        # 데이터베이스에서 사용자 조회
+        user = db.query(User).filter(User.username == login_data.username).first()
+        
+        if not user:
+            return JSONResponse(
+                status_code=401,
+                content={"success": False, "message": "존재하지 않는 사용자입니다."}
+            )
+        
+        # 비밀번호 확인 (실제로는 해시 비교를 해야 하지만, 데모용으로 단순화)
+        demo_passwords = {
+            'admin': 'admin123',
+            'nutritionist': 'nutri123'
+        }
+        
+        expected_password = demo_passwords.get(login_data.username)
+        if not expected_password or login_data.password != expected_password:
+            return JSONResponse(
+                status_code=401,
+                content={"success": False, "message": "비밀번호가 올바르지 않습니다."}
+            )
+        
+        # 세션 생성 - role을 영문으로 매핑
+        role_mapping = {
+            'admin': 'admin',
+            'nutritionist': 'nutritionist', 
+            'manager': 'manager'
+        }
+        # role이 한글로 저장된 경우를 대비해 username으로 role 결정
+        if user.username == 'admin':
+            role_for_session = 'admin'
+        elif user.username == 'nutritionist':
+            role_for_session = 'nutritionist'
+        else:
+            role_for_session = str(user.role.value) if hasattr(user.role, 'value') else str(user.role)
+            
+        print(f"[DEBUG] Creating session for user: {user.username}, role: {role_for_session}")
+        session_token = SessionManager.create_session(
+            user_id=user.id,
+            username=user.username, 
+            role=role_for_session
+        )
+        print(f"[DEBUG] Session created: {session_token}")
+        print(f"[DEBUG] All sessions after creation: {active_sessions}")
+        
+        # 응답 생성
+        response_data = {
+            "success": True,
+            "message": "로그인 성공",
+            "redirect": "/admin",
+            "user": {
+                'id': user.id,
+                'username': user.username,
+                'role': user.role.value,
+                'department': user.department,
+                'position': user.position
+            }
+        }
+        
+        response = JSONResponse(content=response_data)
+        
+        # 세션 토큰을 쿠키로 설정 (8시간 만료, HttpOnly, Secure)
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            max_age=8*60*60,  # 8시간
+            httponly=True,
+            secure=False,  # 개발환경에서는 False, 운영에서는 True
+            samesite="lax"
+        )
+        
+        return response
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"로그인 처리 중 오류가 발생했습니다: {str(e)}"}
+        )
+
+@app.post("/api/auth/logout")
+async def logout(request: Request):
+    """로그아웃 API"""
+    session_token = request.cookies.get('session_token')
+    if session_token:
+        SessionManager.delete_session(session_token)
+    
+    response_data = {"success": True, "message": "로그아웃되었습니다.", "redirect": "/login"}
+    response = JSONResponse(content=response_data)
+    
+    # 세션 쿠키 삭제
+    response.delete_cookie("session_token")
+    
+    return response
+
+@app.get("/admin")
+async def serve_admin_dashboard(request: Request):
+    """관리자 대시보드 페이지 서빙 (로그인 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    print(f"[DEBUG] User role check: '{user['role']}' - type: {type(user['role'])}")
+    # 한글 인코딩 문제로 인해 영문 role로 변경
+    valid_roles = ['admin', 'nutritionist', 'manager', '관리자', '영양사', '매니저']
+    if user['role'] not in valid_roles:
+        print(f"[DEBUG] Role '{user['role']}' not in valid roles: {valid_roles}")
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    return FileResponse("admin_dashboard.html")
 
 # 검색된 메뉴 원가 계산 API
 @app.post("/api/calculate_menu_costs")
@@ -125,6 +345,221 @@ async def calculate_menu_costs(request: Request, db: Session = Depends(get_db)):
         traceback.print_exc()
         return {"error": str(e)}
 
+# 메뉴별 발주 가능성 체크 API
+class MenuOrderabilityRequest(BaseModel):
+    menu_names: List[str]
+
+@app.post("/api/check_menu_orderability")
+async def check_menu_orderability(request: MenuOrderabilityRequest, db: Session = Depends(get_db)):
+    """메뉴별 발주 가능성 체크"""
+    try:
+        orderability_status = {}
+        
+        for menu_name in request.menu_names:
+            # 임시 로직: 실제로는 레시피 > 식재료 > 업체 단가표의 게시유무를 확인해야 함
+            # 현재는 샘플 로직으로 일부 메뉴를 발주불가로 설정
+            non_orderable_keywords = ['갈비', '한우', '전복', '참치', '연어', '새우']
+            
+            is_orderable = True
+            non_orderable_ingredients = []
+            
+            for keyword in non_orderable_keywords:
+                if keyword in menu_name:
+                    is_orderable = False
+                    non_orderable_ingredients.append(f"{keyword} 관련 식재료")
+                    break
+            
+            orderability_status[menu_name] = {
+                "is_orderable": is_orderable,
+                "non_orderable_ingredients": non_orderable_ingredients,
+                "message": "정상 발주 가능" if is_orderable else "일부 식재료 발주 불가"
+            }
+        
+        return orderability_status
+        
+    except Exception as e:
+        print(f"메뉴 발주 가능성 체크 실패: {e}")
+        # 오류 시 모든 메뉴를 발주 가능으로 반환
+        return {menu_name: {
+            "is_orderable": True, 
+            "non_orderable_ingredients": [], 
+            "message": "정상 발주 가능"
+        } for menu_name in request.menu_names}
+
+# 식재료 일괄 대체 API
+class IngredientBulkReplaceRequest(BaseModel):
+    old_ingredient_code: str
+    new_ingredient_code: str
+    new_ingredient_name: str
+    reason: str = "발주불가로 인한 대체"
+
+@app.post("/api/preview_bulk_replace")
+async def preview_bulk_replace(request: IngredientBulkReplaceRequest, db: Session = Depends(get_db)):
+    """식재료 일괄 대체 미리보기 - 영향받는 레시피 목록 조회"""
+    try:
+        # 기존 식재료가 사용된 레시피 찾기
+        recipe_query = """
+        SELECT DISTINCT 
+            r.id as recipe_id,
+            r.name as recipe_name,
+            ri.quantity,
+            ri.unit
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.id
+        WHERE i.code = :old_code
+        ORDER BY r.name
+        """
+        
+        affected_recipes = db.execute(text(recipe_query), {"old_code": request.old_ingredient_code}).fetchall()
+        
+        if not affected_recipes:
+            return {
+                "success": True,
+                "message": f"식재료 코드 '{request.old_ingredient_code}'를 사용하는 레시피가 없습니다.",
+                "affected_count": 0,
+                "affected_recipes": []
+            }
+        
+        # 결과 포맷팅
+        recipe_list = []
+        for recipe in affected_recipes:
+            recipe_list.append({
+                "recipe_id": recipe.recipe_id,
+                "recipe_name": recipe.recipe_name,
+                "amount": float(recipe.quantity) if recipe.quantity else 0,
+                "unit": recipe.unit or ""
+            })
+        
+        return {
+            "success": True,
+            "message": f"총 {len(recipe_list)}개 레시피에서 해당 식재료를 사용하고 있습니다.",
+            "affected_count": len(recipe_list),
+            "affected_recipes": recipe_list,
+            "old_ingredient_code": request.old_ingredient_code,
+            "new_ingredient_code": request.new_ingredient_code,
+            "new_ingredient_name": request.new_ingredient_name
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"미리보기 조회 중 오류 발생: {str(e)}",
+            "affected_count": 0,
+            "affected_recipes": []
+        }
+
+@app.post("/api/bulk_replace_ingredient")
+async def bulk_replace_ingredient(request: IngredientBulkReplaceRequest, db: Session = Depends(get_db)):
+    """특정 식재료를 모든 레시피에서 일괄 대체"""
+    try:
+        # 1. 기존 식재료가 사용된 레시피 찾기
+        recipe_query = """
+        SELECT DISTINCT 
+            r.id as recipe_id,
+            r.name as recipe_name,
+            ri.quantity,
+            ri.unit
+        FROM recipes r
+        JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+        JOIN ingredients i ON ri.ingredient_id = i.id
+        WHERE i.code = :old_code
+        """
+        
+        affected_recipes = db.execute(text(recipe_query), {"old_code": request.old_ingredient_code}).fetchall()
+        
+        if not affected_recipes:
+            return {
+                "success": False,
+                "message": f"식재료 코드 '{request.old_ingredient_code}'를 사용하는 레시피를 찾을 수 없습니다.",
+                "affected_count": 0,
+                "affected_recipes": []
+            }
+        
+        # 2. 새 식재료가 이미 존재하는지 확인, 없으면 생성
+        ingredient_check = db.execute(text("""
+            SELECT id FROM ingredients WHERE code = :new_code
+        """), {"new_code": request.new_ingredient_code}).fetchone()
+        
+        if not ingredient_check:
+            # 새 식재료 생성
+            db.execute(text("""
+                INSERT INTO ingredients (code, name, base_unit, created_at)
+                VALUES (:code, :name, 'kg', NOW())
+            """), {
+                "code": request.new_ingredient_code,
+                "name": request.new_ingredient_name
+            })
+            db.commit()
+            
+            new_ingredient_id = db.execute(text("""
+                SELECT id FROM ingredients WHERE code = :new_code
+            """), {"new_code": request.new_ingredient_code}).fetchone()[0]
+        else:
+            new_ingredient_id = ingredient_check[0]
+        
+        # 3. 기존 식재료 ID 찾기
+        old_ingredient_id = db.execute(text("""
+            SELECT id FROM ingredients WHERE code = :old_code
+        """), {"old_code": request.old_ingredient_code}).fetchone()[0]
+        
+        # 4. 모든 레시피에서 식재료 대체
+        replace_count = 0
+        for recipe in affected_recipes:
+            # 기존 레시피 재료 업데이트
+            db.execute(text("""
+                UPDATE recipe_ingredients 
+                SET ingredient_id = :new_id,
+                    updated_at = NOW()
+                WHERE recipe_id = :recipe_id 
+                AND ingredient_id = :old_id
+            """), {
+                "new_id": new_ingredient_id,
+                "recipe_id": recipe["recipe_id"],
+                "old_id": old_ingredient_id
+            })
+            replace_count += 1
+        
+        db.commit()
+        
+        # 5. 변경 로그 기록
+        db.execute(text("""
+            INSERT INTO ingredient_change_log (
+                old_ingredient_code, 
+                new_ingredient_code, 
+                affected_recipe_count, 
+                change_reason, 
+                created_at
+            ) VALUES (:old_code, :new_code, :count, :reason, NOW())
+        """), {
+            "old_code": request.old_ingredient_code,
+            "new_code": request.new_ingredient_code,
+            "count": replace_count,
+            "reason": request.reason
+        })
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"식재료 일괄 대체 완료: {replace_count}개 레시피에서 변경됨",
+            "affected_count": replace_count,
+            "affected_recipes": [{"id": r["recipe_id"], "name": r["recipe_name"]} for r in affected_recipes],
+            "old_ingredient": request.old_ingredient_code,
+            "new_ingredient": request.new_ingredient_code
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"식재료 일괄 대체 실패: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"식재료 일괄 대체 중 오류 발생: {str(e)}",
+            "affected_count": 0,
+            "affected_recipes": []
+        }
+
 # 메뉴별 식재료 정보 조회 API
 @app.get("/api/menu_ingredients/{menu_name}")
 async def get_menu_ingredients(menu_name: str, db: Session = Depends(get_db)):
@@ -135,7 +570,7 @@ async def get_menu_ingredients(menu_name: str, db: Session = Depends(get_db)):
         SELECT 
             i.name as ingredient_name,
             i.code as ingredient_code,
-            ri.amount,
+            ri.quantity,
             i.base_unit,
             s.name as supplier_name
         FROM recipes r
@@ -144,7 +579,7 @@ async def get_menu_ingredients(menu_name: str, db: Session = Depends(get_db)):
         LEFT JOIN supplier_ingredients si ON i.id = si.ingredient_id
         LEFT JOIN suppliers s ON si.supplier_id = s.id
         WHERE r.name = :menu_name
-        ORDER BY ri.amount DESC
+        ORDER BY ri.quantity DESC
         """
         
         result = db.execute(text(ingredient_query), {"menu_name": menu_name})
@@ -339,10 +774,15 @@ async def get_menu_items(menu_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/recipes")
+async def serve_recipes():
+    """레시피 관리 페이지 서빙"""
+    return FileResponse("menu_recipe_management.html")
+
+@app.get("/api/recipes")
 async def get_recipes(db: Session = Depends(get_db)):
     """레시피 목록 조회"""
     try:
-        result = db.execute(text("SELECT * FROM Recipe ORDER BY name"))
+        result = db.execute(text("SELECT * FROM recipes ORDER BY name"))
         plans = [dict(row._mapping) for row in result]
         return {"success": True, "data": plans}
     except Exception as e:
@@ -1031,6 +1471,834 @@ async def get_data_statistics(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 관리자 API 엔드포인트들
+@app.get("/api/admin/dashboard-stats")
+async def get_admin_dashboard_stats(db: Session = Depends(get_db)):
+    """관리자 대시보드 통계 데이터"""
+    try:
+        # 사용자 수 계산 (임시로 Customer를 사용자로 가정)
+        total_users = db.query(Customer).count()
+        
+        # 사업장 수 (Customer 테이블의 고객사)
+        total_sites = db.query(Customer).count()
+        
+        # 오늘 식단 수
+        from datetime import date
+        today = date.today()
+        today_menus = db.query(DietPlan).filter(DietPlan.date == today).count()
+        
+        # 최근 7일간 단가 업데이트 (임시 값)
+        price_updates = 15  # 실제로는 가격 변경 로그에서 계산
+        
+        return {
+            "success": True,
+            "totalUsers": total_users,
+            "totalSites": total_sites, 
+            "todayMenus": today_menus,
+            "priceUpdates": price_updates
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/recent-activity")
+async def get_recent_activity(db: Session = Depends(get_db)):
+    """최근 활동 로그"""
+    try:
+        # 임시 활동 로그 데이터
+        activities = [
+            {
+                "time": "14:30",
+                "message": "새로운 식단이 등록되었습니다",
+                "user": "영양사김"
+            },
+            {
+                "time": "13:15",
+                "message": "식재료 단가가 업데이트되었습니다",
+                "user": "관리자박"
+            },
+            {
+                "time": "12:00",
+                "message": "사용자 권한이 변경되었습니다",
+                "user": "시스템"
+            },
+            {
+                "time": "11:45",
+                "message": "메뉴가 복사되었습니다 (A학교 → B학교)",
+                "user": "영양사이"
+            },
+            {
+                "time": "10:30",
+                "message": "새로운 사업장이 등록되었습니다",
+                "user": "관리자최"
+            }
+        ]
+        
+        return activities
+    except Exception as e:
+        return []
+
+# 권한 체크 함수들
+def check_admin_permission(user_role: str) -> bool:
+    """관리자 권한 확인"""
+    admin_roles = ["admin", "super_admin", "system_admin"]
+    return user_role in admin_roles
+
+def get_user_permissions(user_id: int, db: Session) -> list:
+    """사용자 권한 목록 가져오기"""
+    # 실제 구현에서는 사용자 테이블에서 권한 조회
+    # 임시로 하드코딩된 권한 반환
+    return ["SUPER_ADMIN"]  # 임시
+
+@app.get("/api/admin/check-access")
+async def check_admin_access(db: Session = Depends(get_db)):
+    """관리자 접근 권한 확인"""
+    try:
+        # 실제로는 JWT 토큰이나 세션에서 사용자 정보 확인
+        # 임시로 관리자 권한 허용
+        return {
+            "hasAccess": True,
+            "userRole": "admin",
+            "permissions": ["SUPER_ADMIN"],
+            "username": "관리자"
+        }
+    except Exception as e:
+        return {"hasAccess": False, "error": str(e)}
+
+# 사용자 관리 API 엔드포인트들
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    role: str
+    contact_info: Optional[str] = None
+    department: Optional[str] = None
+    position: Optional[str] = None
+    managed_site: Optional[str] = None
+    operator: bool = False
+    semi_operator: bool = False
+
+class UserUpdateRequest(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    contact_info: Optional[str] = None
+    department: Optional[str] = None
+    position: Optional[str] = None
+    managed_site: Optional[str] = None
+    operator: Optional[bool] = None
+    semi_operator: Optional[bool] = None
+
+@app.get("/api/admin/users")
+async def get_users(page: int = 1, limit: int = 20, search: str = "", db: Session = Depends(get_db)):
+    """사용자 목록 조회"""
+    try:
+        # 임시 사용자 데이터 (실제로는 User 테이블에서 조회)
+        sample_users = [
+            {
+                "id": 1,
+                "username": "admin",
+                "role": "admin",
+                "department": "관리부",
+                "position": "관리자",
+                "managed_site": "본사",
+                "is_active": True,
+                "last_login": "2025-08-30 14:30",
+                "contact_info": "010-1234-5678"
+            },
+            {
+                "id": 2,
+                "username": "nutritionist1",
+                "role": "nutritionist",
+                "department": "영양관리부",
+                "position": "영양사",
+                "managed_site": "A학교",
+                "is_active": True,
+                "last_login": "2025-08-30 13:15",
+                "contact_info": "010-2345-6789"
+            },
+            {
+                "id": 3,
+                "username": "nutritionist2",
+                "role": "nutritionist", 
+                "department": "영양관리부",
+                "position": "영양사",
+                "managed_site": "B학교",
+                "is_active": True,
+                "last_login": "2025-08-29 16:45",
+                "contact_info": "010-3456-7890"
+            },
+            {
+                "id": 4,
+                "username": "manager1",
+                "role": "admin",
+                "department": "운영부",
+                "position": "팀장",
+                "managed_site": "C회사",
+                "is_active": False,
+                "last_login": "2025-08-28 09:20",
+                "contact_info": "010-4567-8901"
+            }
+        ]
+        
+        # 검색 필터링 (임시)
+        if search:
+            sample_users = [
+                user for user in sample_users
+                if search.lower() in user["username"].lower() or
+                   search.lower() in (user["department"] or "").lower() or
+                   search.lower() in (user["managed_site"] or "").lower()
+            ]
+        
+        # 페이지네이션 (임시)
+        total_users = len(sample_users)
+        total_pages = (total_users + limit - 1) // limit
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        users_page = sample_users[start_idx:end_idx]
+        
+        return {
+            "success": True,
+            "users": users_page,
+            "currentPage": page,
+            "totalPages": total_pages,
+            "totalUsers": total_users
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/users/{user_id}")
+async def get_user(user_id: int, db: Session = Depends(get_db)):
+    """특정 사용자 정보 조회"""
+    try:
+        # 임시 데이터
+        sample_user = {
+            "id": user_id,
+            "username": f"user{user_id}",
+            "role": "nutritionist",
+            "contact_info": "010-1234-5678",
+            "department": "영양관리부",
+            "position": "영양사", 
+            "managed_site": "A학교",
+            "operator": False,
+            "semi_operator": True
+        }
+        
+        return sample_user
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+@app.post("/api/admin/users")
+async def create_user(user_data: UserCreateRequest, db: Session = Depends(get_db)):
+    """새 사용자 생성"""
+    try:
+        # 실제로는 비밀번호 해싱 및 DB 저장
+        import hashlib
+        password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+        
+        # 임시로 성공 응답
+        return {
+            "success": True,
+            "message": "사용자가 성공적으로 생성되었습니다",
+            "user_id": 999  # 임시 ID
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.put("/api/admin/users/{user_id}")
+async def update_user(user_id: int, user_data: UserUpdateRequest, db: Session = Depends(get_db)):
+    """사용자 정보 수정"""
+    try:
+        # 실제로는 DB에서 사용자 조회 및 업데이트
+        
+        # 비밀번호 변경이 있는 경우만 해싱
+        if user_data.password:
+            import hashlib
+            password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+        
+        return {
+            "success": True,
+            "message": "사용자 정보가 성공적으로 수정되었습니다"
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.delete("/api/admin/users/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """사용자 삭제"""
+    try:
+        # 실제로는 DB에서 사용자 삭제 (또는 비활성화)
+        return {
+            "success": True,
+            "message": "사용자가 성공적으로 삭제되었습니다"
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/admin/users/{user_id}/reset-password")
+async def reset_user_password(user_id: int, db: Session = Depends(get_db)):
+    """사용자 비밀번호 초기화"""
+    try:
+        # 임시 비밀번호 생성
+        import random
+        import string
+        new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        # 실제로는 해싱해서 DB에 저장
+        import hashlib
+        password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        
+        return {
+            "success": True,
+            "message": "비밀번호가 초기화되었습니다",
+            "newPassword": new_password
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.get("/api/admin/sites")
+async def get_admin_sites(db: Session = Depends(get_db)):
+    """관리자용 사업장 목록 조회"""
+    try:
+        # 임시 사업장 데이터
+        sites = [
+            {"id": 1, "name": "본사"},
+            {"id": 2, "name": "A학교"},
+            {"id": 3, "name": "B학교"},
+            {"id": 4, "name": "C회사"},
+            {"id": 5, "name": "D병원"},
+        ]
+        
+        return sites
+    except Exception as e:
+        return []
+
+# 사업장 관리 API 엔드포인트들
+class SiteCreateRequest(BaseModel):
+    name: str
+    site_type: str  # head, detail, period
+    parent_id: Optional[int] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address: Optional[str] = None
+    portion_size: Optional[int] = None
+    description: Optional[str] = None
+    is_active: bool = True
+
+class SiteUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address: Optional[str] = None
+    portion_size: Optional[int] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+@app.get("/api/admin/sites/tree")
+async def get_sites_tree(db: Session = Depends(get_db)):
+    """사업장 계층 구조 트리 조회"""
+    try:
+        # 실제 데이터베이스에서 계층 구조 조회
+        def build_customer_tree(customers, parent_id=None):
+            """고객(사업장) 계층 트리 구조 생성"""
+            tree = []
+            for customer in customers:
+                if customer.parent_id == parent_id:
+                    # 하위 노드 재귀 조회
+                    children = build_customer_tree(customers, customer.id)
+                    
+                    # 메뉴 수 계산 (임시: 0으로 설정)
+                    menu_count = 0
+                    
+                    customer_dict = {
+                        "id": customer.id,
+                        "name": customer.name,
+                        "site_type": customer.site_type,
+                        "level": customer.level,
+                        "is_active": customer.is_active,
+                        "contact_person": customer.contact_person,
+                        "contact_phone": customer.contact_phone,
+                        "address": customer.address,
+                        "portion_size": customer.portion_size,
+                        "description": customer.description,
+                        "menu_count": menu_count,
+                        "children_count": len(children),
+                        "children": children
+                    }
+                    tree.append(customer_dict)
+            
+            return tree
+        
+        # 모든 고객(사업장) 데이터 조회
+        customers = db.query(Customer).order_by(Customer.sort_order).all()
+        
+        if not customers:
+            return {
+                "success": True,
+                "message": "등록된 사업장이 없습니다.",
+                "data": []
+            }
+        
+        # 트리 구조 생성 (최상위 노드부터)
+        sites_tree = build_customer_tree(customers, parent_id=None)
+        
+        return {"success": True, "sites": sites_tree}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/sites/{site_id}")
+async def get_site_detail(site_id: int, db: Session = Depends(get_db)):
+    """특정 사업장 상세 정보 조회"""
+    try:
+        # 실제 데이터베이스에서 사업장 조회
+        customer = db.query(Customer).filter(Customer.id == site_id).first()
+        
+        if not customer:
+            raise HTTPException(status_code=404, detail="사업장을 찾을 수 없습니다")
+        
+        # 하위 사업장 수 계산
+        children_count = db.query(Customer).filter(Customer.parent_id == customer.id).count()
+        
+        # 메뉴 수 계산 (임시로 0)
+        menu_count = 0
+        
+        return {
+            "id": customer.id,
+            "name": customer.name,
+            "site_type": customer.site_type,
+            "contact_person": customer.contact_person,
+            "contact_phone": customer.contact_phone,
+            "address": customer.address,
+            "portion_size": customer.portion_size,
+            "description": customer.description,
+            "is_active": customer.is_active,
+            "menu_count": menu_count,
+            "children_count": children_count,
+            "parent_id": customer.parent_id,
+            "level": customer.level,
+            "sort_order": customer.sort_order
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="사업장 조회 중 오류가 발생했습니다")
+
+@app.post("/api/admin/sites")
+async def create_site(site_data: SiteCreateRequest, db: Session = Depends(get_db)):
+    """새 사업장 생성"""
+    try:
+        # 계층 레벨 계산
+        level = 0
+        if site_data.parent_id:
+            parent = db.query(Customer).filter(Customer.id == site_data.parent_id).first()
+            if not parent:
+                return {"success": False, "message": "상위 사업장을 찾을 수 없습니다"}
+            
+            if site_data.site_type == "detail":
+                level = 1
+            elif site_data.site_type == "period":
+                level = 2
+        
+        # 정렬 순서 계산
+        max_sort_order = db.query(Customer.sort_order).order_by(Customer.sort_order.desc()).first()
+        next_sort_order = (max_sort_order[0] + 1) if max_sort_order and max_sort_order[0] else 1
+        
+        # 새 사업장 생성
+        new_customer = Customer(
+            name=site_data.name,
+            site_type=site_data.site_type,
+            parent_id=site_data.parent_id,
+            level=level,
+            sort_order=next_sort_order,
+            contact_person=site_data.contact_person,
+            contact_phone=site_data.contact_phone,
+            address=site_data.address,
+            portion_size=site_data.portion_size,
+            description=site_data.description,
+            is_active=True
+        )
+        
+        db.add(new_customer)
+        db.commit()
+        db.refresh(new_customer)
+        
+        return {
+            "success": True,
+            "message": f"{getSiteTypeDisplay(site_data.site_type)}이(가) 성공적으로 생성되었습니다",
+            "site_id": new_customer.id
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"사업장 생성 중 오류가 발생했습니다: {str(e)}"}
+
+@app.put("/api/admin/sites/{site_id}")
+async def update_site(site_id: int, site_data: SiteUpdateRequest, db: Session = Depends(get_db)):
+    """사업장 정보 수정"""
+    try:
+        # 기존 사업장 조회
+        customer = db.query(Customer).filter(Customer.id == site_id).first()
+        if not customer:
+            return {"success": False, "message": "사업장을 찾을 수 없습니다"}
+        
+        # 수정할 필드 업데이트
+        if site_data.name is not None:
+            customer.name = site_data.name
+        if site_data.contact_person is not None:
+            customer.contact_person = site_data.contact_person
+        if site_data.contact_phone is not None:
+            customer.contact_phone = site_data.contact_phone
+        if site_data.address is not None:
+            customer.address = site_data.address
+        if site_data.portion_size is not None:
+            customer.portion_size = site_data.portion_size
+        if site_data.description is not None:
+            customer.description = site_data.description
+        if site_data.is_active is not None:
+            customer.is_active = site_data.is_active
+            
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "사업장 정보가 성공적으로 수정되었습니다"
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"사업장 수정 중 오류가 발생했습니다: {str(e)}"}
+
+@app.delete("/api/admin/sites/{site_id}")
+async def delete_site(site_id: int, db: Session = Depends(get_db)):
+    """사업장 삭제"""
+    try:
+        # 기존 사업장 조회
+        customer = db.query(Customer).filter(Customer.id == site_id).first()
+        if not customer:
+            return {"success": False, "message": "사업장을 찾을 수 없습니다"}
+        
+        # 하위 사업장이 있는지 확인
+        children_count = db.query(Customer).filter(Customer.parent_id == site_id).count()
+        if children_count > 0:
+            return {
+                "success": False, 
+                "message": f"하위 사업장이 {children_count}개 있습니다. 먼저 하위 사업장을 삭제하세요."
+            }
+        
+        # 사업장 삭제
+        db.delete(customer)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "사업장이 성공적으로 삭제되었습니다"
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"사업장 삭제 중 오류가 발생했습니다: {str(e)}"}
+
+# 사업장 이동 요청 모델
+class SiteMoveRequest(BaseModel):
+    new_parent_id: int
+
+class MealCountCreate(BaseModel):
+    delivery_site: str
+    meal_type: str  # 조식/중식
+    target_material_cost: Optional[float] = None
+    site_name: str
+    meal_count: int
+    registration_date: str  # YYYY-MM-DD format
+
+class MealCountUpdate(BaseModel):
+    delivery_site: Optional[str] = None
+    meal_type: Optional[str] = None
+    target_material_cost: Optional[float] = None
+    site_name: Optional[str] = None
+    meal_count: Optional[int] = None
+    registration_date: Optional[str] = None
+
+class MealCountResponse(BaseModel):
+    id: int
+    delivery_site: str
+    meal_type: str
+    target_material_cost: Optional[float] = None
+    site_name: str
+    meal_count: int
+    registration_date: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ===== 식자재 관리 API =====
+
+@app.get("/api/admin/ingredients")
+async def get_ingredients(request: Request, db: Session = Depends(get_db)):
+    """식자재 목록 조회"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    try:
+        ingredients = db.query(Ingredient).order_by(Ingredient.created_at.desc()).all()
+        
+        ingredients_data = []
+        for ingredient in ingredients:
+            ingredient_data = {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "base_unit": ingredient.base_unit,
+                "price": float(ingredient.price) if ingredient.price else None,
+                "supplier_id": ingredient.supplier_id,
+                "supplier_name": ingredient.supplier.name if ingredient.supplier else None,
+                "moq": float(ingredient.moq) if ingredient.moq else None,
+                "allergy_codes": ingredient.allergy_codes,
+                "created_at": ingredient.created_at.isoformat(),
+                "updated_at": ingredient.updated_at.isoformat()
+            }
+            ingredients_data.append(ingredient_data)
+        
+        return ingredients_data
+        
+    except Exception as e:
+        print(f"[ERROR] 식자재 목록 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail="식자재 목록 조회 실패")
+
+@app.get("/api/admin/suppliers")
+async def get_suppliers(request: Request, db: Session = Depends(get_db)):
+    """공급업체 목록 조회"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    try:
+        suppliers = db.query(Supplier).order_by(Supplier.name).all()
+        
+        suppliers_data = []
+        for supplier in suppliers:
+            supplier_data = {
+                "id": supplier.id,
+                "name": supplier.name,
+                "contact": supplier.contact,
+                "update_frequency": supplier.update_frequency,
+                "created_at": supplier.created_at.isoformat(),
+                "updated_at": supplier.updated_at.isoformat()
+            }
+            suppliers_data.append(supplier_data)
+        
+        return suppliers_data
+        
+    except Exception as e:
+        print(f"[ERROR] 공급업체 목록 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail="공급업체 목록 조회 실패")
+
+@app.post("/api/admin/upload-ingredients")
+async def upload_ingredients(
+    request: Request, 
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """식자재 엑셀 파일 업로드"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    try:
+        # 파일 형식 검증
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return {"success": False, "message": "엑셀 파일만 업로드 가능합니다."}
+        
+        # 파일 크기 검증 (10MB)
+        if file.size > 10 * 1024 * 1024:
+            return {"success": False, "message": "파일 크기는 10MB를 초과할 수 없습니다."}
+        
+        # 임시 파일 저장
+        temp_path = f"temp_{file.filename}"
+        with open(temp_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        try:
+            # 엑셀 파일 처리 (pandas 사용)
+            import pandas as pd
+            
+            # 엑셀 파일 읽기
+            df = pd.read_excel(temp_path)
+            
+            # 기본 검증
+            required_columns = ['식자재명', '단위', '단가']  # 필수 컬럼
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                return {
+                    "success": False, 
+                    "message": f"필수 컬럼이 누락되었습니다: {', '.join(missing_columns)}"
+                }
+            
+            processed_count = 0
+            error_count = 0
+            error_details = []
+            
+            for index, row in df.iterrows():
+                try:
+                    # 빈 행 건너뛰기
+                    if pd.isna(row.get('식자재명')) or str(row.get('식자재명')).strip() == '':
+                        continue
+                    
+                    ingredient_name = str(row['식자재명']).strip()
+                    base_unit = str(row['단위']).strip()
+                    
+                    # 단가 처리 (숫자가 아닌 경우 None)
+                    try:
+                        price = float(row.get('단가', 0)) if not pd.isna(row.get('단가')) else None
+                    except:
+                        price = None
+                    
+                    # 공급업체 처리
+                    supplier_name = str(row.get('공급업체', '')).strip() if not pd.isna(row.get('공급업체')) else None
+                    supplier_id = None
+                    
+                    if supplier_name:
+                        # 기존 공급업체 찾기 또는 생성
+                        supplier = db.query(Supplier).filter(Supplier.name == supplier_name).first()
+                        if not supplier:
+                            supplier = Supplier(name=supplier_name)
+                            db.add(supplier)
+                            db.flush()
+                        supplier_id = supplier.id
+                    
+                    # 기존 식자재 확인
+                    existing_ingredient = db.query(Ingredient).filter(Ingredient.name == ingredient_name).first()
+                    
+                    if existing_ingredient:
+                        # 기존 식자재 업데이트
+                        existing_ingredient.base_unit = base_unit
+                        if price is not None:
+                            existing_ingredient.price = price
+                        if supplier_id is not None:
+                            existing_ingredient.supplier_id = supplier_id
+                        existing_ingredient.updated_at = datetime.now()
+                    else:
+                        # 새 식자재 생성
+                        new_ingredient = Ingredient(
+                            name=ingredient_name,
+                            base_unit=base_unit,
+                            price=price,
+                            supplier_id=supplier_id
+                        )
+                        db.add(new_ingredient)
+                    
+                    processed_count += 1
+                    
+                except Exception as row_error:
+                    error_count += 1
+                    error_details.append(f"행 {index + 2}: {str(row_error)}")
+                    continue
+            
+            # 변경사항 저장
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": "식자재 업로드 완료",
+                "processed_count": processed_count,
+                "error_count": error_count,
+                "details": {
+                    "errors": error_details[:10]  # 최대 10개 오류만 반환
+                }
+            }
+            
+        except Exception as process_error:
+            db.rollback()
+            return {
+                "success": False,
+                "message": f"파일 처리 중 오류 발생: {str(process_error)}"
+            }
+        
+        finally:
+            # 임시 파일 삭제
+            import os
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
+    except Exception as e:
+        print(f"[ERROR] 식자재 업로드 실패: {e}")
+        raise HTTPException(status_code=500, detail="식자재 업로드 실패")
+
+@app.post("/api/admin/sites/{site_id}/move")
+async def move_site(site_id: int, move_data: SiteMoveRequest, db: Session = Depends(get_db)):
+    """사업장을 다른 부모 하위로 이동"""
+    try:
+        # 이동할 사업장 조회
+        site = db.query(Customer).filter(Customer.id == site_id).first()
+        if not site:
+            return {"success": False, "message": "이동할 사업장을 찾을 수 없습니다"}
+        
+        # 새 부모 사업장 조회
+        new_parent = db.query(Customer).filter(Customer.id == move_data.new_parent_id).first()
+        if not new_parent:
+            return {"success": False, "message": "새 부모 사업장을 찾을 수 없습니다"}
+        
+        # 이동 규칙 검증
+        if site.site_type == 'head':
+            return {"success": False, "message": "헤드 사업장은 이동할 수 없습니다"}
+        
+        if site.site_type == 'detail' and new_parent.site_type != 'head':
+            return {"success": False, "message": "세부 사업장은 헤드 사업장 하위로만 이동 가능합니다"}
+        
+        if site.site_type == 'period' and new_parent.site_type != 'detail':
+            return {"success": False, "message": "기간별 사업장은 세부 사업장 하위로만 이동 가능합니다"}
+        
+        # 순환 참조 검증 (자신의 하위로 이동하는 것 방지)
+        def is_descendant(parent_id, target_id):
+            """target_id가 parent_id의 하위에 있는지 확인"""
+            children = db.query(Customer).filter(Customer.parent_id == parent_id).all()
+            for child in children:
+                if child.id == target_id:
+                    return True
+                if is_descendant(child.id, target_id):
+                    return True
+            return False
+        
+        if is_descendant(site.id, move_data.new_parent_id):
+            return {"success": False, "message": "자신의 하위 사업장으로는 이동할 수 없습니다"}
+        
+        # 레벨 계산
+        new_level = new_parent.level + 1
+        
+        # 사업장 이동
+        old_parent_name = site.parent.name if site.parent else "없음"
+        site.parent_id = move_data.new_parent_id
+        site.level = new_level
+        
+        # 하위 사업장들의 레벨도 재조정
+        def update_children_level(parent_id, base_level):
+            """하위 사업장들의 레벨 재조정"""
+            children = db.query(Customer).filter(Customer.parent_id == parent_id).all()
+            for child in children:
+                child.level = base_level + 1
+                update_children_level(child.id, child.level)
+        
+        update_children_level(site.id, site.level)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"'{site.name}'이(가) '{old_parent_name}'에서 '{new_parent.name}' 하위로 성공적으로 이동되었습니다"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": f"사업장 이동 중 오류가 발생했습니다: {str(e)}"}
+
+def getSiteTypeDisplay(site_type: str) -> str:
+    """사업장 유형 표시명 반환"""
+    type_map = {
+        'head': '헤드 사업장',
+        'detail': '세부 사업장',
+        'period': '기간별 사업장'
+    }
+    return type_map.get(site_type, site_type)
+
 @app.get("/suppliers/{supplier_id}/ingredients")
 async def get_supplier_ingredients(supplier_id: int, db: Session = Depends(get_db)):
     """특정 공급업체의 식재료 목록 조회"""
@@ -1069,6 +2337,376 @@ async def get_supplier_ingredients(supplier_id: int, db: Session = Depends(get_d
         }
         
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== 식수 관리 API =====
+
+@app.get("/api/admin/meal-counts")
+async def get_meal_counts(request: Request, db: Session = Depends(get_db)):
+    """식수 등록 목록 조회"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        meal_counts = db.query(MealCount).order_by(
+            MealCount.registration_date.desc(),
+            MealCount.delivery_site,
+            MealCount.meal_type
+        ).all()
+        
+        # 그룹화된 데이터 생성
+        grouped_data = {}
+        for mc in meal_counts:
+            key = f"{mc.delivery_site}_{mc.meal_type}"
+            if key not in grouped_data:
+                grouped_data[key] = {
+                    "delivery_site": mc.delivery_site,
+                    "meal_type": mc.meal_type,
+                    "target_material_cost": mc.target_material_cost,
+                    "sites": []
+                }
+            
+            grouped_data[key]["sites"].append({
+                "id": mc.id,
+                "site_name": mc.site_name,
+                "meal_count": mc.meal_count,
+                "registration_date": mc.registration_date.isoformat()
+            })
+        
+        # 총합 계산
+        total_meal_count = sum(mc.meal_count for mc in meal_counts)
+        avg_cost = sum(float(mc.target_material_cost or 0) for mc in meal_counts) / len(meal_counts) if meal_counts else 0
+        delivery_sites = len(set(mc.delivery_site for mc in meal_counts))
+        
+        return {
+            "success": True,
+            "data": list(grouped_data.values()),
+            "summary": {
+                "total_meal_count": total_meal_count,
+                "average_cost": round(avg_cost, 2),
+                "delivery_sites": delivery_sites
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/meal-counts")
+async def create_meal_count(meal_count_data: MealCountCreate, request: Request, db: Session = Depends(get_db)):
+    """새 식수 등록"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 날짜 파싱
+        registration_date = datetime.strptime(meal_count_data.registration_date, "%Y-%m-%d").date()
+        
+        # 새 식수 등록 생성
+        new_meal_count = MealCount(
+            delivery_site=meal_count_data.delivery_site,
+            meal_type=meal_count_data.meal_type,
+            target_material_cost=meal_count_data.target_material_cost,
+            site_name=meal_count_data.site_name,
+            meal_count=meal_count_data.meal_count,
+            registration_date=registration_date
+        )
+        
+        db.add(new_meal_count)
+        db.commit()
+        db.refresh(new_meal_count)
+        
+        return {
+            "success": True,
+            "message": "식수가 성공적으로 등록되었습니다.",
+            "data": {
+                "id": new_meal_count.id,
+                "delivery_site": new_meal_count.delivery_site,
+                "meal_type": new_meal_count.meal_type,
+                "target_material_cost": new_meal_count.target_material_cost,
+                "site_name": new_meal_count.site_name,
+                "meal_count": new_meal_count.meal_count,
+                "registration_date": new_meal_count.registration_date.isoformat()
+            }
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="잘못된 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요.")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/meal-counts/{meal_count_id}")
+async def get_meal_count(meal_count_id: int, request: Request, db: Session = Depends(get_db)):
+    """특정 식수 등록 조회"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    meal_count = db.query(MealCount).filter(MealCount.id == meal_count_id).first()
+    if not meal_count:
+        raise HTTPException(status_code=404, detail="식수 등록을 찾을 수 없습니다.")
+    
+    return {
+        "success": True,
+        "data": {
+            "id": meal_count.id,
+            "delivery_site": meal_count.delivery_site,
+            "meal_type": meal_count.meal_type,
+            "target_material_cost": meal_count.target_material_cost,
+            "site_name": meal_count.site_name,
+            "meal_count": meal_count.meal_count,
+            "registration_date": meal_count.registration_date.isoformat()
+        }
+    }
+
+@app.put("/api/admin/meal-counts/{meal_count_id}")
+async def update_meal_count(meal_count_id: int, meal_count_data: MealCountUpdate, request: Request, db: Session = Depends(get_db)):
+    """식수 등록 수정"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        meal_count = db.query(MealCount).filter(MealCount.id == meal_count_id).first()
+        if not meal_count:
+            raise HTTPException(status_code=404, detail="식수 등록을 찾을 수 없습니다.")
+        
+        # 월말 삭제 제한 확인 (현재 달의 마지막 3일)
+        today = datetime.now().date()
+        last_day_of_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        if today >= last_day_of_month - timedelta(days=2):  # 마지막 3일
+            raise HTTPException(status_code=400, detail="월말 3일간은 식수 등록을 수정할 수 없습니다.")
+        
+        # 업데이트할 필드들
+        if meal_count_data.delivery_site is not None:
+            meal_count.delivery_site = meal_count_data.delivery_site
+        if meal_count_data.meal_type is not None:
+            meal_count.meal_type = meal_count_data.meal_type
+        if meal_count_data.target_material_cost is not None:
+            meal_count.target_material_cost = meal_count_data.target_material_cost
+        if meal_count_data.site_name is not None:
+            meal_count.site_name = meal_count_data.site_name
+        if meal_count_data.meal_count is not None:
+            meal_count.meal_count = meal_count_data.meal_count
+        if meal_count_data.registration_date is not None:
+            meal_count.registration_date = datetime.strptime(meal_count_data.registration_date, "%Y-%m-%d").date()
+        
+        db.commit()
+        db.refresh(meal_count)
+        
+        return {
+            "success": True,
+            "message": "식수 등록이 성공적으로 수정되었습니다.",
+            "data": {
+                "id": meal_count.id,
+                "delivery_site": meal_count.delivery_site,
+                "meal_type": meal_count.meal_type,
+                "target_material_cost": meal_count.target_material_cost,
+                "site_name": meal_count.site_name,
+                "meal_count": meal_count.meal_count,
+                "registration_date": meal_count.registration_date.isoformat()
+            }
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="잘못된 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요.")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/admin/meal-counts/{meal_count_id}")
+async def delete_meal_count(meal_count_id: int, request: Request, db: Session = Depends(get_db)):
+    """식수 등록 삭제"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    if user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        meal_count = db.query(MealCount).filter(MealCount.id == meal_count_id).first()
+        if not meal_count:
+            raise HTTPException(status_code=404, detail="식수 등록을 찾을 수 없습니다.")
+        
+        # 월말 삭제 제한 확인 (현재 달의 마지막 3일)
+        today = datetime.now().date()
+        last_day_of_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        if today >= last_day_of_month - timedelta(days=2):  # 마지막 3일
+            raise HTTPException(status_code=400, detail="월말 3일간은 식수 등록을 삭제할 수 없습니다.")
+        
+        db.delete(meal_count)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "식수 등록이 성공적으로 삭제되었습니다."
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== 15일 타임라인 식수 관리 API =====
+
+@app.get("/api/meal-counts/timeline")
+async def get_meal_counts_timeline(tab: str, start_date: str, end_date: str, db: Session = Depends(get_db)):
+    """15일 타임라인 식수 데이터 조회 - 인증 불필요"""
+    try:
+        # 날짜 파싱
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        
+        # 타임라인 데이터 조회
+        timeline_data = db.query(MealCountTimeline).filter(
+            MealCountTimeline.tab_type == tab,
+            MealCountTimeline.target_date >= start_dt,
+            MealCountTimeline.target_date <= end_dt
+        ).order_by(
+            MealCountTimeline.meal_category,
+            MealCountTimeline.site_name,
+            MealCountTimeline.target_date
+        ).all()
+        
+        # 데이터 구조화
+        structured_data = {}
+        for record in timeline_data:
+            category = record.meal_category
+            site = record.site_name
+            date_str = record.target_date.strftime("%Y-%m-%d")
+            
+            if category not in structured_data:
+                structured_data[category] = {}
+            if site not in structured_data[category]:
+                structured_data[category][site] = {}
+            
+            structured_data[category][site][date_str] = {
+                'id': record.id,
+                'meal_count': record.meal_count,
+                'is_confirmed': record.is_confirmed,
+                'target_material_cost': record.target_material_cost,
+                'notes': record.notes
+            }
+        
+        return {
+            "success": True,
+            "data": structured_data,
+            "period": {
+                "start_date": start_date,
+                "end_date": end_date,
+                "tab": tab
+            }
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="잘못된 날짜 형식입니다.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/meal-counts/templates/{tab_type}")
+async def get_meal_count_templates(tab_type: str, db: Session = Depends(get_db)):
+    """식수 템플릿 조회 - 인증 불필요"""
+    try:
+        templates = db.query(MealCountTemplate).filter(
+            MealCountTemplate.tab_type == tab_type,
+            MealCountTemplate.is_active == True
+        ).order_by(
+            MealCountTemplate.display_order,
+            MealCountTemplate.meal_category,
+            MealCountTemplate.site_name
+        ).all()
+        
+        # 구조화
+        structured_templates = {}
+        for template in templates:
+            category = template.meal_category
+            if category not in structured_templates:
+                structured_templates[category] = []
+            
+            structured_templates[category].append({
+                'site_name': template.site_name,
+                'default_count': template.default_count
+            })
+        
+        return {
+            "success": True,
+            "data": structured_templates,
+            "tab_type": tab_type
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/meal-counts/timeline/save")
+async def save_meal_count_timeline(
+    save_data: dict, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """타임라인 식수 데이터 저장 - 인증 필요"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    try:
+        tab = save_data.get('tab')
+        category = save_data.get('category')
+        site = save_data.get('site')
+        date_str = save_data.get('date')
+        meal_count = save_data.get('meal_count', 0)
+        
+        # 날짜 파싱
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        
+        # 기존 데이터 확인
+        existing = db.query(MealCountTimeline).filter(
+            MealCountTimeline.tab_type == tab,
+            MealCountTimeline.meal_category == category,
+            MealCountTimeline.site_name == site,
+            MealCountTimeline.target_date == target_date
+        ).first()
+        
+        if existing:
+            # 업데이트
+            existing.meal_count = meal_count
+            existing.updated_at = datetime.now()
+        else:
+            # 신규 생성
+            new_record = MealCountTimeline(
+                tab_type=tab,
+                meal_category=category,
+                site_name=site,
+                meal_count=meal_count,
+                target_date=target_date,
+                is_confirmed=False
+            )
+            db.add(new_record)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "저장되었습니다."
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="잘못된 데이터 형식입니다.")
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
