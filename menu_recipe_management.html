@@ -33,6 +33,9 @@
             font-size: 14px;
             transition: all 0.3s;
             cursor: pointer;
+            position: relative;
+            z-index: 1000;
+            display: inline-block;
         }
         
         .nav-item:hover {
@@ -868,10 +871,10 @@
         <a href="/" class="nav-item active">📋 메뉴/레시피 관리</a>
         <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
         <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
-        <a href="/ordering" class="nav-item">📈 발주 관리</a>
-        <a href="#" class="nav-item">📦 입고명세서 관리</a>
+        <a href="/ordering" class="nav-item" onclick="console.log('발주 관리 클릭됨'); alert('발주 관리로 이동합니다'); window.location.href='/ordering'; return false;">📈 발주 관리</a>
+        <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
         <a href="#" class="nav-item">📋 각종 일지</a>
-        <a href="#" class="nav-item">🔪 전처리지시서</a>
+        <a href="/static/preprocessing_demo_sep2.html" class="nav-item">🔪 전처리지시서</a>
         <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
         <a href="#" class="nav-item">📊 소분지시서</a>
     </div>
@@ -888,6 +891,8 @@
                     <input type="date" id="currentDate" value="2025-08-28" style="padding: 8px; border-radius: 6px; border: none;">
                 </div>
                 <button class="btn btn-secondary" onclick="location.href='/meal-plan'" style="background: rgba(255,255,255,0.2); border: 1px solid white;">📊 식단표 작성</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/ordering'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 10px;">📈 발주 관리</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/static/preprocessing_management.html'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
             </div>
         </div>
     </div>
@@ -1014,6 +1019,33 @@
 
         // 페이지 로드 시 메뉴 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
+            // 네비게이션 강제 바인딩
+            console.log('페이지 로드됨 - 네비게이션 바인딩 시작');
+            
+            // 발주 관리 링크 강제 바인딩
+            const orderingLink = document.querySelector('a[href="/ordering"]');
+            if (orderingLink) {
+                console.log('발주 관리 링크 찾음');
+                orderingLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('발주 관리 클릭 이벤트 발생');
+                    alert('발주 관리로 이동합니다 (강제 바인딩)');
+                    window.location.href = '/ordering';
+                });
+            }
+            
+            // 전처리 지시서 링크 강제 바인딩
+            const preprocessingLink = document.querySelector('a[href="/static/preprocessing_management.html"]');
+            if (preprocessingLink) {
+                console.log('전처리 링크 찾음');
+                preprocessingLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('전처리 클릭 이벤트 발생');
+                    alert('전처리지시서로 이동합니다 (강제 바인딩)');
+                    window.location.href = '/static/preprocessing_management.html';
+                });
+            }
+            
             // URL 파라미터에서 메뉴명 확인
             const urlParams = new URLSearchParams(window.location.search);
             const menuName = urlParams.get('menu');

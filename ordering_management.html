@@ -23,44 +23,40 @@
 
         /* 상단 네비게이션 */
         .navigation-bar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
             display: flex;
             align-items: center;
-            gap: 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+            padding: 10px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .nav-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #FF6B35, #F7931E);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-right: 30px;
         }
 
         .nav-item {
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 6px;
             text-decoration: none;
-            color: #666;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            z-index: 1000;
+            display: inline-block;
         }
 
         .nav-item:hover {
-            background: rgba(255, 107, 53, 0.1);
-            color: #FF6B35;
+            background: rgba(255,255,255,0.1);
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, #FF6B35, #F7931E);
-            color: white;
+            background: rgba(255,255,255,0.2);
             font-weight: 600;
         }
 
@@ -235,6 +231,33 @@
             background: #d4edda !important;
             font-weight: 600;
             color: #155724;
+        }
+
+        .lead-time-cell {
+            background: #fff3cd !important;
+            font-weight: 600;
+            color: #856404;
+            text-align: center;
+        }
+
+        .meal-plan-ref {
+            background: #e2e3e5 !important;
+            font-size: 0.75rem;
+            color: #495057;
+            text-align: center;
+            padding: 0.2rem;
+        }
+
+        /* 선발주일 경고 스타일 */
+        .lead-time-warning {
+            background: #f8d7da !important;
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        .lead-time-good {
+            background: #d1ecf1 !important;
+            color: #0c5460;
         }
 
         /* 액션 버튼들 - 컴팩트 */
@@ -555,6 +578,124 @@
             color: #856404;
         }
 
+        /* 군별 식단표 탭 스타일 */
+        .meal-plan-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .meal-plan-tab {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .meal-plan-tab.active {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border-color: #28a745;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .meal-plan-tab:hover:not(.active) {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        /* 군별 식단표 컨텐츠 */
+        .meal-plan-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .meal-plan-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .meal-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .meal-plan-info h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .meal-plan-info p {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .meal-plan-summary {
+            text-align: right;
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        /* 통합된 테이블 스타일 개선 */
+        #consolidatedOrderTable th {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.2rem;
+            line-height: 1.2;
+        }
+
+        #consolidatedOrderTable td {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.2rem;
+        }
+
+        .meal-plan-ref-cell {
+            background: #e3f2fd !important;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1565c0;
+        }
+
+        .lead-time-cell {
+            background: #fff3e0 !important;
+            font-weight: 600;
+            color: #ef6c00;
+        }
+
+        .usage-date-cell {
+            background: #f3e5f5 !important;
+            font-size: 0.75rem;
+            color: #7b1fa2;
+        }
+
+        .order-type-note {
+            background: #fff8e1 !important;
+            font-size: 0.7rem;
+            color: #f57f17;
+            font-weight: 500;
+        }
+
         @media (max-width: 768px) {
             .auto-order-controls {
                 grid-template-columns: 1fr;
@@ -569,6 +710,25 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+
+            .meal-plan-tabs {
+                flex-direction: column;
+            }
+
+            .meal-plan-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            #consolidatedOrderTable {
+                font-size: 0.7rem;
+            }
+
+            #consolidatedOrderTable th,
+            #consolidatedOrderTable td {
+                padding: 0.3rem 0.1rem;
+            }
         }
     </style>
 </head>
@@ -581,9 +741,9 @@
         <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
         <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
         <a href="/ordering" class="nav-item active">📈 발주 관리</a>
-        <a href="#" class="nav-item">📦 입고명세서 관리</a>
+        <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
         <a href="#" class="nav-item">📋 각종 일지</a>
-        <a href="#" class="nav-item">🔪 전처리지시서</a>
+        <a href="/static/preprocessing_demo_sep2.html" class="nav-item">🔪 전처리지시서</a>
         <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
         <a href="#" class="nav-item">📊 소분지시서</a>
     </div>
@@ -741,13 +901,25 @@
     <script>
         // 현재 날짜로 초기화
         document.addEventListener('DOMContentLoaded', function() {
+            // 수동 발주 모드로 초기 로드
+            loadManualOrderInterface();
+        });
+
+        function initializeDates() {
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             
-            document.getElementById('orderDate').value = today.toISOString().split('T')[0];
-            document.getElementById('deliveryDate').value = tomorrow.toISOString().split('T')[0];
-        });
+            const orderDateInput = document.getElementById('orderDate');
+            const deliveryDateInput = document.getElementById('deliveryDate');
+            
+            if (orderDateInput) {
+                orderDateInput.value = today.toISOString().split('T')[0];
+            }
+            if (deliveryDateInput) {
+                deliveryDateInput.value = tomorrow.toISOString().split('T')[0];
+            }
+        }
 
         // 탭 전환
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -820,28 +992,51 @@
                 
                 <div id="autoOrderResults" class="auto-order-results" style="display:none;">
                     <h3>📊 자동 계산된 발주 내역</h3>
-                    <div class="order-table-container">
-                        <table class="order-table" id="autoOrderTable">
-                            <thead>
-                                <tr>
-                                    <th>식재료명</th>
-                                    <th>업체</th>
-                                    <th>총 필요량</th>
-                                    <th>현재 재고</th>
-                                    <th>부족량</th>
-                                    <th>발주량</th>
-                                    <th>단위</th>
-                                    <th>단가</th>
-                                    <th>금액</th>
-                                </tr>
-                            </thead>
-                            <tbody id="autoOrderTableBody">
-                            </tbody>
-                        </table>
+                    
+                    <!-- 군별 식단표 탭 -->
+                    <div class="meal-plan-tabs" id="mealPlanTabs">
+                        <!-- 동적으로 생성됨 -->
+                    </div>
+                    
+                    <!-- 군별 식단표별 발주 내역 -->
+                    <div class="meal-plan-contents" id="mealPlanContents">
+                        <!-- 동적으로 생성됨 -->
+                    </div>
+                    
+                    <!-- 통합 발주 내역 -->
+                    <div id="consolidatedOrderSection" style="display:none;">
+                        <h3>🔄 통합 발주 내역</h3>
+                        <div class="order-table-container">
+                            <table class="order-table" id="consolidatedOrderTable">
+                                <thead>
+                                    <tr>
+                                        <th>식재료명</th>
+                                        <th>업체</th>
+                                        <th>군별식단표</th>
+                                        <th>선발주일</th>
+                                        <th>사용일</th>
+                                        <th>총 필요량</th>
+                                        <th>현재 재고</th>
+                                        <th>부족량</th>
+                                        <th>발주량</th>
+                                        <th>단위</th>
+                                        <th>단가</th>
+                                        <th>금액</th>
+                                        <th>비고</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consolidatedOrderTableBody">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     
                     <div class="auto-order-actions">
-                        <button class="btn btn-success" onclick="applyAutoOrder()">
+                        <button class="btn btn-info" onclick="consolidateOrders()" id="consolidateBtn">
+                            <i class="fas fa-layer-group"></i>
+                            발주량 합치기
+                        </button>
+                        <button class="btn btn-success" onclick="applyAutoOrder()" id="applyBtn" style="display:none;">
                             <i class="fas fa-check"></i>
                             자동 발주 적용
                         </button>
@@ -889,7 +1084,7 @@
             try {
                 // 선택된 사업장들의 식단표를 통합하여 발주 계산
                 const mockData = getMockConsolidatedOrderData(startDate, endDate, selectedBusinesses, orderType);
-                displayAutoOrderResults(mockData);
+                displayAutoOrderResultsByMealPlan(mockData);
                 
                 document.getElementById('autoOrderResults').style.display = 'block';
             } catch (error) {
@@ -910,23 +1105,28 @@
         }
 
         function getMockConsolidatedOrderData(startDate, endDate, selectedBusinesses, orderType) {
-            // 실제로는 선택된 사업장들의 식단표 데이터를 DB에서 가져와서 통합 계산
-            // 각 사업장별 식단표를 합쳐서 총 발주량 계산
+            // 군별 식단표 데이터 생성 (실제로는 DB에서 가져옴)
+            const mealPlansByBusiness = {};
             
-            // 사업장별 배율 (실제로는 각 사업장의 일일 식수를 기준으로 계산)
-            const businessMultipliers = {
+            selectedBusinesses.forEach(business => {
+                // 각 사업장별 식단표 데이터
+                const mealPlans = generateMealPlansForBusiness(business, startDate, endDate);
+                mealPlansByBusiness[business] = mealPlans;
+            });
+            
+            return mealPlansByBusiness;
+        }
+
+        function generateMealPlansForBusiness(business, startDate, endDate) {
+            // 사업장별 식단표 생성
+            const multiplier = {
                 '도시락': 1.2,
                 '운반급식': 0.8,
                 '학교급식': 2.5,
                 '요양원': 0.6
-            };
-            
-            // 선택된 사업장들의 총 배율 계산
-            const totalMultiplier = selectedBusinesses.reduce((sum, business) => {
-                return sum + (businessMultipliers[business] || 0);
-            }, 0);
-            
-            // 기본 식재료 데이터 (이미지의 샘플 데이터 기반)
+            }[business] || 1.0;
+
+            // 기본 식재료 데이터
             const baseIngredients = [
                 { 
                     name: '가리(분말)수입보관,DC 가격(결정)간시상아,1KG/EA', 
@@ -934,15 +1134,19 @@
                     unit: 'EA', 
                     currentStock: 0, 
                     unitPrice: 6633, 
-                    supplier: '삼성푸드시스' 
+                    supplier: '삼성푸드시스',
+                    leadTime: 3,
+                    usageDate: startDate
                 },
                 { 
-                    name: '오포포른장(적뽕치,DC준치,나시하,1KG/포장)', 
+                    name: '오포포른장(적뽑치,DC준치,나시하,1KG/포장)', 
                     baseAmount: 4.00, 
                     unit: 'PAK', 
                     currentStock: 0, 
                     unitPrice: 6182, 
-                    supplier: '삼성푸드시스' 
+                    supplier: '삼성푸드시스',
+                    leadTime: 3,
+                    usageDate: startDate
                 },
                 { 
                     name: '냉동로얄마디2호(현미,찰현미증수처전,1KG/EA', 
@@ -950,7 +1154,9 @@
                     unit: 'PAK', 
                     currentStock: 0, 
                     unitPrice: 2460, 
-                    supplier: '동원푸드' 
+                    supplier: '동원푸드',
+                    leadTime: 2,
+                    usageDate: startDate
                 },
                 { 
                     name: '몰리에(삼삼,컴포,국산)', 
@@ -958,7 +1164,9 @@
                     unit: 'KG', 
                     currentStock: 0, 
                     unitPrice: 2270, 
-                    supplier: '현대그린푸드' 
+                    supplier: '현대그린푸드',
+                    leadTime: 5,
+                    usageDate: startDate
                 },
                 { 
                     name: '죽비(정품,쌀포,국산)', 
@@ -966,128 +1174,241 @@
                     unit: 'KG', 
                     currentStock: 0, 
                     unitPrice: 2940, 
-                    supplier: '현대그린푸드' 
-                },
-                { 
-                    name: '진리비무흑빛동(상품,삼성,중국)', 
-                    baseAmount: 1.00, 
-                    unit: 'KG', 
-                    currentStock: 0, 
-                    unitPrice: 31350, 
-                    supplier: '현대그린푸드' 
-                },
-                { 
-                    name: '포강메(말명,쌀포,빨리,중국)', 
-                    baseAmount: 6.00, 
-                    unit: 'KG', 
-                    currentStock: 0, 
-                    unitPrice: 1600, 
-                    supplier: '현대그린푸드' 
-                },
-                { 
-                    name: '유주올리브(에스프,소포일,중국)', 
-                    baseAmount: 2.00, 
-                    unit: 'KG', 
-                    currentStock: 0, 
-                    unitPrice: 6770, 
-                    supplier: '현대그린푸드' 
-                },
-                { 
-                    name: '간장액(삼정 MCID-1)', 
-                    baseAmount: 5.00, 
-                    unit: 'KG', 
-                    currentStock: 0, 
-                    unitPrice: 1661, 
-                    supplier: 'CJ' 
-                },
-                { 
-                    name: '미르매댈찬물(1KG/EA)D-1', 
-                    baseAmount: 4.00, 
-                    unit: 'EA', 
-                    currentStock: 0, 
-                    unitPrice: 2145, 
-                    supplier: 'CJ' 
+                    supplier: '현대그린푸드',
+                    leadTime: 5,
+                    usageDate: startDate
                 }
             ];
 
-            // 선택된 사업장들에 대한 통합 계산
+            // 사업장별 배율 적용
             return baseIngredients.map(ingredient => {
-                const consolidatedAmount = ingredient.baseAmount * totalMultiplier;
-                const totalNeeded = Math.ceil(consolidatedAmount * 10) / 10; // 0.1 단위로 올림
+                const adjustedAmount = ingredient.baseAmount * multiplier;
+                const totalNeeded = Math.ceil(adjustedAmount * 10) / 10;
                 const shortage = Math.max(0, totalNeeded - ingredient.currentStock);
                 const orderAmount = shortage > 0 ? totalNeeded : 0;
                 
                 return {
                     ...ingredient,
+                    mealPlan: `${business}_식단표`,
                     totalNeeded,
                     shortage,
                     orderAmount,
                     totalCost: orderAmount * ingredient.unitPrice,
-                    businessInfo: `통합발주: ${selectedBusinesses.join(', ')}`
+                    orderType: '정기발주' // 기본값
                 };
-            }).filter(ingredient => ingredient.orderAmount > 0); // 발주량이 0보다 큰 것만 표시
+            }).filter(ingredient => ingredient.orderAmount > 0);
         }
 
-        function displayAutoOrderResults(ingredients) {
-            const tbody = document.getElementById('autoOrderTableBody');
+        function displayAutoOrderResultsByMealPlan(mealPlansData) {
+            // 군별 식단표 탭 생성
+            const tabsContainer = document.getElementById('mealPlanTabs');
+            const contentsContainer = document.getElementById('mealPlanContents');
+            
+            tabsContainer.innerHTML = '';
+            contentsContainer.innerHTML = '';
+            
+            const selectedBusinesses = getSelectedBusinesses();
+            let isFirst = true;
+            
+            selectedBusinesses.forEach(business => {
+                // 탭 생성
+                const tab = document.createElement('div');
+                tab.className = `meal-plan-tab ${isFirst ? 'active' : ''}`;
+                tab.textContent = `${business} 식단표`;
+                tab.onclick = () => showMealPlanContent(business);
+                tabsContainer.appendChild(tab);
+                
+                // 컨텐츠 생성
+                const content = createMealPlanContent(business, mealPlansData[business] || []);
+                content.className = `meal-plan-content ${isFirst ? 'active' : ''}`;
+                content.id = `content-${business}`;
+                contentsContainer.appendChild(content);
+                
+                isFirst = false;
+            });
+        }
+
+        function createMealPlanContent(business, ingredients) {
+            const content = document.createElement('div');
+            
+            let totalCost = 0;
+            const validIngredients = ingredients.filter(ingredient => ingredient.orderAmount > 0);
+            
+            content.innerHTML = `
+                <div class="meal-plan-header">
+                    <div class="meal-plan-info">
+                        <h4>${business} 식단표 발주 내역</h4>
+                        <p>총 ${validIngredients.length}개 품목</p>
+                    </div>
+                    <div class="meal-plan-summary">
+                        <div>총 발주금액</div>
+                        <div style="font-size: 1.3rem; color: #28a745;">
+                            ₩${validIngredients.reduce((sum, item) => sum + item.totalCost, 0).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="order-table-container">
+                    <table class="order-table">
+                        <thead>
+                            <tr>
+                                <th>식재료명</th>
+                                <th>업체</th>
+                                <th>총 필요량</th>
+                                <th>현재 재고</th>
+                                <th>부족량</th>
+                                <th>발주량</th>
+                                <th>단위</th>
+                                <th>단가</th>
+                                <th>금액</th>
+                                <th>선발주일</th>
+                                <th>사용일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${validIngredients.map(ingredient => `
+                                <tr>
+                                    <td style="text-align: left; font-size: 0.8rem;">${ingredient.name}</td>
+                                    <td>${ingredient.supplier}</td>
+                                    <td>${ingredient.totalNeeded.toFixed(2)}</td>
+                                    <td>
+                                        <input type="number" 
+                                               value="${ingredient.currentStock}" 
+                                               step="0.1" 
+                                               class="inventory-input"
+                                               style="width: 60px; font-size: 0.8rem;">
+                                    </td>
+                                    <td class="shortage-cell">${ingredient.shortage.toFixed(2)}</td>
+                                    <td>
+                                        <input type="number" 
+                                               value="${ingredient.orderAmount.toFixed(1)}" 
+                                               step="0.1" 
+                                               class="quantity-input"
+                                               style="width: 60px; font-size: 0.8rem;">
+                                    </td>
+                                    <td>${ingredient.unit}</td>
+                                    <td>₩${ingredient.unitPrice.toLocaleString()}</td>
+                                    <td class="amount-cell">₩${ingredient.totalCost.toLocaleString()}</td>
+                                    <td class="lead-time-cell">${ingredient.leadTime}일</td>
+                                    <td class="usage-date-cell">${ingredient.usageDate}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            return content;
+        }
+
+        function showMealPlanContent(business) {
+            // 모든 탭 비활성화
+            document.querySelectorAll('.meal-plan-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 모든 컨텐츠 숨기기
+            document.querySelectorAll('.meal-plan-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 선택된 탭과 컨텐츠 활성화
+            event.target.classList.add('active');
+            document.getElementById(`content-${business}`).classList.add('active');
+        }
+
+        function consolidateOrders() {
+            // 모든 군별 식단표의 발주 데이터를 통합
+            const selectedBusinesses = getSelectedBusinesses();
+            const consolidatedItems = {};
+            
+            selectedBusinesses.forEach(business => {
+                const content = document.getElementById(`content-${business}`);
+                if (!content) return;
+                
+                const rows = content.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td, input');
+                    if (cells.length < 11) return;
+                    
+                    const name = cells[0].textContent.trim();
+                    const supplier = cells[1].textContent.trim();
+                    const quantity = parseFloat(cells[5].querySelector('input').value) || 0;
+                    const unitPrice = parseFloat(cells[7].textContent.replace(/[₩,]/g, '')) || 0;
+                    const leadTime = cells[9].textContent.replace('일', '');
+                    const usageDate = cells[10].textContent;
+                    const unit = cells[6].textContent;
+                    
+                    const key = `${name}_${supplier}`;
+                    
+                    if (consolidatedItems[key]) {
+                        // 기존 항목에 수량 합계
+                        consolidatedItems[key].totalQuantity += quantity;
+                        consolidatedItems[key].mealPlans.push(`${business}_식단표`);
+                    } else {
+                        // 새 항목 추가
+                        consolidatedItems[key] = {
+                            name: name,
+                            supplier: supplier,
+                            totalQuantity: quantity,
+                            unit: unit,
+                            unitPrice: unitPrice,
+                            leadTime: leadTime,
+                            usageDate: usageDate,
+                            mealPlans: [`${business}_식단표`],
+                            orderType: '정기발주'
+                        };
+                    }
+                });
+            });
+            
+            displayConsolidatedOrders(consolidatedItems);
+        }
+
+        function displayConsolidatedOrders(consolidatedItems) {
+            const tbody = document.getElementById('consolidatedOrderTableBody');
             tbody.innerHTML = '';
             
             let totalCost = 0;
             
-            ingredients.forEach(ingredient => {
-                if (ingredient.orderAmount > 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${ingredient.name}</td>
-                        <td>${ingredient.supplier}</td>
-                        <td>${ingredient.totalNeeded.toFixed(2)}</td>
-                        <td>
-                            <input type="number" 
-                                   value="${ingredient.currentStock}" 
-                                   step="0.1" 
-                                   onchange="recalculateOrderFromStock(this, ${ingredient.baseAmount}, ${ingredient.unitPrice})"
-                                   class="inventory-input">
-                        </td>
-                        <td class="shortage-cell">${ingredient.shortage.toFixed(2)}</td>
-                        <td>
-                            <input type="number" 
-                                   value="${ingredient.orderAmount.toFixed(1)}" 
-                                   step="0.1" 
-                                   onchange="updateOrderCost(this, ${ingredient.unitPrice})"
-                                   class="quantity-input">
-                        </td>
-                        <td>${ingredient.unit}</td>
-                        <td>₩${ingredient.unitPrice.toLocaleString()}</td>
-                        <td class="amount-cell">₩${ingredient.totalCost.toLocaleString()}</td>
-                    `;
-                    tbody.appendChild(row);
-                    totalCost += ingredient.totalCost;
-                }
+            Object.values(consolidatedItems).forEach(item => {
+                const totalAmount = item.totalQuantity * item.unitPrice;
+                totalCost += totalAmount;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="text-align: left; font-size: 0.8rem;">${item.name}</td>
+                    <td>${item.supplier}</td>
+                    <td class="meal-plan-ref-cell">${item.mealPlans.join(', ')}</td>
+                    <td class="lead-time-cell">${item.leadTime}일</td>
+                    <td class="usage-date-cell">${item.usageDate}</td>
+                    <td>${item.totalQuantity.toFixed(2)}</td>
+                    <td><input type="number" value="0" class="inventory-input" style="width: 50px; font-size: 0.8rem;"></td>
+                    <td class="shortage-cell">${item.totalQuantity.toFixed(2)}</td>
+                    <td><input type="number" value="${item.totalQuantity.toFixed(1)}" class="quantity-input" style="width: 60px; font-size: 0.8rem;"></td>
+                    <td>${item.unit}</td>
+                    <td>₩${item.unitPrice.toLocaleString()}</td>
+                    <td class="amount-cell">₩${totalAmount.toLocaleString()}</td>
+                    <td class="order-type-note">${item.orderType}</td>
+                `;
+                tbody.appendChild(row);
             });
             
-            // 총 금액 표시 업데이트
-            const existingSummary = document.querySelector('.total-summary');
-            if (existingSummary) existingSummary.remove();
+            // 통합 발주 섹션 표시
+            document.getElementById('consolidatedOrderSection').style.display = 'block';
+            document.getElementById('consolidateBtn').style.display = 'none';
+            document.getElementById('applyBtn').style.display = 'inline-flex';
             
-            // 통합 발주 정보 표시
-            const selectedBusinesses = getSelectedBusinesses();
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
+            // 총 금액 표시
+            const existingSummary = document.querySelector('#consolidatedOrderSection .total-summary');
+            if (existingSummary) existingSummary.remove();
             
             const summaryDiv = document.createElement('div');
             summaryDiv.className = 'total-summary';
             summaryDiv.innerHTML = `
                 <div class="total-row">
-                    <span>🏭 통합 공장 발주:</span>
-                    <span>${selectedBusinesses.join(', ')}</span>
-                </div>
-                <div class="total-row">
-                    <span>📅 발주 기간:</span>
-                    <span>${startDate} ~ ${endDate}</span>
-                </div>
-                <div class="total-row">
-                    <span>📦 총 발주 품목:</span>
-                    <span>${ingredients.filter(i => i.orderAmount > 0).length}개</span>
+                    <span>📦 통합 발주 품목:</span>
+                    <span>${Object.keys(consolidatedItems).length}개</span>
                 </div>
                 <div class="total-row">
                     <span>💰 총 발주 금액:</span>
@@ -1095,7 +1416,7 @@
                 </div>
             `;
             
-            document.getElementById('autoOrderResults').appendChild(summaryDiv);
+            document.getElementById('consolidatedOrderSection').appendChild(summaryDiv);
         }
 
         function recalculateOrderFromStock(stockInput, baseAmount, unitPrice) {
@@ -1133,19 +1454,19 @@
         }
 
         function applyAutoOrder() {
-            // 자동 발주 데이터를 수동 발주 형태로 변환
-            const rows = document.querySelectorAll('#autoOrderTableBody tr');
+            // 통합 발주 데이터를 수동 발주 형태로 변환
+            const rows = document.querySelectorAll('#consolidatedOrderTableBody tr');
             if (rows.length === 0) {
-                alert('발주할 품목이 없습니다.');
+                alert('발주할 품목이 없습니다. 먼저 발주량 합치기를 실행해주세요.');
                 return;
             }
             
-            if (confirm('자동 계산된 발주 내역을 적용하시겠습니까?')) {
+            if (confirm('통합된 발주 내역을 적용하시겠습니까?')) {
                 // 수동 발주 모드로 전환하고 데이터 적용
                 switchToManualOrder();
                 
                 setTimeout(() => {
-                    applyAutoOrderData(rows);
+                    applyConsolidatedOrderData(rows);
                 }, 500);
             }
         }
@@ -1186,9 +1507,198 @@
             alert('자동 발주 데이터가 적용되었습니다.');
         }
 
+        function applyConsolidatedOrderData(consolidatedRows) {
+            const manualTbody = document.getElementById('orderTableBody');
+            manualTbody.innerHTML = '';
+            
+            Array.from(consolidatedRows).forEach((row, index) => {
+                const cells = row.querySelectorAll('td, input');
+                const ingredientName = cells[0].textContent;
+                const supplier = cells[1].textContent;
+                const mealPlans = cells[2].textContent;
+                const leadTime = cells[3].textContent.replace('일', '');
+                const usageDate = cells[4].textContent;
+                const orderQuantity = cells[8].querySelector('input').value;
+                const unit = cells[9].textContent;
+                const unitPrice = cells[10].textContent.replace(/[₩,]/g, '');
+                const totalAmount = cells[11].textContent.replace(/[₩,]/g, '');
+                const orderType = cells[12].textContent;
+                
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>통합발주</td>
+                    <td>AUTO_${Date.now() + index}</td>
+                    <td>${ingredientName}</td>
+                    <td>${supplier}</td>
+                    <td>-</td>
+                    <td>${unit}</td>
+                    <td><input type="number" class="inventory-input" placeholder="재고"></td>
+                    <td><input type="number" value="${orderQuantity}" class="quantity-input"></td>
+                    <td><select><option>${unitPrice}</option></select></td>
+                    <td><input type="number" step="0.01" value="${unitPrice}" class="price-input"></td>
+                    <td>-</td>
+                    <td><span class="amount-cell">${totalAmount}</span></td>
+                    <td class="lead-time-cell">${leadTime}</td>
+                    <td class="meal-plan-ref">${mealPlans}</td>
+                    <td><input type="text" placeholder="${orderType}" value="${orderType}"></td>
+                `;
+                manualTbody.appendChild(newRow);
+            });
+            
+            updateTotalSummary();
+            alert('통합 발주 데이터가 적용되었습니다.');
+        }
+
         function switchToManualOrder() {
-            // 수동 발주 모드로 전환 (현재 상태 유지)
+            // 수동 발주 모드로 전환
             console.log('수동 발주 모드로 전환');
+            loadManualOrderInterface();
+        }
+
+        function loadManualOrderInterface() {
+            const container = document.querySelector('.order-form-section');
+            container.innerHTML = `
+                <!-- 발주 기본 정보 -->
+                <div class="order-info-bar">
+                    <div class="info-item">
+                        <label class="info-label">자료번호(식당,식수)</label>
+                        <input type="text" class="info-input" id="orderNumber" placeholder="예: 1530">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">발주일</label>
+                        <input type="date" class="info-input" id="orderDate">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">납기일</label>
+                        <input type="date" class="info-input" id="deliveryDate">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">선발주일</label>
+                        <input type="number" class="info-input" id="leadDays" value="3" min="1" max="10">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">총 식수</label>
+                        <input type="number" class="info-input" id="totalMeals" placeholder="204">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">참조 식단표</label>
+                        <select class="info-input" id="referenceMealPlan">
+                            <option value="">선택해주세요</option>
+                            <option value="2025-08-31_도시락">2025-08-31 도시락 식단표</option>
+                            <option value="2025-09-01_운반급식">2025-09-01 운반급식 식단표</option>
+                            <option value="2025-09-02_학교급식">2025-09-02 학교급식 식단표</option>
+                        </select>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">발주 시간</label>
+                        <input type="time" class="info-input" id="orderTime" value="15:30">
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">발주자 작성</label>
+                        <button class="btn btn-primary" onclick="createOrder()">발주서 작성</button>
+                    </div>
+                </div>
+
+                <!-- 발주 테이블 -->
+                <div class="order-table-container">
+                    <table class="order-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">NO</th>
+                                <th style="width: 60px;">분류</th>
+                                <th style="width: 80px;">코드</th>
+                                <th style="width: 200px;">식자재명</th>
+                                <th style="width: 80px;">거래처</th>
+                                <th style="width: 50px;">원산지</th>
+                                <th style="width: 40px;">단위</th>
+                                <th style="width: 50px;">현재재고</th>
+                                <th style="width: 50px;">수량</th>
+                                <th style="width: 50px;">단가</th>
+                                <th style="width: 70px;">최근발주</th>
+                                <th style="width: 50px;">단가</th>
+                                <th style="width: 80px;">금액</th>
+                                <th style="width: 30px;">선발주일</th>
+                                <th style="width: 60px;">참조식단</th>
+                                <th style="width: 60px;">비고</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody">
+                            <tr>
+                                <td>1</td>
+                                <td>농산물</td>
+                                <td>1000156716</td>
+                                <td>생강&comma;국내 4L&comma;30~50G/EA&comma;초냉함</td>
+                                <td>삼성팜스토리</td>
+                                <td>국내</td>
+                                <td>KG</td>
+                                <td><input type="number" class="inventory-input" placeholder="재고"></td>
+                                <td><input type="number" value="-30" class="quantity-input"></td>
+                                <td><select><option>0.70</option></select></td>
+                                <td><input type="number" step="0.01" value="0.70" class="price-input"></td>
+                                <td>1705</td>
+                                <td><span class="amount-cell">1193.5</span></td>
+                                <td class="lead-time-cell">3</td>
+                                <td class="meal-plan-ref">2025-08-31_도시락</td>
+                                <td><input type="text" placeholder="비고"></td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>농산물</td>
+                                <td>1000748126</td>
+                                <td>[GS]냉동대파&comma;중국 1L&comma;1KG/PAC&comma;5MM옵마라이스</td>
+                                <td>삼성팜스토리</td>
+                                <td>중국</td>
+                                <td>PAC</td>
+                                <td><input type="number" class="inventory-input" placeholder="재고"></td>
+                                <td><input type="number" value="-10" class="quantity-input"></td>
+                                <td><select><option>1.87</option></select></td>
+                                <td><input type="number" step="0.01" value="1.87" class="price-input"></td>
+                                <td>2530</td>
+                                <td><span class="amount-cell">4731.1</span></td>
+                                <td class="lead-time-cell">5</td>
+                                <td class="meal-plan-ref">2025-09-01_운반급식</td>
+                                <td><input type="text" placeholder="비고"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 합계 정보 -->
+                <div class="total-summary">
+                    <div class="total-row">
+                        <span>총 품목 수:</span>
+                        <span id="totalItems">2개</span>
+                    </div>
+                    <div class="total-row">
+                        <span>총 발주 금액:</span>
+                        <span id="totalAmount">₩5,924</span>
+                    </div>
+                </div>
+
+                <!-- 액션 버튼들 -->
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="addOrderItem()">
+                        <i class="fas fa-plus"></i>
+                        품목 추가
+                    </button>
+                    <button class="btn btn-primary" onclick="validateAndSaveOrder()">
+                        <i class="fas fa-save"></i>
+                        발주서 저장
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i>
+                        엑셀 출력
+                    </button>
+                    <button class="btn btn-danger" onclick="resetOrder()">
+                        <i class="fas fa-trash"></i>
+                        초기화
+                    </button>
+                </div>
+            `;
+            
+            // 날짜 초기화
+            initializeDates();
         }
 
         function createOrder() {
@@ -1207,23 +1717,26 @@
         function addOrderItem() {
             const tbody = document.getElementById('orderTableBody');
             const newRowNumber = tbody.children.length + 1;
+            const referenceMealPlan = document.getElementById('referenceMealPlan')?.value || '수동입력';
             
             const newRow = document.createElement('tr');
             newRow.innerHTML = `
                 <td>${newRowNumber}</td>
-                <td><input type="text" placeholder="분류"></td>
-                <td><input type="text" placeholder="코드"></td>
-                <td><input type="text" placeholder="식자재명"></td>
-                <td><input type="text" placeholder="거래처"></td>
-                <td><input type="text" placeholder="원산지"></td>
-                <td><input type="text" placeholder="단위"></td>
-                <td><input type="text" placeholder="영업대금"></td>
-                <td><input type="number" class="quantity-input" onchange="calculateAmount(this)"></td>
-                <td><input type="number" step="0.01" class="price-input" onchange="calculateAmount(this)"></td>
-                <td><input type="number" placeholder="최근발주"></td>
-                <td><input type="number" step="0.01" placeholder="단가"></td>
+                <td><input type="text" placeholder="분류" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="text" placeholder="코드" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="text" placeholder="식자재명" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="text" placeholder="거래처" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="text" placeholder="원산지" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="text" placeholder="단위" style="width:100%; font-size:0.8rem;"></td>
+                <td><input type="number" class="inventory-input" placeholder="재고" style="width:100%;"></td>
+                <td><input type="number" class="quantity-input" onchange="calculateAmount(this)" style="width:100%;"></td>
+                <td><select style="width:100%; font-size:0.8rem;"><option value="">선택</option></select></td>
+                <td><input type="number" step="0.01" class="price-input" onchange="calculateAmount(this)" style="width:100%;"></td>
+                <td><input type="number" placeholder="최근발주" style="width:100%; font-size:0.8rem;"></td>
                 <td><span class="amount-cell">0</span></td>
-                <td><input type="text" placeholder="비고"></td>
+                <td class="lead-time-cell">3</td>
+                <td class="meal-plan-ref">${referenceMealPlan}</td>
+                <td><input type="text" placeholder="비고" style="width:100%; font-size:0.8rem;"></td>
             `;
             
             tbody.appendChild(newRow);
@@ -1259,29 +1772,119 @@
             document.getElementById('totalAmount').textContent = `₩${totalAmount.toLocaleString()}`;
         }
 
+        function validateAndSaveOrder() {
+            // 발주일자와 선발주일 검증
+            const validation = validateOrderDates();
+            if (!validation.valid) {
+                alert(validation.message);
+                return;
+            }
+            
+            saveOrder();
+        }
+
+        function validateOrderDates() {
+            const orderDate = document.getElementById('orderDate')?.value;
+            const deliveryDate = document.getElementById('deliveryDate')?.value;
+            const leadDays = parseInt(document.getElementById('leadDays')?.value || 3);
+            
+            if (!orderDate || !deliveryDate) {
+                return {
+                    valid: false,
+                    message: '발주일과 납기일을 모두 입력해주세요.'
+                };
+            }
+            
+            const orderDateTime = new Date(orderDate);
+            const deliveryDateTime = new Date(deliveryDate);
+            const timeDiff = Math.ceil((deliveryDateTime - orderDateTime) / (1000 * 60 * 60 * 24));
+            
+            // 발주일 + 선발주일이 납기일을 초과하는지 확인
+            if (timeDiff < leadDays) {
+                // 선발주일에 +3일 제품이 있는지 확인
+                const hasLongLeadItems = checkLongLeadTimeItems(leadDays + 3);
+                
+                if (hasLongLeadItems) {
+                    return {
+                        valid: false,
+                        message: `⚠️ 발주 불가 경고!\n\n발주일(${orderDate})에서 납기일(${deliveryDate})까지 ${timeDiff}일\n기본 선발주일: ${leadDays}일\n\n선발주일이 ${leadDays + 3}일인 제품이 포함되어 있어 발주가 불가능합니다.\n납기일을 조정하거나 해당 품목을 제외하고 발주하세요.`
+                    };
+                }
+                
+                return {
+                    valid: true,
+                    warning: `선발주일(${leadDays}일)이 발주 기간(${timeDiff}일)을 초과하지만 장기 선발주일 제품은 없습니다.`
+                };
+            }
+            
+            return {
+                valid: true,
+                message: '발주일자 검증 완료'
+            };
+        }
+
+        function checkLongLeadTimeItems(threshold) {
+            // 테이블에서 선발주일이 threshold 이상인 항목 확인
+            const leadTimeCells = document.querySelectorAll('.lead-time-cell');
+            for (let cell of leadTimeCells) {
+                const leadTime = parseInt(cell.textContent) || 3;
+                if (leadTime >= threshold) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function saveOrder() {
             showLoading();
             
             // 발주 데이터 수집
             const orderData = {
-                orderNumber: document.getElementById('orderNumber').value,
-                orderDate: document.getElementById('orderDate').value,
-                deliveryDate: document.getElementById('deliveryDate').value,
-                totalMeals: document.getElementById('totalMeals').value,
-                orderTime: document.getElementById('orderTime').value,
+                orderNumber: document.getElementById('orderNumber')?.value,
+                orderDate: document.getElementById('orderDate')?.value,
+                deliveryDate: document.getElementById('deliveryDate')?.value,
+                leadDays: document.getElementById('leadDays')?.value,
+                totalMeals: document.getElementById('totalMeals')?.value,
+                referenceMealPlan: document.getElementById('referenceMealPlan')?.value,
+                orderTime: document.getElementById('orderTime')?.value,
                 items: []
             };
             
             // 테이블 데이터 수집
             const rows = document.querySelectorAll('#orderTableBody tr');
             rows.forEach(row => {
-                const cells = row.querySelectorAll('td, input, select');
-                // TODO: 실제 데이터 수집 로직 구현
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                    orderData.items.push({
+                        no: cells[0]?.textContent,
+                        category: cells[1]?.textContent,
+                        code: cells[2]?.textContent,
+                        name: cells[3]?.textContent,
+                        supplier: cells[4]?.textContent,
+                        origin: cells[5]?.textContent,
+                        unit: cells[6]?.textContent,
+                        currentStock: cells[7]?.querySelector('input')?.value,
+                        quantity: cells[8]?.querySelector('input')?.value,
+                        unitPrice: cells[9]?.querySelector('input')?.value || cells[10]?.querySelector('input')?.value,
+                        amount: cells[12]?.textContent,
+                        leadTime: cells[13]?.textContent,
+                        mealPlanRef: cells[14]?.textContent,
+                        notes: cells[15]?.querySelector('input')?.value
+                    });
+                }
             });
+            
+            console.log('발주 데이터:', orderData);
             
             setTimeout(() => {
                 hideLoading();
-                alert('발주서가 저장되었습니다.');
+                alert('발주서가 저장되었습니다.\n\n' + 
+                      `발주번호: ${orderData.orderNumber}\n` +
+                      `발주일: ${orderData.orderDate}\n` +
+                      `납기일: ${orderData.deliveryDate}\n` +
+                      `선발주일: ${orderData.leadDays}일\n` +
+                      `참조식단: ${orderData.referenceMealPlan}\n` +
+                      `총 품목: ${orderData.items.length}개`);
             }, 1500);
         }
 

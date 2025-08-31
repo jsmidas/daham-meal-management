@@ -22,7 +22,13 @@
       "Read(C:\\Dev\\1st-menu-management/**)",
       "Read(C:\\Dev\\1st-menu-management/**)",
       "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(cmd:*)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)",
+      "Read(C:\\Dev\\1st-menu-management/**)"
     ],
     "deny": [],
     "ask": []

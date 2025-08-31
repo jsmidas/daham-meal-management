@@ -15,7 +15,13 @@ import secrets
 from datetime import datetime, date, timedelta
 
 # 로컬 임포트
-from models import Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer, User, MealCount, MealCountTimeline, MealCountTemplate
+from models import (
+    Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer, User, 
+    MealCount, MealCountTimeline, MealCountTemplate,
+    PurchaseOrder, PurchaseOrderItem, ReceivingRecord, ReceivingItem,
+    PreprocessingMaster, PreprocessingInstruction, PreprocessingInstructionItem,
+    OrderTypeEnum, ReceivingStatusEnum
+)
 from business_logic import MenuCalculator, NutritionCalculator, CostAnalyzer
 
 # FastAPI 앱 생성
@@ -57,6 +63,15 @@ async def serve_dashboard():
 @app.get("/ordering")
 async def serve_ordering():
     return FileResponse("ordering_management.html")
+
+@app.get("/receiving")
+async def serve_receiving():
+    return FileResponse("receiving_management.html")
+
+@app.get("/preprocessing")
+async def serve_preprocessing():
+    """전처리 지시서 관리 페이지"""
+    return FileResponse("preprocessing_management.html")
 
 
 # 데이터베이스 연결 - 새로 생성한 SQLite 데이터베이스 사용
@@ -2707,6 +2722,860 @@ async def save_meal_count_timeline(
         raise HTTPException(status_code=400, detail="잘못된 데이터 형식입니다.")
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==============================================================================
+# 발주 관리 API
+# ==============================================================================
+
+class PurchaseOrderCreate(BaseModel):
+    order_number: str
+    order_date: str
+    delivery_date: str
+    lead_days: int = 3
+    total_meals: Optional[int] = None
+    reference_meal_plan: Optional[str] = None
+    order_time: Optional[str] = None
+    order_type: str = "manual"
+    notes: Optional[str] = None
+    items: List[dict]
+
+@app.post("/api/purchase-orders")
+async def create_purchase_order(order_data: PurchaseOrderCreate, db: Session = Depends(get_db)):
+    """발주서 생성"""
+    try:
+        # 발주서 생성
+        purchase_order = PurchaseOrder(
+            order_number=order_data.order_number,
+            order_date=datetime.strptime(order_data.order_date, '%Y-%m-%d').date(),
+            delivery_date=datetime.strptime(order_data.delivery_date, '%Y-%m-%d').date(),
+            lead_days=order_data.lead_days,
+            total_meals=order_data.total_meals,
+            reference_meal_plan=order_data.reference_meal_plan,
+            order_time=order_data.order_time,
+            order_type=OrderTypeEnum.manual if order_data.order_type == "manual" else OrderTypeEnum.auto,
+            notes=order_data.notes,
+            created_by=1  # 임시로 1번 사용자
+        )
+        
+        db.add(purchase_order)
+        db.flush()  # ID 생성을 위해 flush
+        
+        # 발주 품목들 생성
+        total_amount = 0
+        for item_data in order_data.items:
+            amount = float(item_data.get('quantity', 0)) * float(item_data.get('unitPrice', 0))
+            total_amount += amount
+            
+            order_item = PurchaseOrderItem(
+                order_id=purchase_order.id,
+                category=item_data.get('category'),
+                code=item_data.get('code'),
+                name=item_data.get('name'),
+                supplier=item_data.get('supplier'),
+                origin=item_data.get('origin'),
+                unit=item_data.get('unit'),
+                current_stock=float(item_data.get('currentStock', 0)) if item_data.get('currentStock') else 0,
+                quantity=float(item_data.get('quantity', 0)),
+                unit_price=float(item_data.get('unitPrice', 0)),
+                amount=amount,
+                lead_time=int(item_data.get('leadTime', 3)),
+                meal_plan_ref=item_data.get('mealPlanRef'),
+                notes=item_data.get('notes')
+            )
+            db.add(order_item)
+        
+        # 총 금액 업데이트
+        purchase_order.total_amount = total_amount
+        
+        # 거래처별 입고 기록 생성
+        suppliers = {}
+        for item_data in order_data.items:
+            supplier = item_data.get('supplier')
+            if supplier and supplier not in suppliers:
+                # 예상 입고일 계산 (발주일 + 선발주일)
+                order_date = datetime.strptime(order_data.order_date, '%Y-%m-%d').date()
+                expected_date = order_date + timedelta(days=order_data.lead_days)
+                
+                receiving_record = ReceivingRecord(
+                    order_id=purchase_order.id,
+                    supplier=supplier,
+                    expected_date=expected_date,
+                    status=ReceivingStatusEnum.pending
+                )
+                db.add(receiving_record)
+                suppliers[supplier] = receiving_record
+        
+        db.flush()
+        
+        # 입고 품목들 생성
+        for item_data in order_data.items:
+            supplier = item_data.get('supplier')
+            if supplier and supplier in suppliers:
+                receiving_item = ReceivingItem(
+                    receiving_record_id=suppliers[supplier].id,
+                    order_item_id=0,  # 나중에 업데이트
+                    name=item_data.get('name'),
+                    ordered_quantity=float(item_data.get('quantity', 0)),
+                    unit=item_data.get('unit'),
+                    unit_price=float(item_data.get('unitPrice', 0)),
+                    amount=float(item_data.get('quantity', 0)) * float(item_data.get('unitPrice', 0))
+                )
+                db.add(receiving_item)
+        
+        # 입고 기록 총계 업데이트
+        for supplier, receiving_record in suppliers.items():
+            supplier_items = [item for item in order_data.items if item.get('supplier') == supplier]
+            receiving_record.total_items = len(supplier_items)
+            receiving_record.total_amount = sum(
+                float(item.get('quantity', 0)) * float(item.get('unitPrice', 0)) 
+                for item in supplier_items
+            )
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "발주서가 성공적으로 저장되었습니다.",
+            "order_id": purchase_order.id,
+            "order_number": purchase_order.order_number
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"발주서 저장 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"발주서 저장 중 오류가 발생했습니다: {str(e)}")
+
+@app.get("/api/receiving-records")
+async def get_receiving_records(
+    expected_date: Optional[str] = None,
+    supplier: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """입고 기록 조회"""
+    try:
+        query = """
+            SELECT 
+                rr.id, rr.order_id, rr.supplier, rr.expected_date, rr.actual_date,
+                rr.status, rr.total_items, rr.received_items, rr.total_amount,
+                po.order_date, po.order_number, po.lead_days
+            FROM receiving_records rr
+            JOIN purchase_orders po ON rr.order_id = po.id
+            WHERE 1=1
+        """
+        
+        params = {}
+        if expected_date:
+            query += " AND rr.expected_date = :expected_date"
+            params['expected_date'] = expected_date
+        
+        if supplier:
+            query += " AND rr.supplier = :supplier"
+            params['supplier'] = supplier
+            
+        if status:
+            query += " AND rr.status = :status"
+            params['status'] = status
+        
+        query += " ORDER BY rr.expected_date DESC, rr.supplier"
+        
+        result = db.execute(text(query), params)
+        
+        receiving_records = []
+        for row in result:
+            # 해당 입고 기록의 품목들 조회
+            items_query = """
+                SELECT ri.id, ri.name, ri.ordered_quantity, ri.received_quantity, 
+                       ri.unit, ri.unit_price, ri.amount, ri.received
+                FROM receiving_items ri
+                WHERE ri.receiving_record_id = :receiving_id
+                ORDER BY ri.name
+            """
+            items_result = db.execute(text(items_query), {"receiving_id": row[0]})
+            
+            items = []
+            for item_row in items_result:
+                items.append({
+                    "id": item_row[0],
+                    "name": item_row[1],
+                    "ordered_quantity": float(item_row[2]) if item_row[2] else 0,
+                    "received_quantity": float(item_row[3]) if item_row[3] else 0,
+                    "unit": item_row[4],
+                    "unit_price": float(item_row[5]) if item_row[5] else 0,
+                    "amount": float(item_row[6]) if item_row[6] else 0,
+                    "received": bool(item_row[7])
+                })
+            
+            receiving_records.append({
+                "id": row[0],
+                "order_id": row[1],
+                "supplier": row[2],
+                "expected_date": str(row[3]) if row[3] else None,
+                "actual_date": str(row[4]) if row[4] else None,
+                "status": row[5],
+                "total_items": row[6] or 0,
+                "received_items": row[7] or 0,
+                "total_amount": float(row[8]) if row[8] else 0,
+                "order_date": str(row[9]) if row[9] else None,
+                "order_number": row[10],
+                "lead_days": row[11] or 3,
+                "items": items
+            })
+        
+        return {
+            "success": True,
+            "data": receiving_records
+        }
+        
+    except Exception as e:
+        print(f"입고 기록 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/receiving-items/{item_id}/receive")
+async def update_receiving_item(item_id: int, received: dict, db: Session = Depends(get_db)):
+    """입고 품목 상태 업데이트"""
+    try:
+        is_received = received.get('received', False)
+        
+        # 입고 품목 업데이트
+        update_query = """
+            UPDATE receiving_items 
+            SET received = :received, 
+                received_at = :received_at,
+                updated_at = :updated_at
+            WHERE id = :item_id
+        """
+        
+        received_at = datetime.now() if is_received else None
+        db.execute(text(update_query), {
+            "received": is_received,
+            "received_at": received_at,
+            "updated_at": datetime.now(),
+            "item_id": item_id
+        })
+        
+        # 입고 기록의 입고완료 품목수 업데이트
+        update_record_query = """
+            UPDATE receiving_records 
+            SET received_items = (
+                SELECT COUNT(*) 
+                FROM receiving_items 
+                WHERE receiving_record_id = receiving_records.id AND received = true
+            ),
+            updated_at = :updated_at
+            WHERE id = (
+                SELECT receiving_record_id 
+                FROM receiving_items 
+                WHERE id = :item_id
+            )
+        """
+        
+        db.execute(text(update_record_query), {
+            "updated_at": datetime.now(),
+            "item_id": item_id
+        })
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "입고 상태가 업데이트되었습니다."
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"입고 상태 업데이트 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== 전처리 지시서 API ====================
+
+@app.get("/api/meal-plan-ingredients/{plan_date}")
+async def get_meal_plan_ingredients(plan_date: str, meal_type: Optional[str] = None, db: Session = Depends(get_db)):
+    """특정 날짜 식단표에서 모든 식자재 추출"""
+    try:
+        # 쿼리 작성: 식단표 -> 메뉴 -> 메뉴아이템 -> 레시피 -> 식자재
+        query = """
+            SELECT DISTINCT
+                ri.ingredient_id,
+                i.name as ingredient_name,
+                SUM(ri.quantity * mi.portion_num_persons) as total_quantity,
+                ri.unit,
+                i.base_unit,
+                m.menu_type,
+                dp.date as plan_date
+            FROM diet_plans dp
+            JOIN menus m ON dp.id = m.diet_plan_id
+            JOIN menu_items mi ON m.id = mi.menu_id
+            JOIN recipes r ON mi.recipe_id = r.id
+            JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+            JOIN ingredients i ON ri.ingredient_id = i.id
+            WHERE DATE(dp.date) = :plan_date
+        """
+        
+        params = {"plan_date": plan_date}
+        
+        if meal_type:
+            query += " AND m.menu_type = :meal_type"
+            params["meal_type"] = meal_type
+            
+        query += """
+            GROUP BY ri.ingredient_id, i.name, ri.unit, i.base_unit, m.menu_type, dp.date
+            ORDER BY m.menu_type, i.name
+        """
+        
+        result = db.execute(text(query), params)
+        rows = result.fetchall()
+        
+        # 끼니별로 그룹화
+        ingredients_by_meal = {}
+        for row in rows:
+            meal_type = row[5]  # menu_type
+            if meal_type not in ingredients_by_meal:
+                ingredients_by_meal[meal_type] = []
+                
+            ingredients_by_meal[meal_type].append({
+                "ingredient_id": row[0],
+                "ingredient_name": row[1],
+                "total_quantity": float(row[2]) if row[2] else 0,
+                "unit": row[3],
+                "base_unit": row[4],
+                "meal_type": meal_type
+            })
+        
+        return {
+            "success": True,
+            "date": plan_date,
+            "ingredients_by_meal": ingredients_by_meal,
+            "total_ingredients": sum(len(ingredients) for ingredients in ingredients_by_meal.values())
+        }
+        
+    except Exception as e:
+        print(f"식단표 식자재 추출 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/preprocessing-master")
+async def get_preprocessing_master(db: Session = Depends(get_db)):
+    """전처리 필요 식자재 마스터 목록"""
+    try:
+        query = """
+            SELECT 
+                id, ingredient_name, preprocessing_method, estimated_time,
+                priority, safety_notes, storage_condition, tools_required,
+                is_active
+            FROM preprocessing_master
+            WHERE is_active = true
+            ORDER BY priority ASC, ingredient_name ASC
+        """
+        
+        result = db.execute(text(query))
+        rows = result.fetchall()
+        
+        preprocessing_master = []
+        for row in rows:
+            preprocessing_master.append({
+                "id": row[0],
+                "ingredient_name": row[1],
+                "preprocessing_method": row[2],
+                "estimated_time": row[3],
+                "priority": row[4],
+                "safety_notes": row[5],
+                "storage_condition": row[6],
+                "tools_required": row[7],
+                "is_active": bool(row[8])
+            })
+        
+        return {
+            "success": True,
+            "data": preprocessing_master
+        }
+        
+    except Exception as e:
+        print(f"전처리 마스터 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PreprocessingInstructionCreate(BaseModel):
+    instruction_date: date
+    meal_type: str
+    diet_plan_id: Optional[int] = None
+    notes: Optional[str] = None
+    items: List[dict]
+
+@app.post("/api/preprocessing-instructions")
+async def create_preprocessing_instruction(instruction: PreprocessingInstructionCreate, db: Session = Depends(get_db)):
+    """전처리 지시서 생성"""
+    try:
+        # 전처리 지시서 생성
+        insert_instruction_query = """
+            INSERT INTO preprocessing_instructions 
+            (instruction_date, meal_type, diet_plan_id, status, total_items, notes, created_by, created_at, updated_at)
+            VALUES (:instruction_date, :meal_type, :diet_plan_id, 'pending', :total_items, :notes, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """
+        
+        result = db.execute(text(insert_instruction_query), {
+            "instruction_date": instruction.instruction_date,
+            "meal_type": instruction.meal_type,
+            "diet_plan_id": instruction.diet_plan_id,
+            "total_items": len(instruction.items),
+            "notes": instruction.notes
+        })
+        
+        # 생성된 지시서 ID 가져오기
+        instruction_id = result.lastrowid
+        
+        # 지시서 항목들 생성
+        for item in instruction.items:
+            insert_item_query = """
+                INSERT INTO preprocessing_instruction_items
+                (instruction_id, ingredient_name, quantity, unit, preprocessing_method, 
+                 estimated_time, priority, notes, created_at, updated_at)
+                VALUES (:instruction_id, :ingredient_name, :quantity, :unit, :preprocessing_method,
+                        :estimated_time, :priority, :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+            
+            db.execute(text(insert_item_query), {
+                "instruction_id": instruction_id,
+                "ingredient_name": item.get("ingredient_name"),
+                "quantity": item.get("quantity", 0),
+                "unit": item.get("unit", ""),
+                "preprocessing_method": item.get("preprocessing_method", ""),
+                "estimated_time": item.get("estimated_time", 0),
+                "priority": item.get("priority", 5),
+                "notes": item.get("notes", "")
+            })
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "instruction_id": instruction_id,
+            "message": "전처리 지시서가 생성되었습니다."
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"전처리 지시서 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/preprocessing-instructions")
+async def get_preprocessing_instructions(
+    instruction_date: Optional[str] = None,
+    meal_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """전처리 지시서 목록 조회"""
+    try:
+        query = """
+            SELECT 
+                pi.id, pi.instruction_date, pi.meal_type, pi.status,
+                pi.total_items, pi.completed_items, pi.notes,
+                dp.description as diet_plan_description
+            FROM preprocessing_instructions pi
+            LEFT JOIN diet_plans dp ON pi.diet_plan_id = dp.id
+            WHERE 1=1
+        """
+        
+        params = {}
+        
+        if instruction_date:
+            query += " AND DATE(pi.instruction_date) = :instruction_date"
+            params["instruction_date"] = instruction_date
+            
+        if meal_type:
+            query += " AND pi.meal_type = :meal_type"
+            params["meal_type"] = meal_type
+            
+        query += " ORDER BY pi.instruction_date DESC, pi.meal_type"
+        
+        result = db.execute(text(query), params)
+        rows = result.fetchall()
+        
+        instructions = []
+        for row in rows:
+            instructions.append({
+                "id": row[0],
+                "instruction_date": str(row[1]) if row[1] else None,
+                "meal_type": row[2],
+                "status": row[3],
+                "total_items": row[4] or 0,
+                "completed_items": row[5] or 0,
+                "notes": row[6],
+                "diet_plan_description": row[7]
+            })
+        
+        return {
+            "success": True,
+            "data": instructions
+        }
+        
+    except Exception as e:
+        print(f"전처리 지시서 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/preprocessing-instructions/{instruction_id}")
+async def get_preprocessing_instruction_detail(instruction_id: int, db: Session = Depends(get_db)):
+    """전처리 지시서 상세 조회"""
+    try:
+        # 지시서 기본 정보
+        instruction_query = """
+            SELECT 
+                pi.id, pi.instruction_date, pi.meal_type, pi.status,
+                pi.total_items, pi.completed_items, pi.notes,
+                dp.description as diet_plan_description
+            FROM preprocessing_instructions pi
+            LEFT JOIN diet_plans dp ON pi.diet_plan_id = dp.id
+            WHERE pi.id = :instruction_id
+        """
+        
+        instruction_result = db.execute(text(instruction_query), {"instruction_id": instruction_id})
+        instruction_row = instruction_result.fetchone()
+        
+        if not instruction_row:
+            raise HTTPException(status_code=404, detail="전처리 지시서를 찾을 수 없습니다.")
+        
+        # 지시서 항목들
+        items_query = """
+            SELECT 
+                id, ingredient_name, quantity, unit, preprocessing_method,
+                estimated_time, priority, is_completed, completed_at, notes
+            FROM preprocessing_instruction_items
+            WHERE instruction_id = :instruction_id
+            ORDER BY priority ASC, ingredient_name ASC
+        """
+        
+        items_result = db.execute(text(items_query), {"instruction_id": instruction_id})
+        items_rows = items_result.fetchall()
+        
+        items = []
+        for row in items_rows:
+            items.append({
+                "id": row[0],
+                "ingredient_name": row[1],
+                "quantity": float(row[2]) if row[2] else 0,
+                "unit": row[3],
+                "preprocessing_method": row[4],
+                "estimated_time": row[5],
+                "priority": row[6],
+                "is_completed": bool(row[7]),
+                "completed_at": str(row[8]) if row[8] else None,
+                "notes": row[9]
+            })
+        
+        instruction_detail = {
+            "id": instruction_row[0],
+            "instruction_date": str(instruction_row[1]) if instruction_row[1] else None,
+            "meal_type": instruction_row[2],
+            "status": instruction_row[3],
+            "total_items": instruction_row[4] or 0,
+            "completed_items": instruction_row[5] or 0,
+            "notes": instruction_row[6],
+            "diet_plan_description": instruction_row[7],
+            "items": items
+        }
+        
+        return {
+            "success": True,
+            "data": instruction_detail
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"전처리 지시서 상세 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/create_preprocessing_master_data")
+async def create_preprocessing_master_data(db: Session = Depends(get_db)):
+    """전처리 마스터 데이터 샘플 생성"""
+    try:
+        # 기존 데이터 삭제
+        db.execute(text("DELETE FROM preprocessing_master WHERE id > 0"))
+        
+        # 전처리 마스터 샘플 데이터
+        preprocessing_samples = [
+            {
+                "ingredient_name": "감자",
+                "preprocessing_method": "껍질 제거 후 적당한 크기로 썰기\n1. 흐르는 물에 깨끗이 세척\n2. 필러로 껍질 제거\n3. 요리법에 따라 크기 조절하여 썰기\n4. 찬물에 담가 전분 제거",
+                "estimated_time": 15,
+                "priority": 3,
+                "safety_notes": "칼 사용 시 손가락 주의, 미끄러운 감자 조심",
+                "storage_condition": "처리 후 찬물에 보관, 변색 방지",
+                "tools_required": "칼, 도마, 필러, 볼"
+            },
+            {
+                "ingredient_name": "양파",
+                "preprocessing_method": "껍질 제거 후 용도에 맞게 썰기\n1. 겉껍질과 뿌리 부분 제거\n2. 반으로 자른 후 채썰기 또는 다이스컷\n3. 물에 담가 매운맛 제거 (선택사항)",
+                "estimated_time": 10,
+                "priority": 2,
+                "safety_notes": "양파 자를 때 눈물 주의, 환기 필요",
+                "storage_condition": "밀폐용기에 냉장보관",
+                "tools_required": "칼, 도마, 볼"
+            },
+            {
+                "ingredient_name": "당근",
+                "preprocessing_method": "세척 후 껍질 제거하여 썰기\n1. 흐르는 물에 깨끗이 세척\n2. 필러로 껍질 제거\n3. 용도에 맞게 채썰기, 다이스컷, 또는 어슷썰기",
+                "estimated_time": 12,
+                "priority": 3,
+                "safety_notes": "딱딱한 당근 썰 때 칼날 미끄러짐 주의",
+                "storage_condition": "처리 후 밀폐용기에 냉장보관",
+                "tools_required": "칼, 도마, 필러"
+            },
+            {
+                "ingredient_name": "대파",
+                "preprocessing_method": "뿌리와 시든 부분 제거 후 썰기\n1. 뿌리 부분과 시든 겉껍질 제거\n2. 흐르는 물에 깨끗이 세척\n3. 용도에 맞게 송송 썰기 또는 어슷썰기",
+                "estimated_time": 8,
+                "priority": 1,
+                "safety_notes": "미끄러운 대파 썰 때 손가락 주의",
+                "storage_condition": "키친타올로 물기 제거 후 보관",
+                "tools_required": "칼, 도마"
+            },
+            {
+                "ingredient_name": "마늘",
+                "preprocessing_method": "껍질 제거 후 다지기 또는 썰기\n1. 마늘 껍질 제거\n2. 밑둥 부분 제거\n3. 용도에 맞게 편썰기, 다지기, 또는 통으로 사용",
+                "estimated_time": 20,
+                "priority": 2,
+                "safety_notes": "작은 마늘 다질 때 손가락 주의",
+                "storage_condition": "밀폐용기에 냉장보관, 기름에 절여 보관 가능",
+                "tools_required": "칼, 도마, 마늘 압착기(선택)"
+            },
+            {
+                "ingredient_name": "생강",
+                "preprocessing_method": "껍질 제거 후 채썰기 또는 다지기\n1. 숟가락으로 껍질 제거\n2. 섬유질 방향과 수직으로 썰기\n3. 용도에 맞게 채썰기 또는 다지기",
+                "estimated_time": 15,
+                "priority": 4,
+                "safety_notes": "딱딱한 생강 썰 때 칼날 미끄러짐 주의",
+                "storage_condition": "밀폐용기에 냉장보관",
+                "tools_required": "칼, 도마, 숟가락"
+            },
+            {
+                "ingredient_name": "배추",
+                "preprocessing_method": "세척 후 적당한 크기로 썰기\n1. 겉잎 제거 후 세척\n2. 밑동 부분 제거\n3. 용도에 맞게 썰기 (김치용, 국물용 등)",
+                "estimated_time": 25,
+                "priority": 3,
+                "safety_notes": "큰 칼 사용 시 안전 주의",
+                "storage_condition": "찬물에 담가 보관, 소금물 절임",
+                "tools_required": "큰 칼, 도마, 큰 볼"
+            },
+            {
+                "ingredient_name": "무",
+                "preprocessing_method": "껍질 제거 후 용도에 맞게 썰기\n1. 껍질 제거 및 세척\n2. 용도에 맞게 채썰기, 깍둑썰기, 또는 큰 덩어리로 썰기",
+                "estimated_time": 18,
+                "priority": 3,
+                "safety_notes": "딱딱한 무 썰 때 칼날 안전 주의",
+                "storage_condition": "찬물에 담가 보관",
+                "tools_required": "칼, 도마, 필러"
+            },
+            {
+                "ingredient_name": "호박",
+                "preprocessing_method": "세척 후 씨 제거하여 썰기\n1. 겉면 세척\n2. 반으로 자른 후 씨와 속 제거\n3. 껍질 제거 후 적당한 크기로 썰기",
+                "estimated_time": 20,
+                "priority": 3,
+                "safety_notes": "딱딱한 호박 자를 때 칼날 안전 주의",
+                "storage_condition": "처리 후 냉장보관",
+                "tools_required": "큰 칼, 도마, 스푼"
+            },
+            {
+                "ingredient_name": "버섯",
+                "preprocessing_method": "밑동 제거 후 세척하여 썰기\n1. 밑동 부분 제거\n2. 키친타올로 이물질 제거 (물 세척 최소화)\n3. 용도에 맞게 썰기",
+                "estimated_time": 10,
+                "priority": 2,
+                "safety_notes": "미끄러운 버섯 썰 때 주의",
+                "storage_condition": "키친타올로 감싸 냉장보관",
+                "tools_required": "칼, 도마, 키친타올"
+            }
+        ]
+        
+        for sample in preprocessing_samples:
+            insert_query = """
+                INSERT INTO preprocessing_master 
+                (ingredient_name, preprocessing_method, estimated_time, priority, 
+                 safety_notes, storage_condition, tools_required, is_active, created_at, updated_at)
+                VALUES (:ingredient_name, :preprocessing_method, :estimated_time, :priority,
+                        :safety_notes, :storage_condition, :tools_required, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+            
+            db.execute(text(insert_query), sample)
+        
+        db.commit()
+        return {
+            "success": True,
+            "message": f"{len(preprocessing_samples)}개의 전처리 마스터 데이터가 생성되었습니다."
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"전처리 마스터 데이터 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/create_test_meal_data")
+async def create_test_meal_data(db: Session = Depends(get_db)):
+    """전처리 시스템 테스트용 식단표 및 메뉴 데이터 생성"""
+    try:
+        from datetime import date, timedelta
+        
+        # 1. 테스트 식자재 생성
+        test_ingredients = [
+            {"name": "돼지고기", "base_unit": "kg"},
+            {"name": "양파", "base_unit": "kg"},
+            {"name": "당근", "base_unit": "kg"},
+            {"name": "감자", "base_unit": "kg"},
+            {"name": "배추", "base_unit": "kg"},
+            {"name": "대파", "base_unit": "kg"},
+            {"name": "마늘", "base_unit": "kg"},
+            {"name": "생강", "base_unit": "kg"},
+            {"name": "토마토", "base_unit": "kg"},
+            {"name": "브로콜리", "base_unit": "kg"}
+        ]
+        
+        for ingredient_data in test_ingredients:
+            existing = db.query(Ingredient).filter(Ingredient.name == ingredient_data["name"]).first()
+            if not existing:
+                ingredient = Ingredient(
+                    name=ingredient_data["name"],
+                    base_unit=ingredient_data["base_unit"],
+                    code=f"I{len(db.query(Ingredient).all()) + 1:04d}",
+                    category="테스트용"
+                )
+                db.add(ingredient)
+        
+        db.commit()
+        
+        # 2. 테스트 메뉴 및 레시피 생성
+        test_menus = [
+            {
+                "name": "김치찌개",
+                "category": "찌개류",
+                "menu_type": "중식",
+                "ingredients": [
+                    {"name": "돼지고기", "quantity": 0.5, "unit": "kg"},
+                    {"name": "배추", "quantity": 1.0, "unit": "kg"},
+                    {"name": "양파", "quantity": 0.3, "unit": "kg"},
+                    {"name": "대파", "quantity": 0.2, "unit": "kg"}
+                ]
+            },
+            {
+                "name": "돼지갈비찜",
+                "category": "찜류", 
+                "menu_type": "석식",
+                "ingredients": [
+                    {"name": "돼지고기", "quantity": 1.2, "unit": "kg"},
+                    {"name": "당근", "quantity": 0.4, "unit": "kg"},
+                    {"name": "양파", "quantity": 0.5, "unit": "kg"},
+                    {"name": "마늘", "quantity": 0.1, "unit": "kg"}
+                ]
+            },
+            {
+                "name": "야채볶음",
+                "category": "볶음류",
+                "menu_type": "조식", 
+                "ingredients": [
+                    {"name": "브로콜리", "quantity": 0.8, "unit": "kg"},
+                    {"name": "당근", "quantity": 0.3, "unit": "kg"},
+                    {"name": "양파", "quantity": 0.2, "unit": "kg"},
+                    {"name": "마늘", "quantity": 0.05, "unit": "kg"}
+                ]
+            }
+        ]
+        
+        menu_ids = []
+        for menu_data in test_menus:
+            # 메뉴 생성
+            menu = Menu(
+                name=menu_data["name"],
+                category=menu_data["category"],
+                description=f"테스트용 {menu_data['name']}",
+                version="1.0"
+            )
+            db.add(menu)
+            db.flush()
+            
+            # 레시피 생성
+            recipe = Recipe(
+                menu_id=menu.id,
+                name=f"{menu_data['name']} 레시피",
+                description=f"{menu_data['name']} 조리법",
+                cooking_time=30,
+                portion_size=10
+            )
+            db.add(recipe)
+            db.flush()
+            
+            # 레시피 재료 추가
+            for ingredient_data in menu_data["ingredients"]:
+                ingredient = db.query(Ingredient).filter(Ingredient.name == ingredient_data["name"]).first()
+                if ingredient:
+                    recipe_ingredient = RecipeIngredient(
+                        recipe_id=recipe.id,
+                        ingredient_id=ingredient.id,
+                        quantity=ingredient_data["quantity"],
+                        unit=ingredient_data["unit"]
+                    )
+                    db.add(recipe_ingredient)
+            
+            menu_ids.append(menu.id)
+        
+        db.commit()
+        
+        # 3. 테스트 식단표 생성 (오늘 날짜)
+        today = date.today()
+        
+        # 기존 식단표 확인
+        existing_plan = db.query(DietPlan).filter(DietPlan.date == today).first()
+        if existing_plan:
+            db.delete(existing_plan)
+            db.commit()
+        
+        # 새 식단표 생성
+        diet_plan = DietPlan(
+            date=today,
+            meal_count_breakfast=50,
+            meal_count_lunch=80,
+            meal_count_dinner=60,
+            meal_count_late_night=20,
+            description="테스트용 식단표"
+        )
+        db.add(diet_plan)
+        db.flush()
+        
+        # 식단표에 메뉴 배정
+        for i, menu_id in enumerate(menu_ids):
+            menu = db.query(Menu).filter(Menu.id == menu_id).first()
+            if menu:
+                diet_menu = Menu(
+                    diet_plan_id=diet_plan.id,
+                    name=menu.name,
+                    category=menu.category,
+                    menu_type=test_menus[i]["menu_type"],
+                    description=menu.description
+                )
+                db.add(diet_menu)
+                db.flush()
+                
+                # 메뉴 아이템 추가
+                recipe = db.query(Recipe).filter(Recipe.menu_id == menu_id).first()
+                if recipe:
+                    menu_item = MenuItem(
+                        menu_id=diet_menu.id,
+                        recipe_id=recipe.id,
+                        portion_num_persons=50  # 기본 50인분
+                    )
+                    db.add(menu_item)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"테스트 데이터가 생성되었습니다 (날짜: {today})",
+            "data": {
+                "date": str(today),
+                "menus_created": len(test_menus),
+                "ingredients_created": len(test_ingredients)
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"테스트 데이터 생성 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

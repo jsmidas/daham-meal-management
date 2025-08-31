@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔪 전처리 지시서 관리 - 다함식단관리시스템</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 상단 네비게이션 */
+        .navigation-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-item {
+            text-decoration: none;
+            color: #666;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 107, 53, 0.1);
+            color: #FF6B35;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 메인 컨테이너 */
+        .main-container {
+            max-width: 1600px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+        }
+
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .demo-notice {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border-left: 4px solid #FF6B35;
+        }
+
+        .step-number {
+            background: #FF6B35;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            font-weight: 600;
+        }
+
+        .step-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+
+        .step-desc {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* 작업 영역 */
+        .work-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .work-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        /* 날짜 선택 */
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .date-input {
+            padding: 0.7rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 1rem;
+            flex: 1;
+        }
+
+        .load-btn {
+            padding: 0.7rem 1.5rem;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        /* 끼니별 탭 */
+        .meal-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .meal-tab {
+            padding: 0.7rem 1.2rem;
+            background: #e9ecef;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .meal-tab.active {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+        }
+
+        /* 식자재 목록 */
+        .ingredient-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+        }
+
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            border-bottom: 1px solid #f1f3f4;
+            transition: all 0.3s ease;
+        }
+
+        .ingredient-item:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .ingredient-item:last-child {
+            border-bottom: none;
+        }
+
+        .ingredient-checkbox {
+            margin-right: 0.8rem;
+            transform: scale(1.2);
+            accent-color: #FF6B35;
+        }
+
+        .ingredient-info {
+            flex: 1;
+        }
+
+        .ingredient-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.2rem;
+        }
+
+        .ingredient-quantity {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .preprocessing-indicator {
+            padding: 0.2rem 0.6rem;
+            background: #28a745;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .preprocessing-indicator.not-required {
+            background: #6c757d;
+        }
+
+        /* 선택된 항목 */
+        .selected-items {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .selected-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            border-bottom: 1px solid #f1f3f4;
+            background: rgba(40, 167, 69, 0.05);
+        }
+
+        .selected-item:last-child {
+            border-bottom: none;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 액션 버튼들 */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* 통계 표시 */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 0.8rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #FF6B35;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+        }
+
+        /* 반응형 */
+        @media (max-width: 1024px) {
+            .work-area {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 네비게이션 메뉴 -->
+    <div class="navigation-bar">
+        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
+        <a href="/dashboard" class="nav-item">📈 대시보드</a>
+        <a href="/" class="nav-item">📋 메뉴/레시피 관리</a>
+        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
+        <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
+        <a href="/ordering" class="nav-item">📈 발주 관리</a>
+        <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
+        <a href="#" class="nav-item">📋 각종 일지</a>
+        <a href="#" class="nav-item active">🔪 전처리지시서</a>
+        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="#" class="nav-item">📊 소분지시서</a>
+    </div>
+
+    <div class="main-container">
+        <!-- 헤더 섹션 -->
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-cut"></i>
+                전처리 지시서 관리
+            </h1>
+
+            <div class="demo-notice">
+                <strong>📋 데모 버전</strong> - 샘플 데이터로 전처리 지시서 시스템을 체험해보세요!
+            </div>
+            
+            <!-- 워크플로우 단계 -->
+            <div class="workflow-steps">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div class="step-title">식단표 선택</div>
+                    <div class="step-desc">날짜를 선택하여 식단표 불러오기</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div class="step-title">식자재 확인</div>
+                    <div class="step-desc">끼니별 식자재 목록 및 수량 확인</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-title">전처리 선별</div>
+                    <div class="step-desc">전처리가 필요한 식자재 선택</div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <div class="step-title">지시서 생성</div>
+                    <div class="step-desc">A3 출력용 지시서 생성</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 작업 영역 -->
+        <div class="work-area">
+            <!-- 왼쪽: 식자재 목록 -->
+            <div class="work-panel">
+                <div class="panel-title">
+                    <i class="fas fa-list"></i>
+                    식단표 식자재 목록
+                </div>
+                
+                <!-- 날짜 선택 -->
+                <div class="date-selector">
+                    <label>📅 조리일자:</label>
+                    <input type="date" id="planDate" class="date-input">
+                    <button class="load-btn" onclick="loadDemoData()">
+                        <i class="fas fa-download"></i>
+                        불러오기
+                    </button>
+                </div>
+                
+                <!-- 통계 표시 -->
+                <div class="stats-bar" id="statsBar" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalIngredients">0</div>
+                        <div class="stat-label">총 식자재</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="preprocessingRequired">0</div>
+                        <div class="stat-label">전처리 필요</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="selectedCount">0</div>
+                        <div class="stat-label">선택됨</div>
+                    </div>
+                </div>
+                
+                <!-- 끼니별 탭 -->
+                <div class="meal-tabs" id="mealTabs" style="display: none;">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+                
+                <!-- 식자재 목록 -->
+                <div class="ingredient-list" id="ingredientList">
+                    <div class="empty-state">
+                        <div class="empty-icon">🍽️</div>
+                        <h3>식단표를 선택해주세요</h3>
+                        <p>날짜를 선택하고 불러오기 버튼을 눌러주세요.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 오른쪽: 선택된 항목 -->
+            <div class="work-panel">
+                <div class="panel-title">
+                    <i class="fas fa-check-square"></i>
+                    전처리 선택 항목
+                </div>
+                
+                <div class="selected-items" id="selectedItems">
+                    <div class="empty-state">
+                        <div class="empty-icon">✅</div>
+                        <h3>선택된 항목이 없습니다</h3>
+                        <p>왼쪽에서 전처리가 필요한 식자재를 선택해주세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 액션 버튼들 -->
+        <div class="action-buttons">
+            <button class="btn btn-info" onclick="previewInstruction()" id="previewBtn" disabled>
+                <i class="fas fa-eye"></i>
+                미리보기
+            </button>
+            <button class="btn btn-success" onclick="createInstruction()" id="createBtn" disabled>
+                <i class="fas fa-plus"></i>
+                지시서 생성
+            </button>
+            <button class="btn btn-primary" onclick="printInstruction()" id="printBtn" disabled>
+                <i class="fas fa-print"></i>
+                A3 출력
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 데모 데이터 - 2025년 9월 2일
+        const demoMealPlanData = {
+            "2025-09-02": {
+                "조식": [
+                    { id: 1, name: "감자", quantity: 5.2, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 2cm 정도로 깍둑썰기" },
+                    { id: 2, name: "양파", quantity: 2.4, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 잘게 다지기" },
+                    { id: 3, name: "당근", quantity: 1.8, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 0.5cm 두께로 어슷썰기" },
+                    { id: 4, name: "대파", quantity: 0.6, unit: "KG", preprocessing_required: true, method: "뿌리와 시든 부분 제거 후 송송 썰기" },
+                    { id: 5, name: "달걀", quantity: 50, unit: "개", preprocessing_required: false, method: "" },
+                    { id: 6, name: "소금", quantity: 0.2, unit: "KG", preprocessing_required: false, method: "" }
+                ],
+                "중식": [
+                    { id: 7, name: "돼지고기", quantity: 3.5, unit: "KG", preprocessing_required: true, method: "핏물 제거 후 적당한 크기로 썰어 양념 준비" },
+                    { id: 8, name: "무", quantity: 4.2, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 3cm 두께로 반달썰기" },
+                    { id: 9, name: "배추", quantity: 5.8, unit: "KG", preprocessing_required: true, method: "겉잎 제거 후 세척하여 4cm 크기로 썰기" },
+                    { id: 10, name: "마늘", quantity: 0.4, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 곱게 다지기" },
+                    { id: 11, name: "생강", quantity: 0.15, unit: "KG", preprocessing_required: true, method: "껍질 제거 후 채썰기" },
+                    { id: 12, name: "두부", quantity: 8, unit: "모", preprocessing_required: true, method: "물기 제거 후 2cm 정도로 썰기" },
+                    { id: 13, name: "쌀", quantity: 12, unit: "KG", preprocessing_required: false, method: "" }
+                ],
+                "석식": [
+                    { id: 14, name: "닭고기", quantity: 4.8, unit: "KG", preprocessing_required: true, method: "핏물 제거 후 부위별로 적당히 썰어 냉장 보관" },
+                    { id: 15, name: "호박", quantity: 2.6, unit: "KG", preprocessing_required: true, method: "세척 후 씨 제거하여 반달썰기" },
+                    { id: 16, name: "버섯", quantity: 1.5, unit: "KG", preprocessing_required: true, method: "밑동 제거 후 세척하여 적당히 썰기" },
+                    { id: 17, name: "브로콜리", quantity: 2.2, unit: "KG", preprocessing_required: true, method: "줄기 다듬고 소화단위로 분리하여 세척" },
+                    { id: 18, name: "토마토", quantity: 1.8, unit: "KG", preprocessing_required: true, method: "꼭지 제거 후 8등분으로 썰기" },
+                    { id: 19, name: "파프리카", quantity: 1.2, unit: "KG", preprocessing_required: true, method: "씨와 꼭지 제거 후 채썰기" }
+                ]
+            }
+        };
+
+        // 전역 변수
+        let selectedIngredients = new Map();
+        let currentActiveMeal = null;
+        let currentData = null;
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        function initializePage() {
+            // 9월 2일로 기본 설정 (테스트 데이터)
+            document.getElementById('planDate').value = '2025-09-02';
+        }
+
+        function loadDemoData() {
+            const planDate = document.getElementById('planDate').value;
+            console.log('불러오기 버튼 클릭됨, 날짜:', planDate);
+            
+            // 데모 데이터 사용 (실제로는 선택된 날짜와 무관하게 9/2 샘플 데이터 표시)
+            currentData = demoMealPlanData["2025-09-02"];
+            console.log('현재 데이터:', currentData);
+            
+            if (!currentData) {
+                alert('데이터를 찾을 수 없습니다.');
+                return;
+            }
+            
+            displayMealTabs();
+            updateStats();
+            
+            // 첫 번째 끼니를 기본 선택
+            const firstMeal = Object.keys(currentData)[0];
+            console.log('첫 번째 끼니:', firstMeal);
+            if (firstMeal) {
+                // 첫 번째 탭 버튼을 찾아서 활성화
+                const firstTabButton = document.querySelector('.meal-tab');
+                selectMealTab(firstMeal, firstTabButton);
+            }
+        }
+
+        function displayMealTabs() {
+            const mealTabs = document.getElementById('mealTabs');
+            console.log('mealTabs 요소:', mealTabs);
+            console.log('currentData keys:', Object.keys(currentData));
+            
+            const mealNames = {
+                '조식': '🌅 조식',
+                '중식': '☀️ 중식', 
+                '석식': '🌙 석식',
+                '야식': '🌃 야식'
+            };
+            
+            mealTabs.innerHTML = '';
+            Object.keys(currentData).forEach(mealType => {
+                const button = document.createElement('button');
+                button.className = 'meal-tab';
+                button.textContent = mealNames[mealType] || mealType;
+                button.onclick = () => selectMealTab(mealType, button);
+                mealTabs.appendChild(button);
+                console.log('탭 버튼 생성:', mealType);
+            });
+            
+            mealTabs.style.display = 'flex';
+            document.getElementById('statsBar').style.display = 'flex';
+        }
+
+        function selectMealTab(mealType, button) {
+            // 탭 활성화
+            document.querySelectorAll('.meal-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            if (button) button.classList.add('active');
+            
+            currentActiveMeal = mealType;
+            displayIngredients(mealType);
+        }
+
+        function displayIngredients(mealType) {
+            const ingredientList = document.getElementById('ingredientList');
+            const ingredients = currentData[mealType] || [];
+            
+            if (ingredients.length === 0) {
+                ingredientList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🍽️</div>
+                        <h3>해당 끼니에 식자재가 없습니다</h3>
+                    </div>
+                `;
+                return;
+            }
+            
+            ingredientList.innerHTML = '';
+            ingredients.forEach(ingredient => {
+                const isSelected = selectedIngredients.has(`${mealType}_${ingredient.id}`);
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'ingredient-item';
+                itemDiv.innerHTML = `
+                    <input type="checkbox" 
+                           class="ingredient-checkbox" 
+                           ${isSelected ? 'checked' : ''}
+                           onchange="toggleIngredientSelection('${mealType}', ${ingredient.id}, this)">
+                    <div class="ingredient-info">
+                        <div class="ingredient-name">${ingredient.name}</div>
+                        <div class="ingredient-quantity">${ingredient.quantity} ${ingredient.unit}</div>
+                    </div>
+                    <div class="preprocessing-indicator ${ingredient.preprocessing_required ? '' : 'not-required'}">
+                        ${ingredient.preprocessing_required ? '전처리 필요' : '전처리 불요'}
+                    </div>
+                `;
+                
+                ingredientList.appendChild(itemDiv);
+            });
+        }
+
+        function toggleIngredientSelection(mealType, ingredientId, checkbox) {
+            const key = `${mealType}_${ingredientId}`;
+            const ingredient = currentData[mealType].find(item => item.id === ingredientId);
+            
+            if (checkbox.checked) {
+                selectedIngredients.set(key, {
+                    ...ingredient,
+                    meal_type: mealType
+                });
+            } else {
+                selectedIngredients.delete(key);
+            }
+            
+            updateSelectedItems();
+            updateStats();
+            updateActionButtons();
+        }
+
+        function updateSelectedItems() {
+            const selectedItemsContainer = document.getElementById('selectedItems');
+            
+            if (selectedIngredients.size === 0) {
+                selectedItemsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">✅</div>
+                        <h3>선택된 항목이 없습니다</h3>
+                        <p>왼쪽에서 전처리가 필요한 식자재를 선택해주세요.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            selectedItemsContainer.innerHTML = '';
+            selectedIngredients.forEach((ingredient, key) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'selected-item';
+                itemDiv.innerHTML = `
+                    <div class="ingredient-info">
+                        <div class="ingredient-name">
+                            <span style="background: #FF6B35; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-right: 0.5rem;">
+                                ${ingredient.meal_type === '조식' ? '🌅' : ingredient.meal_type === '중식' ? '☀️' : '🌙'}
+                            </span>
+                            ${ingredient.name}
+                        </div>
+                        <div class="ingredient-quantity">
+                            ${ingredient.quantity} ${ingredient.unit} | ${ingredient.method || '전처리 방법 미등록'}
+                        </div>
+                    </div>
+                    <button class="remove-btn" onclick="removeSelectedItem('${key}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                selectedItemsContainer.appendChild(itemDiv);
+            });
+        }
+
+        function removeSelectedItem(key) {
+            selectedIngredients.delete(key);
+            updateSelectedItems();
+            updateStats();
+            updateActionButtons();
+            
+            // 해당 체크박스도 해제
+            const checkbox = document.querySelector(`input[onchange*="${key}"]`);
+            if (checkbox) checkbox.checked = false;
+        }
+
+        function updateStats() {
+            if (!currentData) return;
+            
+            const totalCount = Object.values(currentData).reduce((sum, ingredients) => sum + ingredients.length, 0);
+            const preprocessingRequiredCount = Object.values(currentData).reduce((sum, ingredients) => {
+                return sum + ingredients.filter(ing => ing.preprocessing_required).length;
+            }, 0);
+            
+            document.getElementById('totalIngredients').textContent = totalCount;
+            document.getElementById('preprocessingRequired').textContent = preprocessingRequiredCount;
+            document.getElementById('selectedCount').textContent = selectedIngredients.size;
+        }
+
+        function updateActionButtons() {
+            const hasSelected = selectedIngredients.size > 0;
+            document.getElementById('previewBtn').disabled = !hasSelected;
+            document.getElementById('createBtn').disabled = !hasSelected;
+            document.getElementById('printBtn').disabled = !hasSelected;
+        }
+
+        function previewInstruction() {
+            if (selectedIngredients.size === 0) {
+                alert('전처리할 식자재를 선택해주세요.');
+                return;
+            }
+            
+            alert('선택된 항목들의 미리보기 기능입니다.\n\n선택된 식자재 수: ' + selectedIngredients.size + '개');
+        }
+
+        function createInstruction() {
+            if (selectedIngredients.size === 0) {
+                alert('전처리할 식자재를 선택해주세요.');
+                return;
+            }
+            
+            const planDate = document.getElementById('planDate').value;
+            
+            // 끼니별로 그룹화
+            const instructionsByMeal = {};
+            selectedIngredients.forEach(ingredient => {
+                const mealType = ingredient.meal_type;
+                if (!instructionsByMeal[mealType]) {
+                    instructionsByMeal[mealType] = [];
+                }
+                instructionsByMeal[mealType].push(ingredient);
+            });
+            
+            alert(`✅ ${Object.keys(instructionsByMeal).length}개 끼니의 전처리 지시서가 생성되었습니다!\n\n끼니: ${Object.keys(instructionsByMeal).join(', ')}\n총 ${selectedIngredients.size}개 식자재`);
+            
+            // 선택 초기화
+            selectedIngredients.clear();
+            updateSelectedItems();
+            updateStats();
+            updateActionButtons();
+            
+            // 체크박스 초기화
+            document.querySelectorAll('.ingredient-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        function printInstruction() {
+            if (selectedIngredients.size === 0) {
+                alert('전처리할 식자재를 선택해주세요.');
+                return;
+            }
+            
+            // A3 출력 기능 구현
+            generateA3PrintView();
+        }
+
+        function generateA3PrintView() {
+            // 새 창에서 A3 출력 화면 열기
+            const printWindow = window.open('', '_blank');
+            const planDate = document.getElementById('planDate').value;
+            
+            // 끼니별로 그룹화
+            const instructionsByMeal = {};
+            selectedIngredients.forEach(ingredient => {
+                const mealType = ingredient.meal_type;
+                if (!instructionsByMeal[mealType]) {
+                    instructionsByMeal[mealType] = [];
+                }
+                instructionsByMeal[mealType].push(ingredient);
+            });
+            
+            let printContent = generateA3PrintHTML(planDate, instructionsByMeal);
+            
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            
+            // 3초 후 자동 출력
+            setTimeout(() => {
+                printWindow.print();
+            }, 1000);
+        }
+
+        function generateA3PrintHTML(planDate, instructionsByMeal) {
+            const mealNames = {
+                '조식': '🌅 조식',
+                '중식': '☀️ 중식', 
+                '석식': '🌙 석식',
+                '야식': '🌃 야식'
+            };
+            
+            let content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>전처리 지시서 - ${planDate}</title>
+                    <style>
+                        @page {
+                            size: A3;
+                            margin: 1cm;
+                        }
+                        
+                        body {
+                            font-family: 'Malgun Gothic', sans-serif;
+                            font-size: 12px;
+                            line-height: 1.4;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        
+                        .header {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            border-bottom: 3px solid #333;
+                            padding-bottom: 10px;
+                        }
+                        
+                        .header h1 {
+                            font-size: 24px;
+                            margin: 0 0 10px 0;
+                            color: #333;
+                        }
+                        
+                        .header .date {
+                            font-size: 18px;
+                            color: #666;
+                            font-weight: bold;
+                        }
+                        
+                        .meal-section {
+                            page-break-inside: avoid;
+                            margin-bottom: 30px;
+                            border: 2px solid #ddd;
+                            border-radius: 8px;
+                        }
+                        
+                        .meal-header {
+                            background: linear-gradient(135deg, #FF6B35, #F7931E);
+                            color: white;
+                            padding: 10px 15px;
+                            font-size: 16px;
+                            font-weight: bold;
+                            margin: 0;
+                            border-radius: 6px 6px 0 0;
+                        }
+                        
+                        .instruction-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 0;
+                        }
+                        
+                        .instruction-table th {
+                            background: #f8f9fa;
+                            border: 1px solid #333;
+                            padding: 8px 6px;
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: 11px;
+                        }
+                        
+                        .instruction-table td {
+                            border: 1px solid #333;
+                            padding: 8px 6px;
+                            text-align: center;
+                            vertical-align: middle;
+                        }
+                        
+                        .ingredient-name {
+                            text-align: left !important;
+                            font-weight: bold;
+                        }
+                        
+                        .preprocessing-method {
+                            text-align: left !important;
+                            font-size: 10px;
+                            max-width: 200px;
+                        }
+                        
+                        .checkbox-cell {
+                            width: 30px;
+                        }
+                        
+                        .print-checkbox {
+                            width: 20px;
+                            height: 20px;
+                            border: 2px solid #333;
+                            display: inline-block;
+                        }
+                        
+                        .footer {
+                            position: fixed;
+                            bottom: 1cm;
+                            right: 1cm;
+                            font-size: 10px;
+                            color: #666;
+                        }
+                        
+                        @media print {
+                            body { print-color-adjust: exact; }
+                            .meal-section { page-break-after: always; }
+                            .meal-section:last-child { page-break-after: auto; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>🔪 전처리 작업 지시서 (데모)</h1>
+                        <div class="date">${planDate} (${getDayOfWeek(planDate)})</div>
+                    </div>
+            `;
+            
+            Object.entries(instructionsByMeal).forEach(([mealType, ingredients]) => {
+                content += `
+                    <div class="meal-section">
+                        <div class="meal-header">
+                            ${mealNames[mealType] || mealType} 전처리 (총 ${ingredients.length}개 항목)
+                        </div>
+                        <table class="instruction-table">
+                            <thead>
+                                <tr>
+                                    <th width="5%">NO</th>
+                                    <th width="25%">식자재명</th>
+                                    <th width="10%">수량</th>
+                                    <th width="8%">단위</th>
+                                    <th width="35%">전처리 방법</th>
+                                    <th width="8%">예상시간</th>
+                                    <th width="9%">완료확인</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                ingredients.forEach((ingredient, index) => {
+                    content += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td class="ingredient-name">${ingredient.name}</td>
+                            <td><strong>${ingredient.quantity}</strong></td>
+                            <td>${ingredient.unit}</td>
+                            <td class="preprocessing-method">${ingredient.method || '전처리 방법 미등록'}</td>
+                            <td>15분</td>
+                            <td class="checkbox-cell">
+                                <div class="print-checkbox"></div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                content += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+            
+            content += `
+                    <div class="footer">
+                        출력일시: ${new Date().toLocaleString('ko-KR')} | 다함식단관리시스템 (데모)
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            return content;
+        }
+
+        function getDayOfWeek(dateString) {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const date = new Date(dateString);
+            return days[date.getDay()];
+        }
+    </script>
+</body>
+</html>

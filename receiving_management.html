@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📦 입고명세서 관리 - 다함식단관리시스템</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 상단 네비게이션 */
+        .navigation-bar {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav-logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-right: 30px;
+        }
+
+        .nav-item {
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            z-index: 1000;
+            display: inline-block;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            font-weight: 600;
+        }
+
+        /* 메인 컨테이너 */
+        .main-container {
+            max-width: 1600px;
+            margin: 1rem auto;
+            padding: 0 0.5rem;
+        }
+
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .filter-input {
+            padding: 0.6rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #FF6B35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* 출력 액션 버튼 */
+        .print-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            justify-content: flex-end;
+        }
+
+
+        /* 입고 명세서 문서 리스트 */
+        .receiving-documents {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .document-item {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border-left: 4px solid #FF6B35;
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .document-info h3 {
+            margin: 0 0 0.3rem 0;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .document-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .document-summary {
+            text-align: right;
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .items-table th {
+            background: #f8f9fa;
+            padding: 0.6rem 0.4rem;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 0.8rem;
+        }
+
+        .items-table td {
+            padding: 0.5rem 0.4rem;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .items-table tr:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        /* 입고 확인 체크박스 */
+        .receive-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #28a745;
+            cursor: pointer;
+        }
+
+        .receive-checkbox:checked + .status-cell {
+            background: #d4edda !important;
+            color: #155724;
+        }
+
+        .status-cell {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .status-pending {
+            background: #fff3cd !important;
+            color: #856404;
+        }
+
+        .status-received {
+            background: #d4edda !important;
+            color: #155724;
+        }
+
+        .status-overdue {
+            background: #f8d7da !important;
+            color: #721c24;
+        }
+
+        /* 카드 하단 정보 */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .total-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .total-amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #FF6B35;
+        }
+
+        /* 입고 완료 버튼 */
+        .complete-receiving {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #FF6B35;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .receiving-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .supplier-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        /* 빈 상태 */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 네비게이션 메뉴 -->
+    <div class="navigation-bar">
+        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
+        <a href="/dashboard" class="nav-item">📈 대시보드</a>
+        <a href="/" class="nav-item">📋 메뉴/레시피 관리</a>
+        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
+        <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
+        <a href="/ordering" class="nav-item">📈 발주 관리</a>
+        <a href="/receiving" class="nav-item active">📦 입고명세서 관리</a>
+        <a href="#" class="nav-item">📋 각종 일지</a>
+        <a href="/static/preprocessing_demo_sep2.html" class="nav-item">🔪 전처리지시서</a>
+        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="#" class="nav-item">📊 소분지시서</a>
+    </div>
+
+    <div class="main-container">
+        <!-- 헤더 섹션 -->
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-truck"></i>
+                입고명세서 관리
+            </h1>
+            
+            <!-- 출력 액션 버튼 -->
+            <div class="print-actions">
+                <button class="btn btn-primary" onclick="printDirectly()">
+                    <i class="fas fa-print"></i>
+                    출력
+                </button>
+                <button class="btn btn-info" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i>
+                    엑셀 출력
+                </button>
+            </div>
+            
+            <!-- 필터 컨트롤 -->
+            <div class="filter-controls">
+                <div class="filter-item">
+                    <label class="filter-label">📅 입고일</label>
+                    <input type="date" class="filter-input" id="receivingDate">
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">🏢 거래처</label>
+                    <select class="filter-input" id="supplierFilter">
+                        <option value="">전체 거래처</option>
+                        <option value="삼성팜스토리">삼성팜스토리</option>
+                        <option value="동원푸드">동원푸드</option>
+                        <option value="현대그린푸드">현대그린푸드</option>
+                        <option value="CJ">CJ</option>
+                        <option value="사조푸디스트">사조푸디스트</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label" style="opacity: 0;">액션</label>
+                    <button class="btn btn-primary" onclick="loadReceivingDocuments()">
+                        <i class="fas fa-search"></i>
+                        조회
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 입고 명세서 문서 리스트 -->
+        <div class="receiving-documents" id="receivingDocuments">
+            <!-- 동적으로 생성됨 -->
+        </div>
+
+        <!-- 빈 상태 -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📦</div>
+            <h3>입고 예정인 발주 건이 없습니다</h3>
+            <p>조회 조건을 변경하거나 발주 관리에서 발주를 진행해주세요.</p>
+        </div>
+    </div>
+
+
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>입고 정보를 불러오는 중...</p>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeReceivingPage();
+        });
+
+        function initializeReceivingPage() {
+            // 오늘 날짜로 초기화
+            const today = new Date();
+            document.getElementById('receivingDate').value = today.toISOString().split('T')[0];
+            
+            // 입고 문서 리스트 로드
+            loadReceivingDocuments();
+        }
+
+        function loadReceivingDocuments() {
+            showLoading();
+            
+            try {
+                // 실제 입고 명세서 데이터 생성
+                const receivingData = generateReceivingDocuments();
+                displayReceivingDocuments(receivingData);
+            } catch (error) {
+                console.error('입고 문서 로드 오류:', error);
+                displayReceivingDocuments([]);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function generateReceivingDocuments() {
+            // Mock 입고 명세서 데이터 생성
+            const receivingDate = document.getElementById('receivingDate').value;
+            const selectedSupplier = document.getElementById('supplierFilter').value;
+            
+            const mockDocuments = [
+                {
+                    id: 1,
+                    date: receivingDate || '2025-08-31',
+                    supplier: '삼성팜스토리',
+                    orderNumber: 'ORD-2025-0831-001',
+                    items: [
+                        {
+                            name: '생강,국내 4L,30~50G/EA,초냉함',
+                            orderedQty: 30,
+                            unit: 'KG',
+                            unitPrice: 7000,
+                            amount: 210000,
+                            checked: false
+                        },
+                        {
+                            name: '오포포른장(적뽑치,DC준치,나시하,1KG/포장)',
+                            orderedQty: 4,
+                            unit: 'PAK',
+                            unitPrice: 6182,
+                            amount: 24728,
+                            checked: false
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    date: receivingDate || '2025-08-31',
+                    supplier: '동원푸드',
+                    orderNumber: 'ORD-2025-0831-002',
+                    items: [
+                        {
+                            name: '냉동로얄마디2호(현미,찰현미증수처전,1KG/EA)',
+                            orderedQty: 8,
+                            unit: 'PAK',
+                            unitPrice: 2460,
+                            amount: 19680,
+                            checked: true
+                        }
+                    ]
+                },
+                {
+                    id: 3,
+                    date: receivingDate || '2025-08-31',
+                    supplier: '현대그린푸드',
+                    orderNumber: 'ORD-2025-0831-003',
+                    items: [
+                        {
+                            name: '몰리에(삼삼,컴포,국산)',
+                            orderedQty: 3,
+                            unit: 'KG',
+                            unitPrice: 2270,
+                            amount: 6810,
+                            checked: false
+                        },
+                        {
+                            name: '죽비(정품,쌀포,국산)',
+                            orderedQty: 1,
+                            unit: 'KG',
+                            unitPrice: 2940,
+                            amount: 2940,
+                            checked: false
+                        },
+                        {
+                            name: '포강메(말명,쌀포,빨리,중국)',
+                            orderedQty: 6,
+                            unit: 'KG',
+                            unitPrice: 1600,
+                            amount: 9600,
+                            checked: false
+                        }
+                    ]
+                }
+            ];
+            
+            // 거래처 필터링
+            if (selectedSupplier) {
+                return mockDocuments.filter(doc => doc.supplier === selectedSupplier);
+            }
+            
+            return mockDocuments;
+        }
+
+        async function loadReceivingList() {
+            showLoading();
+            
+            try {
+                // 실제 API에서 입고 데이터 가져오기
+                const receivingData = await generateReceivingData();
+                displayReceivingCards(receivingData);
+            } catch (error) {
+                console.error('입고 리스트 로드 오류:', error);
+                displayReceivingCards([]);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function generateReceivingData() {
+            // 실제 API에서 입고 데이터 가져오기
+            try {
+                const expectedDate = document.getElementById('expectedDate').value;
+                const supplier = document.getElementById('supplierFilter').value;
+                const status = document.getElementById('statusFilter').value;
+                
+                const params = new URLSearchParams();
+                if (expectedDate) params.append('expected_date', expectedDate);
+                if (supplier) params.append('supplier', supplier);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`/api/receiving-records?${params.toString()}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const today = new Date();
+                    
+                    return result.data.map(record => {
+                        // 상태 결정
+                        let displayStatus = 'pending';
+                        const allReceived = record.received_items === record.total_items && record.total_items > 0;
+                        const expectedDate = new Date(record.expected_date);
+                        const isOverdue = expectedDate < today && !allReceived;
+                        
+                        if (allReceived) {
+                            displayStatus = 'received';
+                        } else if (isOverdue) {
+                            displayStatus = 'overdue';
+                        }
+                        
+                        return {
+                            id: record.id,
+                            orderDate: record.order_date,
+                            supplier: record.supplier,
+                            leadDays: record.lead_days,
+                            expectedDate: record.expected_date,
+                            status: displayStatus,
+                            totalAmount: record.total_amount,
+                            receivedItems: record.received_items,
+                            totalItems: record.total_items,
+                            orderNumber: record.order_number,
+                            items: record.items.map(item => ({
+                                id: item.id,
+                                name: item.name,
+                                quantity: item.ordered_quantity,
+                                unit: item.unit,
+                                unitPrice: item.unit_price,
+                                amount: item.amount,
+                                received: item.received
+                            }))
+                        };
+                    });
+                } else {
+                    console.error('입고 데이터 로드 실패:', result);
+                    return [];
+                }
+            } catch (error) {
+                console.error('입고 데이터 가져오기 오류:', error);
+                return [];
+            }
+        }
+
+        function displayReceivingCards(receivingData) {
+            const container = document.getElementById('receivingCards');
+            const emptyState = document.getElementById('emptyState');
+            
+            // 필터 적용
+            const filteredData = applyFilters(receivingData);
+            
+            if (filteredData.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            container.innerHTML = '';
+            
+            filteredData.forEach((order, index) => {
+                const card = createReceivingCard(order, index);
+                container.appendChild(card);
+            });
+        }
+
+        function applyFilters(data) {
+            const expectedDate = document.getElementById('expectedDate').value;
+            const supplier = document.getElementById('supplierFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            return data.filter(order => {
+                const matchDate = !expectedDate || order.expectedDate === expectedDate;
+                const matchSupplier = !supplier || order.supplier === supplier;
+                const matchStatus = !status || order.status === status;
+                
+                return matchDate && matchSupplier && matchStatus;
+            });
+        }
+
+        function createReceivingCard(order, index) {
+            const card = document.createElement('div');
+            card.className = 'supplier-card';
+            card.id = `card-${index}`;
+            
+            const statusText = {
+                'pending': '입고 대기',
+                'received': '입고 완료',
+                'overdue': '입고 지연'
+            };
+            
+            const statusClass = {
+                'pending': 'status-pending',
+                'received': 'status-received',
+                'overdue': 'status-overdue'
+            };
+
+            card.innerHTML = `
+                <div class="supplier-header">
+                    <div class="supplier-name">${order.supplier}</div>
+                    <div class="expected-date">
+                        📅 예상입고: ${order.expectedDate}
+                        <span class="status-cell ${statusClass[order.status]}">${statusText[order.status]}</span>
+                    </div>
+                </div>
+                
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>입고확인</th>
+                            <th>식자재명</th>
+                            <th>주문수량</th>
+                            <th>단위</th>
+                            <th>단가</th>
+                            <th>금액</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map((item, itemIndex) => `
+                            <tr>
+                                <td>
+                                    <input type="checkbox" 
+                                           class="receive-checkbox" 
+                                           data-item-id="${item.id || ''}"
+                                           ${item.received ? 'checked' : ''} 
+                                           onchange="toggleItemReceived(${index}, ${itemIndex}, this)">
+                                </td>
+                                <td style="text-align: left; font-size: 0.8rem;">${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.unit}</td>
+                                <td>₩${item.unitPrice.toLocaleString()}</td>
+                                <td>₩${item.amount.toLocaleString()}</td>
+                                <td>
+                                    <span class="status-cell ${item.received ? 'status-received' : 'status-pending'}">
+                                        ${item.received ? '입고완료' : '대기중'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div class="card-footer">
+                    <div class="total-info">
+                        총 ${order.totalItems}품목 중 ${order.receivedItems}품목 입고완료
+                    </div>
+                    <div class="total-amount">₩${order.totalAmount.toLocaleString()}</div>
+                    <button class="btn btn-success complete-receiving" 
+                            onclick="completeAllReceiving(${index})"
+                            ${order.status === 'received' ? 'disabled' : ''}>
+                        <i class="fas fa-check-circle"></i>
+                        전체 입고완료
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        async function toggleItemReceived(orderIndex, itemIndex, checkbox) {
+            try {
+                // 실제 API 호출하여 입고 상태 업데이트
+                const itemId = checkbox.dataset.itemId;
+                if (!itemId) {
+                    console.error('아이템 ID를 찾을 수 없습니다.');
+                    return;
+                }
+                
+                const response = await fetch(`/api/receiving-items/${itemId}/receive`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        received: checkbox.checked
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // UI 업데이트
+                    const row = checkbox.closest('tr');
+                    const statusCell = row.querySelector('.status-cell:last-child');
+                    
+                    if (checkbox.checked) {
+                        statusCell.textContent = '입고완료';
+                        statusCell.className = 'status-cell status-received';
+                    } else {
+                        statusCell.textContent = '대기중';
+                        statusCell.className = 'status-cell status-pending';
+                    }
+                    
+                    // 카드 전체 상태 업데이트
+                    updateCardStatus(orderIndex);
+                } else {
+                    // 실패 시 체크박스 상태 되돌리기
+                    checkbox.checked = !checkbox.checked;
+                    alert('입고 상태 업데이트에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('입고 상태 업데이트 오류:', error);
+                // 오류 시 체크박스 상태 되돌리기
+                checkbox.checked = !checkbox.checked;
+                alert('입고 상태 업데이트 중 오류가 발생했습니다.');
+            }
+        }
+
+        function updateCardStatus(orderIndex) {
+            const card = document.getElementById(`card-${orderIndex}`);
+            const checkboxes = card.querySelectorAll('.receive-checkbox');
+            const totalItems = checkboxes.length;
+            const receivedItems = Array.from(checkboxes).filter(cb => cb.checked).length;
+            
+            // 하단 정보 업데이트
+            const totalInfo = card.querySelector('.total-info');
+            totalInfo.textContent = `총 ${totalItems}품목 중 ${receivedItems}품목 입고완료`;
+            
+            // 전체 입고완료 버튼 상태
+            const completeButton = card.querySelector('.complete-receiving');
+            if (receivedItems === totalItems) {
+                completeButton.disabled = true;
+                completeButton.innerHTML = '<i class="fas fa-check"></i> 입고완료';
+            } else {
+                completeButton.disabled = false;
+                completeButton.innerHTML = '<i class="fas fa-check-circle"></i> 전체 입고완료';
+            }
+        }
+
+        function completeAllReceiving(orderIndex) {
+            const card = document.getElementById(`card-${orderIndex}`);
+            const checkboxes = card.querySelectorAll('.receive-checkbox:not(:checked)');
+            
+            if (checkboxes.length === 0) {
+                alert('이미 모든 품목이 입고완료되었습니다.');
+                return;
+            }
+            
+            if (confirm('모든 품목을 입고완료 처리하시겠습니까?')) {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    toggleItemReceived(orderIndex, 0, checkbox); // 상태만 업데이트
+                });
+                
+                alert('모든 품목이 입고완료 처리되었습니다.');
+            }
+        }
+
+        function displayReceivingDocuments(documents) {
+            const container = document.getElementById('receivingDocuments');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (documents.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            container.innerHTML = '';
+            
+            documents.forEach((doc, index) => {
+                const documentItem = createDocumentItem(doc, index);
+                container.appendChild(documentItem);
+            });
+        }
+
+        function createDocumentItem(doc, index) {
+            const item = document.createElement('div');
+            item.className = 'document-item';
+            item.id = `document-${doc.id}`;
+            
+            const totalAmount = doc.items.reduce((sum, item) => sum + item.amount, 0);
+            const checkedItems = doc.items.filter(item => item.checked).length;
+            
+            item.innerHTML = `
+                <div class="document-header">
+                    <div class="document-info">
+                        <h3>${doc.supplier} 입고명세서</h3>
+                        <p>📅 ${doc.date} | 📋 ${doc.orderNumber} | 총 ${doc.items.length}품목 중 ${checkedItems}품목 확인완료</p>
+                    </div>
+                    <div class="document-summary">
+                        <div>총 발주금액</div>
+                        <div style="font-size: 1.3rem; color: #FF6B35;">₩${totalAmount.toLocaleString()}</div>
+                    </div>
+                </div>
+                
+                <div class="items-table-container">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">NO</th>
+                                <th style="width: 300px;">식자재명</th>
+                                <th style="width: 80px;">발주수량</th>
+                                <th style="width: 60px;">단위</th>
+                                <th style="width: 100px;">단가</th>
+                                <th style="width: 120px;">금액</th>
+                                <th style="width: 100px;">담당자 확인</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${doc.items.map((item, itemIndex) => `
+                                <tr>
+                                    <td>${itemIndex + 1}</td>
+                                    <td style="text-align: left; padding-left: 0.5rem;">${item.name}</td>
+                                    <td>${item.orderedQty}</td>
+                                    <td>${item.unit}</td>
+                                    <td>₩${item.unitPrice.toLocaleString()}</td>
+                                    <td>₩${item.amount.toLocaleString()}</td>
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" 
+                                               class="receive-checkbox" 
+                                               ${item.checked ? 'checked' : ''} 
+                                               onchange="toggleItemCheck(${doc.id}, ${itemIndex}, this)">
+                                        <label style="margin-left: 0.3rem; font-size: 0.8rem; color: #666;">
+                                            ${item.checked ? '확인완료' : '미확인'}
+                                        </label>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            return item;
+        }
+
+        function toggleItemCheck(docId, itemIndex, checkbox) {
+            // 담당자 확인 상태 업데이트
+            const row = checkbox.closest('tr');
+            const label = row.querySelector('label');
+            
+            if (checkbox.checked) {
+                label.textContent = '확인완료';
+                label.style.color = '#28a745';
+                label.style.fontWeight = '600';
+            } else {
+                label.textContent = '미확인';
+                label.style.color = '#666';
+                label.style.fontWeight = 'normal';
+            }
+            
+            // 문서 헤더의 확인완료 품목 수 업데이트
+            updateDocumentSummary(docId);
+        }
+
+        function updateDocumentSummary(docId) {
+            const documentItem = document.getElementById(`document-${docId}`);
+            const checkboxes = documentItem.querySelectorAll('.receive-checkbox');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const totalCount = checkboxes.length;
+            
+            const summaryText = documentItem.querySelector('.document-info p');
+            const currentText = summaryText.textContent;
+            const updatedText = currentText.replace(/총 \d+품목 중 \d+품목 확인완료/, `총 ${totalCount}품목 중 ${checkedCount}품목 확인완료`);
+            summaryText.textContent = updatedText;
+        }
+
+        // 직접 출력 함수
+        function printDirectly() {
+            // 출력 스타일 추가
+            addPrintStyles();
+            
+            // 출력 실행
+            setTimeout(() => {
+                window.print();
+                
+                // 출력 후 스타일 제거
+                removePrintStyles();
+            }, 500);
+        }
+
+        function addPrintStyles() {
+            // 출력용 스타일 추가 (결재란 없이)
+            const printStyle = document.createElement('style');
+            printStyle.id = 'print-style';
+            printStyle.innerHTML = `
+                @media print {
+                    /* 화면 전용 요소 숨기기 */
+                    .navigation-bar, .print-actions, .btn, .modal-backdrop, .loading-overlay {
+                        display: none !important;
+                    }
+                    
+                    /* 입고명세서 출력 최적화 */
+                    body { 
+                        font-size: 12px; 
+                        line-height: 1.4;
+                        margin: 0;
+                        background: white !important;
+                    }
+                    
+                    .main-container {
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: 20px !important;
+                    }
+                    
+                    .document-item {
+                        page-break-after: always;
+                        box-shadow: none !important;
+                        border: 1px solid #ccc;
+                        margin-bottom: 30px;
+                    }
+                }
+            `;
+            document.head.appendChild(printStyle);
+        }
+
+        function removePrintStyles() {
+            // 출력 후 추가된 스타일 제거
+            const printStyle = document.getElementById('print-style');
+            if (printStyle) {
+                printStyle.remove();
+            }
+        }
+
+        function exportToExcel() {
+            alert('엑셀 출력 기능은 개발 중입니다.');
+        }
+
+        function refreshReceivingList() {
+            loadReceivingDocuments();
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

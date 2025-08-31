@@ -31,6 +31,19 @@ class OrderStatusEnum(enum.Enum):
     pending = "pending"
     confirmed = "confirmed"
 
+class OrderTypeEnum(enum.Enum):
+    manual = "수동발주"
+    auto = "자동발주"
+    regular = "정기발주"
+    additional = "추가발주"
+    urgent = "긴급발주"
+
+class ReceivingStatusEnum(enum.Enum):
+    pending = "입고대기"
+    partial = "일부입고"
+    completed = "입고완료"
+    overdue = "입고지연"
+
 # Users: 사용자 정보
 class User(Base):
     __tablename__ = "users"
@@ -263,6 +276,64 @@ class Inventory(Base):
     # Relationships
     ingredient = relationship("Ingredient", back_populates="inventories")
 
+# PreprocessingMaster: 전처리 필요 식자재 마스터
+class PreprocessingMaster(Base):
+    __tablename__ = "preprocessing_master"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ingredient_name = Column(String(200), nullable=False, index=True)  # 식자재명
+    preprocessing_method = Column(Text, nullable=False)  # 전처리 방법
+    estimated_time = Column(Integer)  # 예상 소요시간(분)
+    priority = Column(Integer, default=5)  # 우선순위 (1=높음, 5=보통, 10=낮음)
+    safety_notes = Column(Text)  # 안전사항
+    storage_condition = Column(String(100))  # 보관조건
+    tools_required = Column(Text)  # 필요 도구
+    is_active = Column(Boolean, default=True)  # 활성화 여부
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+# PreprocessingInstructions: 전처리 지시서
+class PreprocessingInstruction(Base):
+    __tablename__ = "preprocessing_instructions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    instruction_date = Column(Date, nullable=False, index=True)  # 지시서 날짜
+    meal_type = Column(String(20), nullable=False)  # 조식/중식/석식/야식
+    diet_plan_id = Column(Integer, ForeignKey("diet_plans.id"))  # 참조 식단표
+    status = Column(String(20), default="pending")  # pending, completed
+    total_items = Column(Integer, default=0)  # 총 전처리 항목수
+    completed_items = Column(Integer, default=0)  # 완료된 항목수
+    notes = Column(Text)  # 특별 지시사항
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    diet_plan = relationship("DietPlan")
+    creator = relationship("User")
+    items = relationship("PreprocessingInstructionItem", back_populates="instruction", cascade="all, delete-orphan")
+
+# PreprocessingInstructionItems: 전처리 지시서 항목
+class PreprocessingInstructionItem(Base):
+    __tablename__ = "preprocessing_instruction_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    instruction_id = Column(Integer, ForeignKey("preprocessing_instructions.id"), nullable=False)
+    ingredient_name = Column(String(200), nullable=False)  # 식자재명
+    quantity = Column(DECIMAL(10, 3), nullable=False)  # 수량
+    unit = Column(String(20), nullable=False)  # 단위
+    preprocessing_method = Column(Text, nullable=False)  # 전처리 방법
+    estimated_time = Column(Integer)  # 예상 소요시간
+    priority = Column(Integer, default=5)  # 우선순위
+    is_completed = Column(Boolean, default=False)  # 완료 여부
+    completed_at = Column(DateTime)  # 완료 시간
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    instruction = relationship("PreprocessingInstruction", back_populates="items")
+
 # Instructions: 지시서
 class Instruction(Base):
     __tablename__ = "instructions"
@@ -332,3 +403,96 @@ class MealCountTemplate(Base):
     default_count = Column(Integer, default=0)  # 기본 식수 (예상값 계산용)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+# Purchase Orders: 발주서
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String(50), unique=True, nullable=False, index=True)  # 발주번호
+    order_date = Column(Date, nullable=False)  # 발주일
+    delivery_date = Column(Date, nullable=False)  # 납기일
+    lead_days = Column(Integer, default=3)  # 선발주일
+    total_meals = Column(Integer)  # 총 식수
+    reference_meal_plan = Column(String(100))  # 참조 식단표
+    order_time = Column(String(10))  # 발주 시간
+    order_type = Column(Enum(OrderTypeEnum), nullable=False)  # 발주 유형
+    status = Column(Enum(OrderStatusEnum), default=OrderStatusEnum.pending)  # 발주 상태
+    total_amount = Column(DECIMAL(12, 2), default=0)  # 총 발주 금액
+    notes = Column(Text)  # 비고
+    created_by = Column(Integer, ForeignKey("users.id"))  # 발주자
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    creator = relationship("User", backref="purchase_orders")
+    items = relationship("PurchaseOrderItem", back_populates="order", cascade="all, delete-orphan")
+
+# Purchase Order Items: 발주 품목
+class PurchaseOrderItem(Base):
+    __tablename__ = "purchase_order_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    category = Column(String(50))  # 분류
+    code = Column(String(50))  # 코드
+    name = Column(String(200), nullable=False)  # 식자재명
+    supplier = Column(String(100))  # 거래처
+    origin = Column(String(50))  # 원산지
+    unit = Column(String(20))  # 단위
+    current_stock = Column(DECIMAL(10, 2), default=0)  # 현재재고
+    quantity = Column(DECIMAL(10, 2), nullable=False)  # 발주수량
+    unit_price = Column(DECIMAL(10, 2), nullable=False)  # 단가
+    amount = Column(DECIMAL(12, 2), nullable=False)  # 금액
+    lead_time = Column(Integer, default=3)  # 선발주일
+    meal_plan_ref = Column(String(100))  # 참조식단표
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    order = relationship("PurchaseOrder", back_populates="items")
+
+# Receiving Records: 입고 기록
+class ReceivingRecord(Base):
+    __tablename__ = "receiving_records"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    supplier = Column(String(100), nullable=False)  # 거래처
+    expected_date = Column(Date, nullable=False)  # 예상 입고일
+    actual_date = Column(Date)  # 실제 입고일
+    status = Column(Enum(ReceivingStatusEnum), default=ReceivingStatusEnum.pending)  # 입고 상태
+    total_items = Column(Integer, default=0)  # 총 품목수
+    received_items = Column(Integer, default=0)  # 입고완료 품목수
+    total_amount = Column(DECIMAL(12, 2), default=0)  # 총 금액
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    order = relationship("PurchaseOrder", backref="receiving_records")
+    items = relationship("ReceivingItem", back_populates="receiving_record", cascade="all, delete-orphan")
+
+# Receiving Items: 입고 품목
+class ReceivingItem(Base):
+    __tablename__ = "receiving_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    receiving_record_id = Column(Integer, ForeignKey("receiving_records.id"), nullable=False)
+    order_item_id = Column(Integer, ForeignKey("purchase_order_items.id"), nullable=False)
+    name = Column(String(200), nullable=False)  # 식자재명
+    ordered_quantity = Column(DECIMAL(10, 2), nullable=False)  # 주문수량
+    received_quantity = Column(DECIMAL(10, 2), default=0)  # 입고수량
+    unit = Column(String(20))  # 단위
+    unit_price = Column(DECIMAL(10, 2), nullable=False)  # 단가
+    amount = Column(DECIMAL(12, 2), nullable=False)  # 금액
+    received = Column(Boolean, default=False)  # 입고완료 여부
+    received_at = Column(DateTime)  # 입고 시간
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    receiving_record = relationship("ReceivingRecord", back_populates="items")
+    order_item = relationship("PurchaseOrderItem", backref="receiving_items")
