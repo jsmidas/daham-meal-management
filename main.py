@@ -73,6 +73,11 @@ async def serve_preprocessing():
     """전처리 지시서 관리 페이지"""
     return FileResponse("preprocessing_management.html")
 
+@app.get("/preprocessing-demo")
+async def serve_preprocessing_demo():
+    """전처리 지시서 데모 페이지"""
+    return FileResponse("preprocessing_demo_sep2.html")
+
 
 # 데이터베이스 연결 - 새로 생성한 SQLite 데이터베이스 사용
 DATABASE_URL = "sqlite:///./meal_management.db"
@@ -309,6 +314,60 @@ async def serve_admin_dashboard(request: Request):
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
     
     return FileResponse("admin_dashboard.html")
+
+@app.get("/supplier-management")
+async def serve_supplier_management(request: Request):
+    """식자재 업체관리 페이지 서빙 (admin 권한 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 최고관리자 권한 확인 (업체관리는 admin만 접근 가능)
+    if user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="최고관리자(admin) 권한이 필요합니다.")
+    
+    return FileResponse("supplier_management.html")
+
+@app.get("/suppliers")
+async def serve_suppliers_short(request: Request):
+    """식자재 업체관리 페이지 서빙 (admin 권한 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 최고관리자 권한 확인 (업체관리는 admin만 접근 가능)
+    if user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="최고관리자(admin) 권한이 필요합니다.")
+    
+    return FileResponse("supplier_management.html")
+
+@app.get("/admin/suppliers")
+async def serve_admin_suppliers(request: Request):
+    """관리자 업체관리 페이지 서빙 (관리자 권한 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 관리자 권한 확인 (업체관리는 관리자급 이상 접근 가능)
+    admin_roles = ['admin', 'manager', '관리자', '매니저', 'nutritionist', '영양사']
+    if user['role'] not in admin_roles:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    return FileResponse("supplier_management.html")
+
+@app.get("/ingredients-management")
+async def serve_ingredients_management(request: Request):
+    """식자재관리 페이지 서빙 (로그인 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 관리자 권한 확인
+    valid_roles = ['admin', 'nutritionist', 'manager', '관리자', '영양사', '매니저']
+    if user['role'] not in valid_roles:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    return FileResponse("ingredients_management.html")
 
 # 검색된 메뉴 원가 계산 API
 @app.post("/api/calculate_menu_costs")
@@ -584,7 +643,7 @@ async def get_menu_ingredients(menu_name: str, db: Session = Depends(get_db)):
         ingredient_query = """
         SELECT 
             i.name as ingredient_name,
-            i.code as ingredient_code,
+            i.id as ingredient_code,
             ri.quantity,
             i.base_unit,
             s.name as supplier_name
@@ -793,6 +852,16 @@ async def serve_recipes():
     """레시피 관리 페이지 서빙"""
     return FileResponse("menu_recipe_management.html")
 
+@app.get("/cooking")
+async def serve_cooking_instruction():
+    """조리지시서 관리 페이지 서빙"""
+    return FileResponse("cooking_instruction_management.html")
+
+@app.get("/portion")
+async def serve_portion_instruction():
+    """소분지시서 관리 페이지 서빙"""
+    return FileResponse("portion_instruction_management.html")
+
 @app.get("/api/recipes")
 async def get_recipes(db: Session = Depends(get_db)):
     """레시피 목록 조회"""
@@ -804,11 +873,16 @@ async def get_recipes(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/ingredients")
+async def serve_ingredients():
+    """식재료 관리 페이지 서빙"""
+    return FileResponse("ingredients_management.html")
+
+@app.get("/api/ingredients/list")
 async def get_ingredients(db: Session = Depends(get_db)):
-    """식재료 목록 조회"""
+    """식재료 목록 조회 API"""
     try:
         query = """
-            SELECT i.id, i.name, i.code, i.base_unit, i.price, i.moq, i.allergy_codes,
+            SELECT i.id, i.name, i.base_unit, i.price, i.moq, i.allergy_codes,
                    i.supplier_id, s.name as supplier_name, s.update_frequency as delivery_schedule
             FROM ingredients i
             LEFT JOIN suppliers s ON i.supplier_id = s.id
@@ -825,7 +899,7 @@ async def get_ingredients_api(db: Session = Depends(get_db)):
     """식재료 목록 조회 (API용) - 공급업체 가격 정보 포함"""
     try:
         query = """
-            SELECT i.id, i.name, i.code, i.base_unit, i.moq, 
+            SELECT i.id, i.name, i.base_unit, i.moq, 
                    CAST(i.allergy_codes AS TEXT) as allergy_codes,
                    s.id as supplier_id, s.name as supplier_name, s.update_frequency as delivery_schedule,
                    si.preorder_date as preorder_date,
@@ -1027,6 +1101,189 @@ async def init_sample_recipes(db: Session = Depends(get_db)):
         
         db.commit()
         return {"success": True, "message": "샘플 레시피 데이터가 추가되었습니다"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"샘플 데이터 추가 실패: {str(e)}")
+
+@app.post("/api/admin/init_user_extensions")
+async def init_user_extensions(request: Request, db: Session = Depends(get_db)):
+    """사용자 관리 기능 확장을 위한 데이터베이스 업데이트"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 1. 사용자 테이블에 필드 추가
+        alter_queries = [
+            "ALTER TABLE users ADD COLUMN phone_number VARCHAR(20) DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN birth_date DATE DEFAULT NULL", 
+            "ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN assigned_sites TEXT DEFAULT NULL"
+        ]
+        
+        for query in alter_queries:
+            try:
+                db.execute(text(query))
+            except Exception as e:
+                print(f"Column might already exist: {e}")
+        
+        # 2. 사용자-사업장 관계 테이블 생성
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_business_locations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                business_location_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (business_location_id) REFERENCES business_locations (id),
+                UNIQUE(user_id, business_location_id)
+            )
+        """))
+        
+        db.commit()
+        return {"success": True, "message": "사용자 관리 기능이 확장되었습니다."}
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"데이터베이스 업데이트 실패: {str(e)}")
+
+@app.get("/api/admin/users/{user_id}/sites")
+async def get_user_sites(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """사용자가 접근 가능한 사업장 목록 조회"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 사용자에게 할당된 사업장 목록
+        assigned_sites = db.execute(text("""
+            SELECT bl.id, bl.name, bl.location, bl.business_type
+            FROM business_locations bl
+            JOIN user_business_locations ubl ON bl.id = ubl.business_location_id
+            WHERE ubl.user_id = :user_id
+        """), {"user_id": user_id}).fetchall()
+        
+        # 모든 사업장 목록
+        all_sites = db.execute(text("""
+            SELECT id, name, location, business_type
+            FROM business_locations
+            ORDER BY name
+        """)).fetchall()
+        
+        assigned_site_ids = [site[0] for site in assigned_sites]
+        
+        return {
+            "assigned_sites": [dict(site._mapping) for site in assigned_sites],
+            "all_sites": [dict(site._mapping) for site in all_sites],
+            "assigned_site_ids": assigned_site_ids
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/users/{user_id}/sites")
+async def update_user_sites(user_id: int, site_data: dict, request: Request, db: Session = Depends(get_db)):
+    """사용자의 접근 가능한 사업장 업데이트"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        site_ids = site_data.get('site_ids', [])
+        
+        # 기존 할당 삭제
+        db.execute(text("DELETE FROM user_business_locations WHERE user_id = :user_id"), 
+                  {"user_id": user_id})
+        
+        # 새로운 할당 추가
+        for site_id in site_ids:
+            db.execute(text("""
+                INSERT INTO user_business_locations (user_id, business_location_id)
+                VALUES (:user_id, :site_id)
+            """), {"user_id": user_id, "site_id": site_id})
+        
+        db.commit()
+        return {"success": True, "message": "사업장 할당이 업데이트되었습니다."}
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/users/{user_id}/reset-password")
+async def reset_user_password(user_id: int, request: Request, db: Session = Depends(get_db)):
+    """사용자 비밀번호 초기화"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 기본 비밀번호를 "password123"으로 설정
+        default_password = "password123"
+        password_hash = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        db.execute(text("""
+            UPDATE users 
+            SET password_hash = :password_hash, updated_at = CURRENT_TIMESTAMP
+            WHERE id = :user_id
+        """), {"password_hash": password_hash, "user_id": user_id})
+        
+        db.commit()
+        return {
+            "success": True, 
+            "message": f"비밀번호가 '{default_password}'로 초기화되었습니다.",
+            "new_password": default_password
+        }
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/users/{user_id}")
+async def update_user(user_id: int, user_data: dict, request: Request, db: Session = Depends(get_db)):
+    """사용자 정보 업데이트"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        update_fields = []
+        params = {"user_id": user_id}
+        
+        # 업데이트할 필드들
+        updatable_fields = {
+            'username': 'username',
+            'role': 'role', 
+            'contact_info': 'contact_info',
+            'phone_number': 'phone_number',
+            'birth_date': 'birth_date',
+            'department': 'department',
+            'position': 'position',
+            'is_active': 'is_active',
+            'managed_site': 'managed_site'
+        }
+        
+        for key, db_field in updatable_fields.items():
+            if key in user_data:
+                update_fields.append(f"{db_field} = :{key}")
+                params[key] = user_data[key]
+        
+        if update_fields:
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            
+            query = f"""
+                UPDATE users 
+                SET {', '.join(update_fields)}
+                WHERE id = :user_id
+            """
+            
+            db.execute(text(query), params)
+            db.commit()
+        
+        return {"success": True, "message": "사용자 정보가 업데이트되었습니다."}
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
         
     except Exception as e:
         db.rollback()
@@ -2079,10 +2336,14 @@ async def get_ingredients(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/api/admin/suppliers")
 async def get_suppliers(request: Request, db: Session = Depends(get_db)):
-    """공급업체 목록 조회"""
+    """공급업체 목록 조회 (admin 권한 필요)"""
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    # 최고관리자 권한 확인 (업체관리는 admin만 접근 가능)
+    if user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="최고관리자(admin) 권한이 필요합니다.")
     
     try:
         suppliers = db.query(Supplier).order_by(Supplier.name).all()
@@ -3577,6 +3838,390 @@ async def create_test_meal_data(db: Session = Depends(get_db)):
         db.rollback()
         print(f"테스트 데이터 생성 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==========================================
+# 공급업체 관리 시스템 확장 API
+# ==========================================
+
+@app.post("/api/admin/init_supplier_extensions")
+async def init_supplier_extensions(request: Request, db: Session = Depends(get_db)):
+    """공급업체 관리 기능 확장을 위한 데이터베이스 업데이트"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 먼저 확장 컬럼이 이미 존재하는지 확인
+        check_column_query = "PRAGMA table_info(suppliers)"
+        result = db.execute(text(check_column_query)).fetchall()
+        existing_columns = [row[1] for row in result]
+        
+        # 확장 컬럼 목록
+        extension_columns = ['phone', 'fax', 'email', 'address', 'business_number', 
+                           'business_type', 'business_item', 'representative', 
+                           'manager_name', 'manager_phone', 'is_active', 'notes', 'parent_code', 
+                           'site_code', 'site_name']
+        
+        # 이미 모든 확장 컬럼이 존재하는지 확인
+        if all(col in existing_columns for col in extension_columns):
+            return {"success": True, "message": "공급업체 관리 기능이 이미 확장되어 있습니다."}
+        
+        # 공급업체 테이블에 필드 추가
+        alter_queries = [
+            "ALTER TABLE suppliers ADD COLUMN phone VARCHAR(20) DEFAULT NULL",
+            "ALTER TABLE suppliers ADD COLUMN fax VARCHAR(20) DEFAULT NULL", 
+            "ALTER TABLE suppliers ADD COLUMN email VARCHAR(100) DEFAULT NULL",
+            "ALTER TABLE suppliers ADD COLUMN address TEXT DEFAULT NULL",
+            "ALTER TABLE suppliers ADD COLUMN business_number VARCHAR(12) DEFAULT NULL",  # 사업자번호
+            "ALTER TABLE suppliers ADD COLUMN business_type VARCHAR(50) DEFAULT NULL",   # 업태
+            "ALTER TABLE suppliers ADD COLUMN business_item VARCHAR(100) DEFAULT NULL",  # 종목
+            "ALTER TABLE suppliers ADD COLUMN representative VARCHAR(50) DEFAULT NULL",  # 대표자명
+            "ALTER TABLE suppliers ADD COLUMN manager_name VARCHAR(50) DEFAULT NULL",    # 거래담당자명
+            "ALTER TABLE suppliers ADD COLUMN manager_phone VARCHAR(20) DEFAULT NULL",  # 거래담당자 연락처
+            "ALTER TABLE suppliers ADD COLUMN is_active BOOLEAN DEFAULT 1",             # 거래여부
+            "ALTER TABLE suppliers ADD COLUMN notes TEXT DEFAULT NULL",                 # 비고(특이사항)
+            "ALTER TABLE suppliers ADD COLUMN parent_code VARCHAR(10) DEFAULT NULL",    # 업체 모코드 (01,02,03 등 하부코드를 위한)
+            "ALTER TABLE suppliers ADD COLUMN site_code VARCHAR(10) DEFAULT NULL",      # 사업장 코드
+            "ALTER TABLE suppliers ADD COLUMN site_name VARCHAR(100) DEFAULT NULL"      # 사업장명 (납품처)
+        ]
+        
+        added_columns = 0
+        for query in alter_queries:
+            try:
+                db.execute(text(query))
+                added_columns += 1
+            except Exception as e:
+                print(f"Column might already exist: {e}")
+        
+        db.commit()
+        
+        if added_columns > 0:
+            return {"success": True, "message": f"공급업체 관리 기능이 확장되었습니다. ({added_columns}개 컬럼 추가)"}
+        else:
+            return {"success": True, "message": "공급업체 관리 기능이 이미 확장되어 있습니다."}
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"데이터베이스 업데이트 실패: {str(e)}")
+
+@app.get("/api/admin/suppliers/enhanced")
+async def get_suppliers_enhanced(request: Request, page: int = 1, limit: int = 20, search: str = "", db: Session = Depends(get_db)):
+    """공급업체 목록 조회 (확장된 정보 포함)"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 검색 조건
+        where_clause = ""
+        params = {}
+        if search:
+            where_clause = """WHERE name LIKE :search OR contact LIKE :search 
+                             OR phone LIKE :search OR email LIKE :search 
+                             OR business_number LIKE :search"""
+            params["search"] = f"%{search}%"
+        
+        # 총 개수 조회
+        count_query = f"SELECT COUNT(*) FROM suppliers {where_clause}"
+        total = db.execute(text(count_query), params).scalar()
+        
+        # 공급업체 목록 조회
+        offset = (page - 1) * limit
+        query = f"""
+            SELECT 
+                s.id, s.name, s.contact, s.phone, s.fax, s.email, s.address,
+                s.business_number, s.business_type, s.business_item, s.representative,
+                s.manager_name, s.manager_phone, COALESCE(s.is_active, 1) as is_active,
+                s.notes, s.update_frequency, s.parent_code, s.site_code, s.site_name,
+                s.created_at, s.updated_at
+            FROM suppliers s
+            {where_clause}
+            ORDER BY s.name
+            LIMIT :limit OFFSET :offset
+        """
+        
+        params.update({"limit": limit, "offset": offset})
+        suppliers_result = db.execute(text(query), params).fetchall()
+        
+        suppliers = [dict(row._mapping) for row in suppliers_result]
+        
+        return {
+            "suppliers": suppliers,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/suppliers/{supplier_id}/detail")
+async def get_supplier_detail(supplier_id: int, request: Request, db: Session = Depends(get_db)):
+    """특정 공급업체 상세 정보 조회"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        query = """
+            SELECT 
+                s.id, s.name, s.contact, s.phone, s.fax, s.email, s.address,
+                s.business_number, s.business_type, s.business_item, s.representative,
+                s.manager_name, s.manager_phone, COALESCE(s.is_active, 1) as is_active,
+                s.notes, s.update_frequency, s.parent_code, s.site_code, s.site_name,
+                s.created_at, s.updated_at
+            FROM suppliers s
+            WHERE s.id = :supplier_id
+        """
+        
+        supplier_result = db.execute(text(query), {"supplier_id": supplier_id}).fetchone()
+        
+        if not supplier_result:
+            raise HTTPException(status_code=404, detail="공급업체를 찾을 수 없습니다.")
+        
+        return dict(supplier_result._mapping)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/suppliers/create")
+async def create_supplier(supplier_data: dict, request: Request, db: Session = Depends(get_db)):
+    """새 공급업체 등록"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        query = """
+            INSERT INTO suppliers 
+            (name, contact, phone, fax, email, address, business_number, business_type, 
+             business_item, representative, manager_name, manager_phone, is_active, 
+             notes, update_frequency, parent_code, site_code, site_name, created_at, updated_at)
+            VALUES 
+            (:name, :contact, :phone, :fax, :email, :address, :business_number, :business_type,
+             :business_item, :representative, :manager_name, :manager_phone, :is_active,
+             :notes, :update_frequency, :parent_code, :site_code, :site_name, 
+             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """
+        
+        params = {
+            'name': supplier_data.get('name', ''),
+            'contact': supplier_data.get('contact', ''),
+            'phone': supplier_data.get('phone', ''),
+            'fax': supplier_data.get('fax', ''),
+            'email': supplier_data.get('email', ''),
+            'address': supplier_data.get('address', ''),
+            'business_number': supplier_data.get('business_number', ''),
+            'business_type': supplier_data.get('business_type', ''),
+            'business_item': supplier_data.get('business_item', ''),
+            'representative': supplier_data.get('representative', ''),
+            'manager_name': supplier_data.get('manager_name', ''),
+            'manager_phone': supplier_data.get('manager_phone', ''),
+            'is_active': supplier_data.get('is_active', True),
+            'notes': supplier_data.get('notes', ''),
+            'update_frequency': supplier_data.get('update_frequency', 'weekly'),
+            'parent_code': supplier_data.get('parent_code', ''),
+            'site_code': supplier_data.get('site_code', ''),
+            'site_name': supplier_data.get('site_name', '')
+        }
+        
+        db.execute(text(query), params)
+        db.commit()
+        
+        return {"success": True, "message": "공급업체가 등록되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"공급업체 등록 실패: {str(e)}")
+
+@app.put("/api/admin/suppliers/{supplier_id}/update")
+async def update_supplier(supplier_id: int, supplier_data: dict, request: Request, db: Session = Depends(get_db)):
+    """공급업체 정보 수정"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        update_fields = []
+        params = {"supplier_id": supplier_id}
+        
+        # 업데이트할 필드들
+        updatable_fields = {
+            'name': 'name',
+            'contact': 'contact',
+            'phone': 'phone',
+            'fax': 'fax',
+            'email': 'email',
+            'address': 'address',
+            'business_number': 'business_number',
+            'business_type': 'business_type',
+            'business_item': 'business_item',
+            'representative': 'representative',
+            'manager_name': 'manager_name',
+            'manager_phone': 'manager_phone',
+            'is_active': 'is_active',
+            'notes': 'notes',
+            'update_frequency': 'update_frequency',
+            'parent_code': 'parent_code',
+            'site_code': 'site_code',
+            'site_name': 'site_name'
+        }
+        
+        for key, db_field in updatable_fields.items():
+            if key in supplier_data:
+                update_fields.append(f"{db_field} = :{key}")
+                params[key] = supplier_data[key]
+        
+        if update_fields:
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            
+            query = f"""
+                UPDATE suppliers 
+                SET {', '.join(update_fields)}
+                WHERE id = :supplier_id
+            """
+            
+            db.execute(text(query), params)
+            db.commit()
+        
+        return {"success": True, "message": "공급업체 정보가 업데이트되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"공급업체 정보 수정 실패: {str(e)}")
+
+@app.delete("/api/admin/suppliers/{supplier_id}/delete")
+async def delete_supplier(supplier_id: int, request: Request, db: Session = Depends(get_db)):
+    """공급업체 삭제"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 공급업체와 연관된 식자재가 있는지 확인
+        ingredient_count = db.execute(text("""
+            SELECT COUNT(*) FROM ingredients WHERE supplier_id = :supplier_id
+        """), {"supplier_id": supplier_id}).scalar()
+        
+        if ingredient_count > 0:
+            return {"success": False, "message": f"이 공급업체와 연관된 식자재가 {ingredient_count}개 있어 삭제할 수 없습니다."}
+        
+        db.execute(text("DELETE FROM suppliers WHERE id = :supplier_id"), {"supplier_id": supplier_id})
+        db.commit()
+        
+        return {"success": True, "message": "공급업체가 삭제되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"공급업체 삭제 실패: {str(e)}")
+
+@app.get("/api/admin/suppliers/enhanced")
+async def get_suppliers_enhanced(
+    request: Request, 
+    page: int = 1, 
+    limit: int = 20,
+    search: str = '',
+    status: str = '',
+    db: Session = Depends(get_db)
+):
+    """공급업체 목록 조회 (페이지네이션 및 검색 지원)"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        # 기본 쿼리
+        base_query = """
+            SELECT id, parent_code, site_code, site_name, name, phone, email, 
+                   is_active, business_number, representative, manager_name, 
+                   created_at, updated_at
+            FROM suppliers
+            WHERE 1=1
+        """
+        
+        count_query = "SELECT COUNT(*) FROM suppliers WHERE 1=1"
+        params = {}
+        
+        # 검색 조건 추가
+        if search:
+            search_condition = """
+                AND (name LIKE :search OR phone LIKE :search OR email LIKE :search 
+                     OR site_name LIKE :search OR representative LIKE :search)
+            """
+            base_query += search_condition
+            count_query += search_condition
+            params['search'] = f'%{search}%'
+        
+        # 상태 필터
+        if status:
+            status_condition = " AND is_active = :status"
+            base_query += status_condition
+            count_query += status_condition
+            params['status'] = int(status)
+        
+        # 총 개수 조회
+        total_count = db.execute(text(count_query), params).scalar()
+        total_pages = (total_count + limit - 1) // limit
+        
+        # 페이지네이션 적용
+        offset = (page - 1) * limit
+        base_query += " ORDER BY name, created_at DESC LIMIT :limit OFFSET :offset"
+        params.update({'limit': limit, 'offset': offset})
+        
+        # 데이터 조회
+        result = db.execute(text(base_query), params).fetchall()
+        
+        suppliers = []
+        for row in result:
+            supplier_dict = dict(row._mapping)
+            suppliers.append(supplier_dict)
+        
+        return {
+            "success": True,
+            "suppliers": suppliers,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_count": total_count,
+                "limit": limit
+            }
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] 공급업체 목록 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"공급업체 목록 조회 실패: {str(e)}")
+
+@app.get("/api/admin/suppliers/{supplier_id}/detail")
+async def get_supplier_detail(
+    supplier_id: int, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """공급업체 상세정보 조회"""
+    user = get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    try:
+        query = """
+            SELECT * FROM suppliers WHERE id = :supplier_id
+        """
+        result = db.execute(text(query), {"supplier_id": supplier_id}).fetchone()
+        
+        if not result:
+            return {"success": False, "message": "공급업체를 찾을 수 없습니다."}
+        
+        supplier = dict(result._mapping)
+        
+        return {
+            "success": True,
+            "supplier": supplier
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] 공급업체 상세정보 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"공급업체 상세정보 조회 실패: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

@@ -874,9 +874,9 @@
         <a href="/ordering" class="nav-item" onclick="console.log('발주 관리 클릭됨'); alert('발주 관리로 이동합니다'); window.location.href='/ordering'; return false;">📈 발주 관리</a>
         <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
         <a href="#" class="nav-item">📋 각종 일지</a>
-        <a href="/static/preprocessing_demo_sep2.html" class="nav-item">🔪 전처리지시서</a>
-        <a href="#" class="nav-item">👨‍🍳 조리지시서</a>
-        <a href="#" class="nav-item">📊 소분지시서</a>
+        <a href="/preprocessing-demo" class="nav-item">🔪 전처리지시서</a>
+        <a href="/cooking" class="nav-item">👨‍🍳 조리지시서</a>
+        <a href="/portion" class="nav-item">📊 소분지시서</a>
     </div>
 
     <div class="header">
@@ -892,7 +892,7 @@
                 </div>
                 <button class="btn btn-secondary" onclick="location.href='/meal-plan'" style="background: rgba(255,255,255,0.2); border: 1px solid white;">📊 식단표 작성</button>
                 <button class="btn btn-secondary" onclick="window.location.href='/ordering'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 10px;">📈 발주 관리</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/static/preprocessing_management.html'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/preprocessing-demo'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
             </div>
         </div>
     </div>
@@ -1035,14 +1035,14 @@
             }
             
             // 전처리 지시서 링크 강제 바인딩
-            const preprocessingLink = document.querySelector('a[href="/static/preprocessing_management.html"]');
+            const preprocessingLink = document.querySelector('a[href="/preprocessing-demo"]');
             if (preprocessingLink) {
                 console.log('전처리 링크 찾음');
                 preprocessingLink.addEventListener('click', function(e) {
                     e.preventDefault();
                     console.log('전처리 클릭 이벤트 발생');
                     alert('전처리지시서로 이동합니다 (강제 바인딩)');
-                    window.location.href = '/static/preprocessing_management.html';
+                    window.location.href = '/preprocessing-demo';
                 });
             }
             

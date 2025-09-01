@@ -1250,6 +1250,23 @@
             background: #e7f3ff;
             border: 2px dashed #007bff;
         }
+        
+        /* 필수 필드 별표 스타일 */
+        .required {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(231, 76, 60, 0.3);
+            margin-left: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
     </style>
 </head>
 <body>
@@ -1267,6 +1284,9 @@
                 </a>
                 <a href="#" class="nav-item" data-page="users">
                     <span class="icon">👥</span>사용자 관리
+                </a>
+                <a href="#" class="nav-item" data-page="suppliers">
+                    <span class="icon">🏢</span>업체 관리
                 </a>
                 <a href="#" class="nav-item" data-page="sites">
                     <span class="icon">🏢</span>사업장 관리
@@ -1380,6 +1400,7 @@
                             <button onclick="searchUsers()">🔍</button>
                         </div>
                         <button class="btn-primary" onclick="showAddUserModal()">+ 새 사용자</button>
+                        <button class="btn-secondary" onclick="initUserExtensions()" style="background: #17a2b8; margin-left: 10px;">⚙️ 기능 확장</button>
                     </div>
                 </div>
 
@@ -1392,9 +1413,10 @@
                                 <th>사용자명</th>
                                 <th>역할</th>
                                 <th>부서</th>
+                                <th>전화번호</th>
                                 <th>담당 사업장</th>
+                                <th>접근 사업장</th>
                                 <th>상태</th>
-                                <th>마지막 접속</th>
                                 <th>관리</th>
                             </tr>
                         </thead>
@@ -1409,6 +1431,140 @@
                     <button onclick="changePage(-1)">이전</button>
                     <span id="page-info">1 / 1</span>
                     <button onclick="changePage(1)">다음</button>
+                </div>
+            </div>
+
+            <!-- 업체 추가/수정 모달 -->
+            <div id="supplier-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="supplier-modal-title">새 업체 등록</h3>
+                        <button class="close-btn" onclick="closeSupplierModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="supplier-form">
+                            <input type="hidden" id="supplier-id">
+                            
+                            <!-- 납품받는 곳 (위탁급식업체) 정보 -->
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                                <h5 style="margin: 0 0 10px 0; color: #495057;">📍 납품받는 곳 (위탁급식업체 정보)</h5>
+                                
+                                <div class="form-group">
+                                    <label>원청업체명 <span class="required">★</span></label>
+                                    <input type="text" id="supplier-parent-name" placeholder="예: 다함푸드" required>
+                                    <small>최상위 원청업체명</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>모코드 <span class="required">★</span></label>
+                                    <input type="text" id="supplier-parent-code" placeholder="예: DH001" maxlength="20" required onblur="suggestSiteCode()">
+                                    <small>원청업체 식별 코드</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>위탁급식업체명 <span class="required">★</span></label>
+                                    <input type="text" id="supplier-site-name" placeholder="예: ○○전자" maxlength="100" required>
+                                    <small>실제 납품받을 위탁급식업체명</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>자코드 (위탁사업장코드) <span class="required">★</span></label>
+                                    <input type="text" id="supplier-site-code" placeholder="예: DH001-ELC01" maxlength="25" required readonly style="background-color: #e9ecef;">
+                                    <small>위탁사업장 식별 코드 (모코드 입력 시 자동 생성)</small>
+                                    <button type="button" onclick="editSiteCode()" style="margin-top: 5px; padding: 2px 8px; font-size: 11px; background: #17a2b8; color: white; border: none; border-radius: 3px;">직접 수정</button>
+                                </div>
+                            </div>
+
+                            <!-- 식자재 납품업체 정보 -->
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                                <h5 style="margin: 0 0 10px 0; color: #856404;">🚚 식자재 납품업체 정보</h5>
+                                
+                                <div class="form-group">
+                                    <label>식자재업체명 <span class="required">★</span></label>
+                                    <input type="text" id="supplier-name" placeholder="예: 웰스토리, CJ프레시웨이, 푸디스트" required>
+                                    <small>실제 식자재를 납품하는 업체명</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>업체 구분</label>
+                                    <select id="supplier-category">
+                                        <option value="ingredient">식자재 납품업체</option>
+                                        <option value="service">서비스업체</option>
+                                        <option value="equipment">장비업체</option>
+                                    </select>
+                                    <small>업체의 주요 납품 분야</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>연락처 <span class="required">★</span></label>
+                                <input type="text" id="supplier-phone" required>
+                                <small>연락처 또는 이메일 중 하나는 필수입니다</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>이메일</label>
+                                <input type="email" id="supplier-email">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>팩스</label>
+                                <input type="text" id="supplier-fax">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>주소 <span class="required">★</span></label>
+                                <textarea id="supplier-address" rows="2" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>사업자번호</label>
+                                <input type="text" id="supplier-business-number" maxlength="12">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>업태</label>
+                                <input type="text" id="supplier-business-type">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>종목</label>
+                                <input type="text" id="supplier-business-item">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>대표자명</label>
+                                <input type="text" id="supplier-representative">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>거래담당자명</label>
+                                <input type="text" id="supplier-manager-name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>거래담당자 연락처</label>
+                                <input type="text" id="supplier-manager-phone">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>비고</label>
+                                <textarea id="supplier-notes" rows="2"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>거래상태</label>
+                                <select id="supplier-is-active">
+                                    <option value="1">거래중</option>
+                                    <option value="0">거래중단</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeSupplierModal()">취소</button>
+                        <button type="button" class="btn-primary" onclick="saveSupplier()">저장</button>
+                    </div>
                 </div>
             </div>
 
@@ -1459,10 +1615,36 @@
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label>전화번호</label>
+                                <input type="tel" id="user-phone" placeholder="010-1234-5678">
+                            </div>
+                            <div class="form-group">
+                                <label>생년월일</label>
+                                <input type="date" id="user-birth-date">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="user-is-active" checked>
+                                    활성 상태
+                                </label>
+                            </div>
+                            <div class="form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="user-operator">
                                     운영자 권한
                                 </label>
+                            </div>
+                            <div class="form-group">
+                                <label>접근 가능한 사업장</label>
+                                <div id="user-sites-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                    <label class="checkbox-label" style="margin-bottom: 10px;">
+                                        <input type="checkbox" id="sites-all" onchange="toggleAllSites(this)">
+                                        <strong>모든 사업장</strong>
+                                    </label>
+                                    <div id="sites-list">
+                                        <!-- 동적으로 로드될 사업장 체크박스 목록 -->
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
@@ -1476,6 +1658,51 @@
                         <button type="button" class="btn-secondary" onclick="closeUserModal()">취소</button>
                         <button type="button" class="btn-primary" onclick="saveUser()">저장</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- 업체 관리 페이지 -->
+            <div id="suppliers-page" class="page-content hidden">
+                <!-- 업체 관리 헤더 -->
+                <div class="page-header">
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" id="supplier-search" placeholder="업체명, 연락처, 이메일로 검색...">
+                            <select id="supplier-status-filter" style="margin-left: 10px;">
+                                <option value="">전체 상태</option>
+                                <option value="1">거래중</option>
+                                <option value="0">거래중단</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="showAddSupplierModal()">+ 새 업체 등록</button>
+                        <button class="btn-secondary" onclick="initSupplierExtensions()" style="background: #17a2b8; margin-left: 10px;" title="데이터베이스에 새로운 필드를 추가하여 업체 관리 기능을 확장합니다">⚙️ DB 확장</button>
+                    </div>
+                </div>
+
+                <!-- 업체 목록 테이블 -->
+                <div class="content-section">
+                    <table id="suppliers-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>모코드</th>
+                                <th>사업장코드</th>
+                                <th>사업장명</th>
+                                <th>업체명</th>
+                                <th>연락처</th>
+                                <th>이메일</th>
+                                <th>거래상태</th>
+                                <th>사업자번호</th>
+                                <th>대표자</th>
+                                <th>담당자</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliers-table-body">
+                            <tr>
+                                <td colspan="11" class="loading">업체 데이터를 불러오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1579,11 +1806,23 @@
                         <button class="btn btn-secondary" onclick="downloadTemplate()">
                             <span class="icon">📋</span>양식 다운로드
                         </button>
+                        <button class="btn btn-secondary" onclick="initSupplierExtensions()" style="background: #17a2b8; margin-left: 10px;">
+                            <span class="icon">⚙️</span>업체 관리 확장
+                        </button>
                     </div>
                 </div>
+                
+                <!-- 탭 메뉴 -->
+                <div class="tab-menu" style="display: flex; margin: 20px 0; border-bottom: 1px solid #ddd;">
+                    <button class="tab-button active" onclick="showIngredientTab()" style="padding: 10px 20px; border: none; background: #f8f9fa; cursor: pointer; border-bottom: 2px solid #007bff;">
+                        <span class="icon">🥬</span>식자재 관리
+                    </button>
+                </div>
 
-                <!-- 업로드 주의사항 -->
-                <div class="upload-notice">
+                <!-- 식자재 관리 탭 -->
+                <div id="ingredient-tab-content" class="tab-content">
+                    <!-- 업로드 주의사항 -->
+                    <div class="upload-notice">
                     <h3>📋 엑셀파일 수정 주의사항!</h3>
                     <div class="notice-content">
                         <p>식자재 등록을 위한 다운로드 양식 및 각 식자재 정보본판만 복사해서 붙여넣기만 합니다. 아래 주의사항 꼭 준수하세요.</p>
@@ -1684,7 +1923,10 @@
                         </table>
                     </div>
                 </div>
+                </div>
+                
             </div>
+
 
             <!-- 식수 등록 관리 페이지 -->
             <div id="meal-counts-page" class="page-content hidden">
@@ -1895,6 +2137,7 @@
             const titles = {
                 'dashboard': '관리자 대시보드',
                 'users': '사용자 관리',
+                'suppliers': '업체 관리',
                 'sites': '사업장 관리', 
                 'ingredients': '식자재/업체 관리',
                 'pricing': '단가 관리',
@@ -1917,6 +2160,8 @@
                 if (pageName === 'users') {
                     loadUsers();
                     loadManagedSites();
+                } else if (pageName === 'suppliers') {
+                    loadSuppliers();
                 } else if (pageName === 'sites') {
                     loadSitesTree();
                 } else if (pageName === 'ingredients') {
@@ -2085,15 +2330,19 @@
                     <td>${user.username}</td>
                     <td>${getRoleDisplay(user.role)}</td>
                     <td>${user.department || '-'}</td>
+                    <td>${user.phone_number || '-'}</td>
                     <td>${user.managed_site || '-'}</td>
+                    <td>${user.assigned_sites_count || 0}개 사업장</td>
                     <td><span class="${user.is_active ? 'status-active' : 'status-inactive'}">
                         ${user.is_active ? '활성' : '비활성'}
                     </span></td>
-                    <td>${user.last_login || '접속 기록 없음'}</td>
                     <td>
                         <button class="btn-small btn-edit" onclick="editUser(${user.id})">수정</button>
-                        <button class="btn-small btn-reset" onclick="resetPassword(${user.id})">초기화</button>
-                        <button class="btn-small btn-delete" onclick="deleteUser(${user.id})">삭제</button>
+                        <button class="btn-small btn-sites" onclick="manageSites(${user.id})" style="background: #17a2b8;">사업장</button>
+                        <button class="btn-small btn-reset" onclick="resetPassword(${user.id})" style="background: #fd7e14;">초기화</button>
+                        <button class="btn-small" onclick="toggleUserStatus(${user.id}, ${!user.is_active})" style="background: ${user.is_active ? '#dc3545' : '#28a745'};">
+                            ${user.is_active ? '비활성화' : '활성화'}
+                        </button>
                     </td>
                 </tr>
             `).join('');
@@ -3385,6 +3634,628 @@
                 mealCountDateInput.addEventListener('change', loadMealCounts);
             }
         });
+
+        // ===================
+        // 사용자 관리 확장 기능
+        // ===================
+        
+        // 사용자 비밀번호 초기화
+        async function resetPassword(userId) {
+            if (!confirm('이 사용자의 비밀번호를 초기화하시겠습니까?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`비밀번호가 초기화되었습니다.\n새 비밀번호: ${result.new_password}\n사용자에게 새 비밀번호를 전달해주세요.`);
+                } else {
+                    alert('비밀번호 초기화에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('비밀번호 초기화 오류:', error);
+                alert('비밀번호 초기화 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 사용자 활성 상태 토글
+        async function toggleUserStatus(userId, newStatus) {
+            const statusText = newStatus ? '활성화' : '비활성화';
+            if (!confirm(`이 사용자를 ${statusText}하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`사용자가 ${statusText}되었습니다.`);
+                    loadUsers(); // 목록 새로고침
+                } else {
+                    alert('상태 변경에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('상태 변경 오류:', error);
+                alert('상태 변경 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 사업장 관리 모달 표시
+        async function manageSites(userId) {
+            try {
+                // 사용자 사업장 정보 가져오기
+                const response = await fetch(`/api/admin/users/${userId}/sites`);
+                const data = await response.json();
+                
+                // 모든 사업장 체크박스 생성
+                const sitesList = document.getElementById('sites-list');
+                sitesList.innerHTML = '';
+                
+                data.all_sites.forEach(site => {
+                    const isAssigned = data.assigned_site_ids.includes(site.id);
+                    const siteDiv = document.createElement('div');
+                    siteDiv.innerHTML = `
+                        <label class="checkbox-label" style="margin-bottom: 5px;">
+                            <input type="checkbox" 
+                                   value="${site.id}" 
+                                   ${isAssigned ? 'checked' : ''} 
+                                   onchange="updateSitesAllStatus()">
+                            ${site.name} (${site.location})
+                        </label>
+                    `;
+                    sitesList.appendChild(siteDiv);
+                });
+                
+                // 전체 선택 체크박스 상태 업데이트
+                updateSitesAllStatus();
+                
+                // 모달에 사용자 ID 저장
+                document.getElementById('user-sites-container').setAttribute('data-user-id', userId);
+                
+                // 사업장 관리 모달 표시
+                showSitesModal();
+                
+            } catch (error) {
+                console.error('사업장 정보 로드 오류:', error);
+                alert('사업장 정보를 불러올 수 없습니다.');
+            }
+        }
+        
+        // 사업장 관리 모달 표시 함수
+        function showSitesModal() {
+            // 간단한 모달 HTML 생성 (기존 모달 재사용할 수도 있음)
+            const modalHtml = `
+                <div id="sites-modal" class="modal" style="display: block;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>사업장 접근 권한 관리</h3>
+                            <button class="modal-close" onclick="closeSitesModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>접근 가능한 사업장</label>
+                                <div id="user-sites-container-modal" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                    <label class="checkbox-label" style="margin-bottom: 10px;">
+                                        <input type="checkbox" id="sites-all-modal" onchange="toggleAllSitesModal(this)">
+                                        <strong>모든 사업장</strong>
+                                    </label>
+                                    <div id="sites-list-modal">
+                                        ${document.getElementById('sites-list').innerHTML}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-primary" onclick="saveSitesAssignment()">저장</button>
+                            <button class="btn-secondary" onclick="closeSitesModal()">취소</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 기존 모달 제거 후 새 모달 추가
+            const existingModal = document.getElementById('sites-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        // 사업장 모달 닫기
+        function closeSitesModal() {
+            const modal = document.getElementById('sites-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // 모든 사업장 선택/해제
+        function toggleAllSites(checkbox) {
+            const sitesList = document.getElementById('sites-list');
+            const siteCheckboxes = sitesList.querySelectorAll('input[type="checkbox"]');
+            
+            siteCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+        }
+        
+        // 모든 사업장 선택/해제 (모달용)
+        function toggleAllSitesModal(checkbox) {
+            const sitesList = document.getElementById('sites-list-modal');
+            const siteCheckboxes = sitesList.querySelectorAll('input[type="checkbox"]');
+            
+            siteCheckboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+        }
+        
+        // 전체 선택 상태 업데이트
+        function updateSitesAllStatus() {
+            const sitesList = document.getElementById('sites-list');
+            const allCheckbox = document.getElementById('sites-all');
+            
+            if (!sitesList || !allCheckbox) return;
+            
+            const siteCheckboxes = sitesList.querySelectorAll('input[type="checkbox"]');
+            const checkedCount = Array.from(siteCheckboxes).filter(cb => cb.checked).length;
+            
+            allCheckbox.checked = checkedCount === siteCheckboxes.length && siteCheckboxes.length > 0;
+        }
+        
+        // 사업장 할당 저장
+        async function saveSitesAssignment() {
+            const userId = document.getElementById('user-sites-container').getAttribute('data-user-id');
+            const sitesList = document.getElementById('sites-list-modal');
+            const checkedSites = Array.from(sitesList.querySelectorAll('input[type="checkbox"]:checked'))
+                                       .map(cb => parseInt(cb.value));
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/sites`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ site_ids: checkedSites })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('사업장 할당이 저장되었습니다.');
+                    closeSitesModal();
+                    loadUsers(); // 목록 새로고침
+                } else {
+                    alert('사업장 할당 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('사업장 할당 저장 오류:', error);
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 데이터베이스 확장 초기화
+        async function initUserExtensions() {
+            if (!confirm('사용자 관리 기능을 확장하시겠습니까? (데이터베이스 업데이트)')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/init_user_extensions', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('사용자 관리 기능이 확장되었습니다.\n페이지를 새로고침합니다.');
+                    window.location.reload();
+                } else {
+                    alert('기능 확장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('기능 확장 오류:', error);
+                alert('기능 확장 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // ===========================================
+        // 공급업체 관리 확장 기능
+        // ===========================================
+        
+        // 탭 전환 함수들
+        function showIngredientTab() {
+            document.getElementById('ingredient-tab-content').classList.remove('hidden');
+            
+            // 탭 버튼 스타일 변경
+            const tabButton = document.querySelector('.tab-button');
+            if (tabButton) {
+                tabButton.style.borderBottomColor = '#007bff';
+                tabButton.style.backgroundColor = '#f8f9fa';
+            }
+        }
+        
+        
+        // 공급업체 기능 확장 초기화
+        async function initSupplierExtensions() {
+            if (!confirm('공급업체 관리 기능을 확장하시겠습니까? (데이터베이스 업데이트)')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/init_supplier_extensions', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message + '\n페이지를 새로고침합니다.');
+                    window.location.reload();
+                } else {
+                    alert('기능 확장에 실패했습니다: ' + result.message);
+                }
+            } catch (error) {
+                console.error('기능 확장 오류:', error);
+                alert('기능 확장 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 공급업체 관리 변수들
+        let currentSupplierPage = 1;
+        let totalSupplierPages = 1;
+        let currentEditSupplierId = null;
+        
+        // 공급업체 목록 로드
+        async function loadSuppliers() {
+            try {
+                const search = document.getElementById('supplier-search')?.value || '';
+                const response = await fetch(`/api/admin/suppliers/enhanced?page=${currentSupplierPage}&limit=20&search=${encodeURIComponent(search)}`);
+                const data = await response.json();
+                
+                if (data.suppliers) {
+                    displaySuppliers(data.suppliers);
+                    updateSupplierPagination(data.page, data.total_pages);
+                }
+            } catch (error) {
+                console.error('공급업체 목록 로드 실패:', error);
+                document.getElementById('suppliers-table-body').innerHTML = 
+                    '<tr><td colspan="11">공급업체 목록을 불러올 수 없습니다.</td></tr>';
+            }
+        }
+        
+        // 공급업체 목록 표시
+        function displaySuppliers(suppliers) {
+            const tbody = document.getElementById('suppliers-table-body');
+            
+            if (!suppliers || suppliers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11">등록된 공급업체가 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = suppliers.map(supplier => `
+                <tr>
+                    <td><strong>${supplier.parent_code || '-'}</strong></td>
+                    <td><strong>${supplier.site_code || '-'}</strong></td>
+                    <td>${supplier.site_name || '-'}</td>
+                    <td><strong>${supplier.name || '-'}</strong></td>
+                    <td>${supplier.phone || supplier.contact || '-'}</td>
+                    <td>${supplier.email || '-'}</td>
+                    <td><span class="${supplier.is_active ? 'status-active' : 'status-inactive'}">
+                        ${supplier.is_active ? '거래중' : '중단'}
+                    </span></td>
+                    <td>${supplier.business_number || '-'}</td>
+                    <td>${supplier.representative || '-'}</td>
+                    <td>${supplier.manager_name || '-'}</td>
+                    <td>
+                        <button class="btn-small btn-edit" onclick="editSupplier(${supplier.id})" style="background: #28a745; margin-right: 5px;">수정</button>
+                        <button class="btn-small btn-toggle" onclick="toggleSupplierStatus(${supplier.id}, ${!supplier.is_active})" 
+                                style="background: ${supplier.is_active ? '#dc3545' : '#17a2b8'}; margin-right: 5px;">
+                            ${supplier.is_active ? '중단' : '재개'}
+                        </button>
+                        <button class="btn-small btn-delete" onclick="deleteSupplier(${supplier.id})" style="background: #6c757d;">삭제</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 공급업체 페이지네이션 업데이트
+        function updateSupplierPagination(currentPage, totalPages) {
+            currentSupplierPage = currentPage;
+            totalSupplierPages = totalPages;
+            document.getElementById('supplier-page-info').textContent = `${currentPage} / ${totalPages}`;
+        }
+        
+        // 공급업체 페이지 변경
+        function changeSupplierPage(direction) {
+            const newPage = currentSupplierPage + direction;
+            if (newPage >= 1 && newPage <= totalSupplierPages) {
+                currentSupplierPage = newPage;
+                loadSuppliers();
+            }
+        }
+        
+        // 공급업체 검색
+        function searchSuppliers() {
+            currentSupplierPage = 1;
+            loadSuppliers();
+        }
+        
+        // 공급업체 추가 모달 표시
+        function showAddSupplierModal() {
+            currentEditSupplierId = null;
+            document.getElementById('supplier-modal-title').textContent = '새 업체 등록';
+            clearSupplierForm();
+            document.getElementById('supplier-modal').classList.remove('hidden');
+        }
+        
+        // 공급업체 수정 모달 표시
+        async function editSupplier(supplierId) {
+            try {
+                const response = await fetch(`/api/admin/suppliers/${supplierId}/detail`);
+                const supplier = await response.json();
+                
+                currentEditSupplierId = supplierId;
+                document.getElementById('supplier-modal-title').textContent = '업체 정보 수정';
+                
+                // 폼에 데이터 채우기
+                document.getElementById('supplier-name').value = supplier.name || '';
+                document.getElementById('supplier-representative').value = supplier.representative || '';
+                document.getElementById('supplier-contact').value = supplier.contact || '';
+                document.getElementById('supplier-phone').value = supplier.phone || '';
+                document.getElementById('supplier-fax').value = supplier.fax || '';
+                document.getElementById('supplier-email').value = supplier.email || '';
+                document.getElementById('supplier-address').value = supplier.address || '';
+                document.getElementById('supplier-business-number').value = supplier.business_number || '';
+                document.getElementById('supplier-business-type').value = supplier.business_type || '';
+                document.getElementById('supplier-business-item').value = supplier.business_item || '';
+                document.getElementById('supplier-manager-name').value = supplier.manager_name || '';
+                document.getElementById('supplier-manager-phone').value = supplier.manager_phone || '';
+                document.getElementById('supplier-update-frequency').value = supplier.update_frequency || 'weekly';
+                document.getElementById('supplier-is-active').checked = supplier.is_active !== false;
+                document.getElementById('supplier-notes').value = supplier.notes || '';
+                
+                document.getElementById('supplier-modal').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('공급업체 정보 로드 오류:', error);
+                alert('공급업체 정보를 불러올 수 없습니다.');
+            }
+        }
+        
+        // 공급업체 폼 초기화
+        function clearSupplierForm() {
+            document.getElementById('supplier-form').reset();
+            document.getElementById('supplier-is-active').checked = true;
+        }
+        
+        // 공급업체 저장
+        async function saveSupplier() {
+            const supplierData = {
+                name: document.getElementById('supplier-name').value.trim(),
+                parent_code: document.getElementById('supplier-parent-code').value.trim(),
+                site_code: document.getElementById('supplier-site-code').value.trim(),
+                site_name: document.getElementById('supplier-site-name').value.trim(),
+                representative: document.getElementById('supplier-representative').value,
+                contact: document.getElementById('supplier-contact').value,
+                phone: document.getElementById('supplier-phone').value.trim(),
+                fax: document.getElementById('supplier-fax').value,
+                email: document.getElementById('supplier-email').value.trim(),
+                address: document.getElementById('supplier-address').value.trim(),
+                business_number: document.getElementById('supplier-business-number').value,
+                business_type: document.getElementById('supplier-business-type').value,
+                business_item: document.getElementById('supplier-business-item').value,
+                manager_name: document.getElementById('supplier-manager-name').value,
+                manager_phone: document.getElementById('supplier-manager-phone').value,
+                update_frequency: document.getElementById('supplier-update-frequency').value,
+                is_active: document.getElementById('supplier-is-active').checked,
+                notes: document.getElementById('supplier-notes').value
+            };
+            
+            // 필수 필드 검증
+            const parentName = document.getElementById('supplier-parent-name').value.trim();
+            const parentCode = document.getElementById('supplier-parent-code').value.trim();
+            const siteName = document.getElementById('supplier-site-name').value.trim();
+            const siteCode = document.getElementById('supplier-site-code').value.trim();
+            
+            if (!parentName) {
+                alert('원청업체명은 필수입니다.');
+                return;
+            }
+            
+            if (!parentCode) {
+                alert('모코드는 필수입니다.');
+                return;
+            }
+            
+            if (!siteName) {
+                alert('위탁급식업체명은 필수입니다.');
+                return;
+            }
+            
+            if (!siteCode) {
+                alert('자코드(위탁사업장코드)는 필수입니다.');
+                return;
+            }
+            
+            if (!supplierData.name) {
+                alert('식자재업체명은 필수입니다.');
+                return;
+            }
+            
+            if (!supplierData.address) {
+                alert('주소는 필수입니다.');
+                return;
+            }
+            
+            if (!supplierData.phone && !supplierData.email) {
+                alert('연락처 또는 이메일 중 하나는 반드시 입력해야 합니다.');
+                return;
+            }
+            
+            // 새로운 필드 추가
+            supplierData.parent_name = parentName;
+            supplierData.parent_code = parentCode;
+            supplierData.site_name = siteName;
+            supplierData.site_code = siteCode;
+            supplierData.category = document.getElementById('supplier-category').value;
+            
+            try {
+                const url = currentEditSupplierId 
+                    ? `/api/admin/suppliers/${currentEditSupplierId}/update`
+                    : '/api/admin/suppliers/create';
+                const method = currentEditSupplierId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(supplierData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(currentEditSupplierId ? '업체 정보가 수정되었습니다.' : '새 업체가 등록되었습니다.');
+                    closeSupplierModal();
+                    loadSuppliers();
+                } else {
+                    alert('저장에 실패했습니다: ' + (result.message || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('공급업체 저장 오류:', error);
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 공급업체 거래 상태 토글
+        async function toggleSupplierStatus(supplierId, newStatus) {
+            const statusText = newStatus ? '거래를 재개' : '거래를 중단';
+            if (!confirm(`이 업체와의 ${statusText}하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/suppliers/${supplierId}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`업체 거래 상태가 변경되었습니다.`);
+                    loadSuppliers();
+                } else {
+                    alert('상태 변경에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('상태 변경 오류:', error);
+                alert('상태 변경 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 공급업체 삭제
+        async function deleteSupplier(supplierId) {
+            if (!confirm('이 업체를 삭제하시겠습니까?\n연관된 식자재가 있는 경우 삭제되지 않습니다.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/suppliers/${supplierId}/delete`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('업체가 삭제되었습니다.');
+                    loadSuppliers();
+                } else {
+                    alert(result.message || '삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('업체 삭제 오류:', error);
+                alert('삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 공급업체 모달 닫기
+        function closeSupplierModal() {
+            document.getElementById('supplier-modal').classList.add('hidden');
+            currentEditSupplierId = null;
+        }
+        
+        // 자코드 자동 생성 함수
+        async function suggestSiteCode() {
+            const parentCode = document.getElementById('supplier-parent-code').value.trim();
+            if (!parentCode) {
+                document.getElementById('supplier-site-code').value = '';
+                return;
+            }
+            
+            try {
+                // 기존 자코드들 조회
+                const response = await fetch(`/api/admin/suppliers/enhanced?search=${parentCode}`);
+                const result = await response.json();
+                
+                if (result.success && result.suppliers) {
+                    const existingSiteCodes = result.suppliers
+                        .filter(s => s.parent_code === parentCode)
+                        .map(s => s.site_code)
+                        .filter(code => code && code.includes('-'));
+                    
+                    // 다음 순번 계산
+                    let nextNumber = 1;
+                    if (existingSiteCodes.length > 0) {
+                        const numbers = existingSiteCodes.map(code => {
+                            const parts = code.split('-');
+                            return parseInt(parts[parts.length - 1]) || 0;
+                        });
+                        nextNumber = Math.max(...numbers) + 1;
+                    }
+                    
+                    // 자코드 자동 생성
+                    const suggestedCode = `${parentCode}-${String(nextNumber).padStart(2, '0')}`;
+                    document.getElementById('supplier-site-code').value = suggestedCode;
+                    
+                    // 기존 사업장 정보 표시 (existing-sites-info 요소가 있는 경우에만)
+                    const infoElement = document.getElementById('existing-sites-info');
+                    if (infoElement && existingSiteCodes.length > 0) {
+                        infoElement.innerHTML = 
+                            `<span style="color: #28a745;">기존 사업장 ${existingSiteCodes.length}개 | 신규: ${suggestedCode}</span>`;
+                    }
+                } else {
+                    // 첫 번째 자코드
+                    const suggestedCode = `${parentCode}-01`;
+                    document.getElementById('supplier-site-code').value = suggestedCode;
+                }
+            } catch (error) {
+                console.error('자코드 생성 오류:', error);
+                // 오류 시 기본 자코드 생성
+                const suggestedCode = `${parentCode}-01`;
+                document.getElementById('supplier-site-code').value = suggestedCode;
+            }
+        }
+        
+        // 자코드 직접 수정 기능
+        function editSiteCode() {
+            const siteCodeInput = document.getElementById('supplier-site-code');
+            if (siteCodeInput.readOnly) {
+                siteCodeInput.readOnly = false;
+                siteCodeInput.style.backgroundColor = '#ffffff';
+                siteCodeInput.focus();
+            }
+        }
 
     </script>
 </body>

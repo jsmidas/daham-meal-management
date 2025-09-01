@@ -456,27 +456,25 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="supplierName">업체명 <span class="required">★</span></label>
-                        <input type="text" id="supplierName" name="name" placeholder="예: 대한식품, 신선농산" required />
-                        <small style="color: #666;">상위 업체명</small>
+                        <label for="supplierName">업체명(모코드) <span class="required">★</span></label>
+                        <input type="text" id="supplierName" name="name" required />
                     </div>
                     <div class="form-group">
-                        <label for="supplierParentCode">모코드 (상위업체코드) <span class="required">★</span></label>
-                        <input type="text" id="supplierParentCode" name="parent_code" placeholder="예: ab010010" maxlength="20" required />
-                        <small style="color: #666;">상위 업체 식별 코드 (기본 코드)</small>
+                        <label for="supplierParentCode">모코드 <span class="required">★</span></label>
+                        <input type="text" id="supplierParentCode" name="parent_code" placeholder="예: 01, 02, 03" maxlength="10" required />
+                        <small style="color: #666;">하부 코드(01, 02, 03 등)를 위한 모코드</small>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="supplierSiteName">사업장명 (납품처) <span class="required">★</span></label>
+                        <label for="supplierSiteName">사업장명(납품처) - 자코드 <span class="required">★</span></label>
                         <input type="text" id="supplierSiteName" name="site_name" placeholder="예: 다함 1공장, 다함 2공장" maxlength="100" required />
-                        <small style="color: #666;">실제 납품될 사업장명</small>
+                        <small style="color: #666;">같은 업체도 사업장별로 별도 등록 필요</small>
                     </div>
                     <div class="form-group">
-                        <label for="supplierSiteCode">자코드 (사업장코드) <span class="required">★</span></label>
-                        <input type="text" id="supplierSiteCode" name="site_code" placeholder="예: ab010010-01" maxlength="25" required />
-                        <small style="color: #666;">사업장 식별 코드 (모코드-순번)</small>
+                        <label for="supplierSiteCode">사업장코드 <span class="required">★</span></label>
+                        <input type="text" id="supplierSiteCode" name="site_code" placeholder="예: A001, B002" maxlength="10" required />
                     </div>
                 </div>
                 

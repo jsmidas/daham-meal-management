@@ -12,8 +12,8 @@
 
   3. 브라우저로 접속
 
-  - API 문서: http://127.0.0.1:8000/docs
-  - 루트 페이지: http://127.0.0.1:8000/
+  - API 문서: http://127.0.0.1:8001/
+  - 루트 페이지: http://127.0.0.1:8001/
 
   4. 테스트 스크립트 실행 (선택사항)
 
@@ -23,7 +23,7 @@
 
   💡 주요 기능 사용법:
 
-  Swagger UI에서 (http://127.0.0.1:8000/docs):
+  Swagger UI에서 (http://127.0.0.1:8001):
 
   1. 수량 계산: /calculate-requirements
     - Try it out → JSON 입력 → Execute

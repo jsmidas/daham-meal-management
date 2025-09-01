@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다함 식자재 관리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 사이드바 */
+        .sidebar {
+            width: 180px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            text-align: center;
+            padding: 0 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-right: 3px solid #3498db;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 14px;
+            width: 16px;
+        }
+        
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 15px;
+        }
+        
+        .admin-item {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .admin-item:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-right: 3px solid #e74c3c;
+        }
+
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px;
+        }
+        
+        .ingredients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .ingredients-table th,
+        .ingredients-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .ingredients-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .ingredients-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>다함 급식관리</h1>
+            </div>
+            <a href="/" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="/meal-plan" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="/meal-count" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="/ingredients" class="nav-item active"><i class="fas fa-carrot"></i>식자재 관리</a>
+            <a href="/ordering" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="/receiving" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
+            <a href="/preprocessing-demo" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="/cooking" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="/portion" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <div class="nav-divider"></div>
+            <a href="/admin" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+        </nav>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-carrot"></i> 식자재 관리</h1>
+                <p>식자재 목록 조회 및 관리</p>
+            </div>
+            
+            <div class="content-section">
+                <div class="section-header">
+                    <h3>등록된 식자재 목록</h3>
+                    <div style="margin: 15px 0;">
+                        <button class="btn btn-primary" onclick="addIngredient()">
+                            <i class="fas fa-plus"></i>
+                            식자재 추가
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="loadingDiv" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 식자재 목록을 불러오는 중...
+                </div>
+                
+                <div id="errorDiv" class="error" style="display: none;"></div>
+                
+                <table id="ingredientsTable" class="ingredients-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>식자재명</th>
+                            <th>기본단위</th>
+                            <th>단가</th>
+                            <th>최소주문량</th>
+                            <th>공급업체</th>
+                            <th>배송주기</th>
+                            <th>알레르기</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ingredientsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 페이지 로드 시 식자재 목록 불러오기
+        document.addEventListener('DOMContentLoaded', function() {
+            loadIngredients();
+        });
+        
+        async function loadIngredients() {
+            try {
+                const response = await fetch('/api/ingredients/list');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const ingredients = await response.json();
+                
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('ingredientsTable').style.display = 'table';
+                
+                const tbody = document.getElementById('ingredientsTableBody');
+                tbody.innerHTML = '';
+                
+                if (ingredients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #666;">등록된 식자재가 없습니다.</td></tr>';
+                    return;
+                }
+                
+                ingredients.forEach(ingredient => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${ingredient.id}</td>
+                        <td><strong>${ingredient.name || '미입력'}</strong></td>
+                        <td>${ingredient.base_unit || '-'}</td>
+                        <td>${ingredient.price ? '₩' + Number(ingredient.price).toLocaleString() : '-'}</td>
+                        <td>${ingredient.moq ? Number(ingredient.moq).toLocaleString() + ingredient.base_unit : '-'}</td>
+                        <td>${ingredient.supplier_name || '미지정'}</td>
+                        <td>${ingredient.delivery_schedule || '-'}</td>
+                        <td>${ingredient.allergy_codes || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm" onclick="editIngredient(${ingredient.id})" style="background: #f39c12; color: white; padding: 5px 10px; font-size: 12px;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('Error loading ingredients:', error);
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('errorDiv').style.display = 'block';
+                document.getElementById('errorDiv').textContent = '식자재 목록을 불러오는데 실패했습니다: ' + error.message;
+            }
+        }
+        
+        function addIngredient() {
+            alert('식자재 추가 기능은 아직 구현중입니다.');
+        }
+        
+        function editIngredient(id) {
+            alert(`식자재 ID ${id} 편집 기능은 아직 구현중입니다.`);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다함 소분지시서 관리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 사이드바 */
+        .sidebar {
+            width: 180px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            text-align: center;
+            padding: 0 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-right: 3px solid #3498db;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 14px;
+            width: 16px;
+        }
+        
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 15px;
+        }
+        
+        .admin-item {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .admin-item:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-right: 3px solid #e74c3c;
+        }
+        
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* 소분지시서 테이블 */
+        .portion-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #3498db;
+            color: white;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .portion-table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+        
+        .portion-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        
+        .portion-table th {
+            background: #f8f9fa;
+            padding: 6px 4px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            line-height: 1.2;
+        }
+        
+        .portion-table td {
+            padding: 4px 2px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            vertical-align: middle;
+            line-height: 1.2;
+        }
+        
+        .portion-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .business-type {
+            background: #e3f2fd;
+            font-weight: bold;
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            min-width: 40px;
+        }
+        
+        .client-name {
+            background: #fff3e0;
+            font-weight: bold;
+            max-width: 120px;
+            text-align: left;
+            padding-left: 12px;
+        }
+        
+        .container-type {
+            background: #f3e5f5;
+        }
+        
+        /* 용기 선택 드롭다운 스타일 */
+        .container-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .container-select {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .container-select:hover {
+            border-color: #3498db;
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* 용기 시각화 */
+        .container-visual {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+        }
+        
+        .container-icon {
+            width: 16px;
+            height: 12px;
+            border: 1px solid #666;
+            border-radius: 2px;
+            position: relative;
+            background: #f8f9fa;
+        }
+        
+        .container-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #3498db;
+            border-radius: 1px;
+            transition: height 0.2s;
+        }
+        
+        /* 용기 채움 정도별 높이 */
+        .fill-1-6 { height: 16.67%; }
+        .fill-1-3 { height: 33.33%; }
+        .fill-1-2 { height: 50%; }
+        .fill-2-3 { height: 66.67%; }
+        .fill-full { height: 100%; }
+        
+        .meal-count {
+            background: #e8f5e8;
+            font-weight: bold;
+        }
+        
+        .menu-amount {
+            background: #fff8e1;
+            font-size: 11px;
+        }
+        
+        .increase-rate {
+            color: #e74c3c;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .total-row {
+            background: #34495e !important;
+            color: white;
+            font-weight: bold;
+        }
+        
+        /* A3 출력 스타일 */
+        @media print {
+            body { 
+                background: white; 
+                font-size: 10px;
+            }
+            .sidebar { display: none; }
+            .controls { display: none; }
+            .main-content { padding: 10px; }
+            .portion-table { 
+                font-size: 8px; 
+                page-break-inside: avoid;
+            }
+            .portion-table th, .portion-table td {
+                padding: 3px 2px;
+            }
+            @page { 
+                size: A3 landscape; 
+                margin: 0.5in;
+            }
+        }
+        
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>다함 급식관리</h1>
+            </div>
+            <a href="/" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="/meal-plan" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="/meal-count" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="/ingredients" class="nav-item"><i class="fas fa-carrot"></i>식자재 관리</a>
+            <a href="/ordering" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="/receiving" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
+            <a href="/preprocessing-demo" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="/cooking" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="/portion" class="nav-item active"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <div class="nav-divider"></div>
+            <a href="/admin" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+        </nav>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-chart-bar"></i> 소분지시서 관리</h1>
+                <p>조리된 메뉴를 사업장별로 분배하는 소분지시서 작성 및 관리</p>
+                
+                <div class="controls">
+                    <label>작업일자:</label>
+                    <input type="date" id="portionDate" value="2024-08-14">
+                    <label>시설유형:</label>
+                    <select id="mealType">
+                        <option value="breakfast">조식</option>
+                        <option value="lunch" selected>중식</option>
+                        <option value="dinner">석식</option>
+                        <option value="night">야식</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadPortionData()">
+                        <i class="fas fa-search"></i> 조회
+                    </button>
+                    <button class="btn btn-success" onclick="generateFromCooking()">
+                        <i class="fas fa-magic"></i> 조리지시서에서 생성
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 소분지시서 테이블 -->
+            <div class="portion-section">
+                <div class="section-header">
+                    <i class="fas fa-chart-bar"></i> 소분지시서 - 2024년 8월 14일 중식
+                </div>
+                
+                <div class="portion-table-container">
+                    <table class="portion-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" style="width: 35px;">구분</th>
+                                <th rowspan="2" style="width: 85px;">메인식단</th>
+                                <th rowspan="2" style="width: 75px;">고객사</th>
+                                <th rowspan="2" style="width: 65px;">용기</th>
+                                <th rowspan="2" style="width: 40px;">식수</th>
+                                <th colspan="8">메뉴별 분배량 (kg)</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 55px;">김치찌개<br><span class="increase-rate">+85%</span></th>
+                                <th style="width: 50px;">불고기<br><span class="increase-rate">+90%</span></th>
+                                <th style="width: 50px;">백미밥<br><span class="increase-rate">+100%</span></th>
+                                <th style="width: 50px;">배추김치<br><span class="increase-rate">+100%</span></th>
+                                <th style="width: 55px;">단호박볶음<br><span class="increase-rate">+95%</span></th>
+                                <th style="width: 55px;">도라지무침<br><span class="increase-rate">+100%</span></th>
+                                <th style="width: 40px;">과일<br><span class="increase-rate">+100%</span></th>
+                                <th style="width: 40px;">음료<br><span class="increase-rate">+100%</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="portionTableBody">
+                            <!-- 운반급식 -->
+                            <tr>
+                                <td rowspan="2" class="business-type">운반</td>
+                                <td class="client-name">조식 5칸</td>
+                                <td>원예군</td>
+                                <td class="container-type">
+                                    <div class="container-visual">
+                                        <div class="container-icon">
+                                            <div class="container-fill fill-1-6"></div>
+                                        </div>
+                                        <select class="container-select" onchange="updateContainerVisual(this)">
+                                            <option value="1/6" selected>1/6</option>
+                                            <option value="1/3">1/3</option>
+                                            <option value="1/2">1/2</option>
+                                            <option value="2/3">2/3</option>
+                                            <option value="full">Full</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="meal-count">120</td>
+                                <td class="menu-amount">16.4</td>
+                                <td class="menu-amount">4.0</td>
+                                <td class="menu-amount">18.0</td>
+                                <td class="menu-amount">3.6</td>
+                                <td class="menu-amount">4.3</td>
+                                <td class="menu-amount">2.4</td>
+                                <td class="menu-amount">7.2</td>
+                                <td class="menu-amount">12.0</td>
+                            </tr>
+                            <tr>
+                                <td class="client-name">중식 3칸</td>
+                                <td>해오름</td>
+                                <td class="container-type">
+                                    <div class="container-visual">
+                                        <div class="container-icon">
+                                            <div class="container-fill fill-1-3"></div>
+                                        </div>
+                                        <select class="container-select" onchange="updateContainerVisual(this)">
+                                            <option value="1/6">1/6</option>
+                                            <option value="1/3" selected>1/3</option>
+                                            <option value="1/2">1/2</option>
+                                            <option value="2/3">2/3</option>
+                                            <option value="full">Full</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="meal-count">80</td>
+                                <td class="menu-amount">10.9</td>
+                                <td class="menu-amount">2.7</td>
+                                <td class="menu-amount">12.0</td>
+                                <td class="menu-amount">2.4</td>
+                                <td class="menu-amount">2.9</td>
+                                <td class="menu-amount">1.6</td>
+                                <td class="menu-amount">4.8</td>
+                                <td class="menu-amount">8.0</td>
+                            </tr>
+                            
+                            <!-- 학교급식 -->
+                            <tr>
+                                <td rowspan="1" class="business-type">학교</td>
+                                <td class="client-name">조식 5칸</td>
+                                <td>군위군</td>
+                                <td class="container-type">
+                                    <div class="container-visual">
+                                        <div class="container-icon">
+                                            <div class="container-fill fill-2-3"></div>
+                                        </div>
+                                        <select class="container-select" onchange="updateContainerVisual(this)">
+                                            <option value="1/6">1/6</option>
+                                            <option value="1/3">1/3</option>
+                                            <option value="1/2">1/2</option>
+                                            <option value="2/3" selected>2/3</option>
+                                            <option value="full">Full</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="meal-count">450</td>
+                                <td class="menu-amount">61.7</td>
+                                <td class="menu-amount">14.9</td>
+                                <td class="menu-amount">67.5</td>
+                                <td class="menu-amount">13.5</td>
+                                <td class="menu-amount">16.1</td>
+                                <td class="menu-amount">9.0</td>
+                                <td class="menu-amount">27.0</td>
+                                <td class="menu-amount">45.0</td>
+                            </tr>
+                            
+                            <!-- 요양원 -->
+                            <tr>
+                                <td rowspan="2" class="business-type">요양원</td>
+                                <td class="client-name">조식 4칸</td>
+                                <td>해오름</td>
+                                <td class="container-type">
+                                    <div class="container-visual">
+                                        <div class="container-icon">
+                                            <div class="container-fill fill-full"></div>
+                                        </div>
+                                        <select class="container-select" onchange="updateContainerVisual(this)">
+                                            <option value="1/6">1/6</option>
+                                            <option value="1/3">1/3</option>
+                                            <option value="1/2">1/2</option>
+                                            <option value="2/3">2/3</option>
+                                            <option value="full" selected>Full</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="meal-count">60</td>
+                                <td class="menu-amount">8.2</td>
+                                <td class="menu-amount">2.0</td>
+                                <td class="menu-amount">9.0</td>
+                                <td class="menu-amount">1.8</td>
+                                <td class="menu-amount">2.2</td>
+                                <td class="menu-amount">1.2</td>
+                                <td class="menu-amount">3.6</td>
+                                <td class="menu-amount">6.0</td>
+                            </tr>
+                            <tr>
+                                <td class="client-name">조식 측</td>
+                                <td>해오름 측</td>
+                                <td class="container-type">
+                                    <div class="container-visual">
+                                        <div class="container-icon">
+                                            <div class="container-fill fill-1-2"></div>
+                                        </div>
+                                        <select class="container-select" onchange="updateContainerVisual(this)">
+                                            <option value="1/6">1/6</option>
+                                            <option value="1/3">1/3</option>
+                                            <option value="1/2" selected>1/2</option>
+                                            <option value="2/3">2/3</option>
+                                            <option value="full">Full</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="meal-count">30</td>
+                                <td class="menu-amount">4.1</td>
+                                <td class="menu-amount">1.0</td>
+                                <td class="menu-amount">4.5</td>
+                                <td class="menu-amount">0.9</td>
+                                <td class="menu-amount">1.1</td>
+                                <td class="menu-amount">0.6</td>
+                                <td class="menu-amount">1.8</td>
+                                <td class="menu-amount">3.0</td>
+                            </tr>
+                            
+                            <!-- 총 생산량 합계 -->
+                            <tr class="total-row">
+                                <td colspan="4">📊 총 생산량 합계</td>
+                                <td>740</td>
+                                <td>101.3</td>
+                                <td>24.6</td>
+                                <td>111.0</td>
+                                <td>22.2</td>
+                                <td>26.6</td>
+                                <td>14.8</td>
+                                <td>44.4</td>
+                                <td>74.0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 액션 버튼들 -->
+                <div class="controls" style="padding: 20px 25px; background: #f8f9fa;">
+                    <button class="btn btn-success" onclick="addBusinessSite()">
+                        <i class="fas fa-plus"></i>
+                        사업장 추가
+                    </button>
+                    <button class="btn btn-success" onclick="addMenu()">
+                        <i class="fas fa-utensils"></i>
+                        메뉴 추가
+                    </button>
+                    <button class="btn btn-primary" onclick="savePortionInstruction()">
+                        <i class="fas fa-save"></i>
+                        소분지시서 저장
+                    </button>
+                    <button class="btn btn-warning" onclick="printPortionInstruction()">
+                        <i class="fas fa-print"></i>
+                        A3 출력
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>처리 중입니다...</p>
+        </div>
+    </div>
+    
+    <script>
+        // 전역 변수
+        let currentData = {
+            date: '2024-08-14',
+            mealType: 'lunch',
+            businessSites: [
+                {id: 1, type: '운반', name: '조식 5칸', client: '원예군', mealCount: 120, containerType: '1/6'},
+                {id: 2, type: '운반', name: '중식 3칸', client: '해오름', mealCount: 80, containerType: '1/3'},
+                {id: 3, type: '학교', name: '조식 5칸', client: '군위군', mealCount: 450, containerType: '2/3'},
+                {id: 4, type: '요양원', name: '조식 4칸', client: '해오름', mealCount: 60, containerType: 'full'},
+                {id: 5, type: '요양원', name: '조식 측', client: '해오름 측', mealCount: 30, containerType: '1/2'}
+            ],
+            menus: [
+                {name: '김치찌개', yieldRate: 85, totalAmount: 101.3},
+                {name: '불고기', yieldRate: 90, totalAmount: 24.6},
+                {name: '백미밥', yieldRate: 100, totalAmount: 111.0},
+                {name: '배추김치', yieldRate: 100, totalAmount: 22.2},
+                {name: '단호박볶음', yieldRate: 95, totalAmount: 26.6},
+                {name: '도라지무침', yieldRate: 100, totalAmount: 14.8},
+                {name: '과일', yieldRate: 100, totalAmount: 44.4},
+                {name: '음료', yieldRate: 100, totalAmount: 74.0}
+            ]
+        };
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            generatePortionTable();
+        });
+        
+        function initializePage() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('portionDate').value = today;
+            currentData.date = today;
+        }
+        
+        function loadPortionData() {
+            showLoading(true);
+            
+            const date = document.getElementById('portionDate').value;
+            const mealType = document.getElementById('mealType').value;
+            
+            currentData.date = date;
+            currentData.mealType = mealType;
+            
+            // 여기서 실제로는 서버에서 데이터를 로드
+            setTimeout(() => {
+                updateSectionHeader();
+                showLoading(false);
+            }, 1000);
+        }
+        
+        function updateSectionHeader() {
+            const header = document.querySelector('.section-header');
+            const mealTypeText = {
+                'breakfast': '조식',
+                'lunch': '중식',
+                'dinner': '석식',
+                'night': '야식'
+            };
+            
+            const dateStr = new Date(currentData.date).toLocaleDateString('ko-KR');
+            header.innerHTML = `<i class="fas fa-chart-bar"></i> 소분지시서 - ${dateStr} ${mealTypeText[currentData.mealType]}`;
+        }
+        
+        function generateFromCooking() {
+            showLoading(true);
+            
+            // 조리지시서 데이터를 가져와서 소분지시서 생성
+            alert('조리지시서 데이터를 기반으로 소분지시서를 생성합니다.');
+            
+            setTimeout(() => {
+                showLoading(false);
+                // 실제로는 조리지시서에서 메뉴와 총량 데이터를 가져와서 자동 분배
+            }, 2000);
+        }
+        
+        function addBusinessSite() {
+            const siteName = prompt('사업장명을 입력하세요:');
+            if (!siteName) return;
+            
+            const siteType = prompt('사업장 타입을 입력하세요 (운반/학교/요양원):');
+            if (!siteType) return;
+            
+            const clientName = prompt('고객사명을 입력하세요:');
+            if (!clientName) return;
+            
+            const mealCount = parseInt(prompt('식수를 입력하세요:'));
+            if (!mealCount || mealCount <= 0) return;
+            
+            // 새 사업장 추가
+            const newSite = {
+                id: currentData.businessSites.length + 1,
+                type: siteType,
+                name: siteName,
+                client: clientName,
+                mealCount: mealCount,
+                containerType: '1/2'
+            };
+            
+            currentData.businessSites.push(newSite);
+            
+            // 테이블 재생성
+            generatePortionTable();
+            
+            alert(`"${siteName}" 사업장이 추가되었습니다.`);
+        }
+        
+        function addMenu() {
+            const menuName = prompt('메뉴명을 입력하세요:');
+            if (!menuName) return;
+            
+            const yieldRate = parseInt(prompt('수율(%)을 입력하세요:'));
+            if (!yieldRate || yieldRate <= 0) return;
+            
+            const totalAmount = parseFloat(prompt('총 생산량(kg)을 입력하세요:'));
+            if (!totalAmount || totalAmount <= 0) return;
+            
+            // 새 메뉴 추가
+            const newMenu = {
+                name: menuName,
+                yieldRate: yieldRate,
+                totalAmount: totalAmount
+            };
+            
+            currentData.menus.push(newMenu);
+            
+            // 테이블 재생성
+            generatePortionTable();
+            
+            alert(`"${menuName}" 메뉴가 추가되었습니다.`);
+        }
+        
+        function savePortionInstruction() {
+            showLoading(true);
+            
+            // 소분지시서 데이터 수집
+            const portionData = {
+                date: currentData.date,
+                mealType: currentData.mealType,
+                businessSites: currentData.businessSites
+            };
+            
+            // 실제 저장 로직
+            setTimeout(() => {
+                showLoading(false);
+                alert('소분지시서가 저장되었습니다.');
+            }, 1500);
+        }
+        
+        function printPortionInstruction() {
+            window.print();
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        function updateContainerVisual(selectElement) {
+            const value = selectElement.value;
+            const containerIcon = selectElement.parentElement.querySelector('.container-fill');
+            
+            // 기존 클래스 제거
+            containerIcon.className = 'container-fill';
+            
+            // 새로운 클래스 추가
+            switch(value) {
+                case '1/6':
+                    containerIcon.classList.add('fill-1-6');
+                    break;
+                case '1/3':
+                    containerIcon.classList.add('fill-1-3');
+                    break;
+                case '1/2':
+                    containerIcon.classList.add('fill-1-2');
+                    break;
+                case '2/3':
+                    containerIcon.classList.add('fill-2-3');
+                    break;
+                case 'full':
+                    containerIcon.classList.add('fill-full');
+                    break;
+            }
+        }
+        
+        function generatePortionTable() {
+            const table = document.querySelector('.portion-table');
+            const tbody = document.getElementById('portionTableBody');
+            
+            // 기존 테이블 내용 제거
+            const thead = table.querySelector('thead');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            
+            // 헤더 생성
+            generateTableHeader(thead);
+            
+            // 바디 생성
+            generateTableBody(tbody);
+        }
+        
+        function generateTableHeader(thead) {
+            const menus = currentData.menus;
+            
+            // 첫 번째 헤더 행
+            const headerRow1 = document.createElement('tr');
+            headerRow1.innerHTML = `
+                <th rowspan="2" style="width: 35px;">구분</th>
+                <th rowspan="2" style="width: 85px;">메인식단</th>
+                <th rowspan="2" style="width: 75px;">고객사</th>
+                <th rowspan="2" style="width: 65px;">용기</th>
+                <th rowspan="2" style="width: 40px;">식수</th>
+                <th colspan="${menus.length}">메뉴별 분배량 (kg)</th>
+            `;
+            
+            // 두 번째 헤더 행
+            const headerRow2 = document.createElement('tr');
+            menus.forEach(menu => {
+                const menuWidth = Math.max(40, Math.min(60, menu.name.length * 8 + 20));
+                headerRow2.innerHTML += `
+                    <th style="width: ${menuWidth}px;">${menu.name}<br><span class="increase-rate">+${menu.yieldRate}%</span></th>
+                `;
+            });
+            
+            thead.appendChild(headerRow1);
+            thead.appendChild(headerRow2);
+        }
+        
+        function generateTableBody(tbody) {
+            const businessSites = currentData.businessSites;
+            const menus = currentData.menus;
+            
+            // 사업장 타입별로 그룹화
+            const groupedSites = {};
+            businessSites.forEach(site => {
+                if (!groupedSites[site.type]) {
+                    groupedSites[site.type] = [];
+                }
+                groupedSites[site.type].push(site);
+            });
+            
+            // 각 사업장 타입별로 행 생성
+            Object.keys(groupedSites).forEach(businessType => {
+                const sites = groupedSites[businessType];
+                sites.forEach((site, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // 첫 번째 행에만 사업장 타입 표시
+                    if (index === 0) {
+                        row.innerHTML += `<td rowspan="${sites.length}" class="business-type">${businessType}</td>`;
+                    }
+                    
+                    // 기본 정보
+                    row.innerHTML += `
+                        <td class="client-name">${site.name}</td>
+                        <td>${site.client}</td>
+                        <td class="container-type">
+                            ${generateContainerSelector(site.containerType)}
+                        </td>
+                        <td class="meal-count">${site.mealCount}</td>
+                    `;
+                    
+                    // 메뉴별 분배량 계산 및 표시
+                    menus.forEach(menu => {
+                        const totalMealCount = businessSites.reduce((sum, s) => sum + s.mealCount, 0);
+                        const portionAmount = (menu.totalAmount * site.mealCount / totalMealCount).toFixed(1);
+                        row.innerHTML += `<td class="menu-amount">${portionAmount}</td>`;
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+            });
+            
+            // 총 합계 행 추가
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            const totalMealCount = businessSites.reduce((sum, site) => sum + site.mealCount, 0);
+            
+            totalRow.innerHTML = `
+                <td colspan="4">📊 총 생산량 합계</td>
+                <td>${totalMealCount}</td>
+            `;
+            
+            menus.forEach(menu => {
+                totalRow.innerHTML += `<td>${menu.totalAmount}</td>`;
+            });
+            
+            tbody.appendChild(totalRow);
+        }
+        
+        function generateContainerSelector(selectedValue) {
+            const fillClass = {
+                '1/6': 'fill-1-6',
+                '1/3': 'fill-1-3', 
+                '1/2': 'fill-1-2',
+                '2/3': 'fill-2-3',
+                'full': 'fill-full'
+            };
+            
+            return `
+                <div class="container-visual">
+                    <div class="container-icon">
+                        <div class="container-fill ${fillClass[selectedValue]}"></div>
+                    </div>
+                    <select class="container-select" onchange="updateContainerVisual(this)">
+                        <option value="1/6" ${selectedValue === '1/6' ? 'selected' : ''}>1/6</option>
+                        <option value="1/3" ${selectedValue === '1/3' ? 'selected' : ''}>1/3</option>
+                        <option value="1/2" ${selectedValue === '1/2' ? 'selected' : ''}>1/2</option>
+                        <option value="2/3" ${selectedValue === '2/3' ? 'selected' : ''}>2/3</option>
+                        <option value="full" ${selectedValue === 'full' ? 'selected' : ''}>Full</option>
+                    </select>
+                </div>
+            `;
+        }
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        savePortionInstruction();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printPortionInstruction();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
