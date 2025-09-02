@@ -137,11 +137,22 @@ class Ingredient(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False)
+    code = Column(String(50))  # 식자재코드
+    specification = Column(String(100))  # 규격
     base_unit = Column(String(10), nullable=False)
     price = Column(DECIMAL(10, 2))
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
     moq = Column(DECIMAL(10, 3), default=1.0)  # Minimum Order Quantity
     allergy_codes = Column(JSON)
+    
+    # 추가 필드들 (샘플 파일 구조에 맞게)
+    category = Column(String(50))  # 분류(대분류)
+    subcategory = Column(String(50))  # 기본식자재(소분류)
+    storage_method = Column(String(50))  # 저장방법
+    weight = Column(String(20))  # 중량
+    weight_unit = Column(String(10))  # 중량단위
+    notes = Column(Text)  # 비고
+    
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
@@ -151,35 +162,93 @@ class Ingredient(Base):
     supplier_ingredients = relationship("SupplierIngredient", back_populates="ingredient")
     inventories = relationship("Inventory", back_populates="ingredient")
 
-# Suppliers: 공급업체
+# BusinessLocations: 사업장 관리
+class BusinessLocation(Base):
+    __tablename__ = "business_locations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    site_code = Column(String(10), unique=True, nullable=False)  # 사업장코드
+    site_name = Column(String(100), nullable=False)  # 사업장명
+    site_type = Column(String(20))  # 사업장 유형 (본사/공장/지점/학교/기타)
+    region = Column(String(50))  # 지역 (본사/영남/충북 등)
+    address = Column(Text)  # 주소
+    phone = Column(String(20))  # 전화번호
+    fax = Column(String(20))  # 팩스번호
+    manager_name = Column(String(50))  # 관리자명
+    manager_phone = Column(String(20))  # 관리자 연락처
+    manager_email = Column(String(100))  # 관리자 이메일
+    operating_hours = Column(String(100))  # 운영시간
+    meal_capacity = Column(Integer)  # 급식 수용인원
+    kitchen_type = Column(String(30))  # 주방 형태 (직영/위탁)
+    special_notes = Column(Text)  # 특이사항
+    is_active = Column(Boolean, default=True)  # 운영상태
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    supplier_mappings = relationship("SupplierSiteMapping", back_populates="business_location")
+
+# Suppliers: 공급업체 (본사 정보만)
 class Supplier(Base):
     __tablename__ = "suppliers"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    contact = Column(String(100))
-    phone = Column(String(20))
-    fax = Column(String(20))
-    email = Column(String(100))
-    address = Column(Text)
-    business_number = Column(String(12))
-    business_type = Column(String(50))
-    business_item = Column(String(100))
-    representative = Column(String(50))
-    manager_name = Column(String(50))
-    manager_phone = Column(String(20))
-    is_active = Column(Boolean, default=True)
-    notes = Column(Text)
-    parent_code = Column(String(10))
-    site_code = Column(String(10))
-    site_name = Column(String(100))
-    update_frequency = Column(String(20))
+    name = Column(String(100), nullable=False)  # 업체명 (본사명)
+    parent_code = Column(String(10), unique=True)  # 모코드
+    business_number = Column(String(12), unique=True)  # 사업자번호
+    business_type = Column(String(50))  # 업종
+    business_item = Column(String(100))  # 종목
+    representative = Column(String(50))  # 대표자명
+    headquarters_address = Column(Text)  # 본사주소
+    headquarters_phone = Column(String(20))  # 본사전화
+    headquarters_fax = Column(String(20))  # 본사팩스
+    email = Column(String(100))  # 이메일
+    website = Column(String(200))  # 홈페이지
+    is_active = Column(Boolean, default=True)  # 거래상태
+    company_scale = Column(String(10))  # 회사규모 (대기업/중소기업)
+    notes = Column(Text)  # 비고
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     # Relationships
     ingredients = relationship("Ingredient", back_populates="supplier")
     supplier_ingredients = relationship("SupplierIngredient", back_populates="supplier")
+    site_mappings = relationship("SupplierSiteMapping", back_populates="supplier")
+    customer_mappings = relationship("CustomerSupplierMapping", back_populates="supplier")
+
+# SupplierSiteMapping: 업체-사업장 연결 (N:N)
+class SupplierSiteMapping(Base):
+    __tablename__ = "supplier_site_mappings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    business_location_id = Column(Integer, ForeignKey("business_locations.id"), nullable=False)
+    
+    # 사업장별 업체별 특별 조건
+    delivery_days = Column(String(50))  # 배송요일
+    delivery_time = Column(String(50))  # 배송시간
+    min_order_amount = Column(DECIMAL(10, 2))  # 최소주문금액
+    delivery_fee = Column(DECIMAL(8, 2))  # 배송비
+    free_delivery_amount = Column(DECIMAL(10, 2))  # 무료배송금액
+    payment_terms = Column(String(100))  # 결제조건
+    priority_order = Column(Integer, default=0)  # 우선순위
+    is_primary_supplier = Column(Boolean, default=False)  # 주 협력업체 여부
+    
+    # 담당자 정보 (사업장별로 다를 수 있음)
+    contact_person = Column(String(50))  # 담당자명
+    contact_phone = Column(String(20))  # 담당자 전화
+    contact_email = Column(String(100))  # 담당자 이메일
+    
+    is_active = Column(Boolean, default=True)  # 매칭 상태
+    contract_start_date = Column(Date)  # 계약 시작일
+    contract_end_date = Column(Date)  # 계약 종료일
+    notes = Column(Text)  # 비고
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    supplier = relationship("Supplier", back_populates="site_mappings")
+    business_location = relationship("BusinessLocation", back_populates="supplier_mappings")
 
 # RecipeIngredients: 레시피-식재료 관계
 class RecipeIngredient(Base):
@@ -241,6 +310,7 @@ class Customer(Base):
     __tablename__ = "customers"
     
     id = Column(Integer, primary_key=True, index=True)
+    site_code = Column(String(10), unique=True)  # 사업장코드
     name = Column(String(100), nullable=False)
     site_type = Column(String(20), default="detail")  # head, detail, period
     parent_id = Column(Integer, ForeignKey("customers.id"), nullable=True)  # 상위 사업장
@@ -258,8 +328,9 @@ class Customer(Base):
     # Self-referential relationship for hierarchy
     children = relationship("Customer", backref="parent", remote_side=[id])
     
-    # Relationships
+    # Relationships  
     customer_menus = relationship("CustomerMenu", back_populates="customer")
+    supplier_mappings = relationship("CustomerSupplierMapping", back_populates="customer")
 
 # CustomerMenus: 고객사-메뉴 연결
 class CustomerMenu(Base):
@@ -276,6 +347,29 @@ class CustomerMenu(Base):
     # Relationships
     customer = relationship("Customer", back_populates="customer_menus")
     menu = relationship("Menu", back_populates="customer_menus")
+
+# CustomerSupplierMapping: 사업장-협력업체 매핑 (N:N 관계)
+class CustomerSupplierMapping(Base):
+    __tablename__ = "customer_supplier_mappings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    
+    # 매핑 관련 정보
+    delivery_code = Column(String(20))  # 사업장별 배송코드 (예: CJ코드001, 웰스토리코드001)
+    priority_order = Column(Integer, default=0)  # 우선순위
+    is_primary_supplier = Column(Boolean, default=False)  # 주 협력업체 여부
+    contract_start_date = Column(Date)  # 계약 시작일
+    contract_end_date = Column(Date)    # 계약 종료일
+    notes = Column(Text)  # 비고
+    is_active = Column(Boolean, default=True)  # 활성 상태
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    customer = relationship("Customer", back_populates="supplier_mappings")
+    supplier = relationship("Supplier", back_populates="customer_mappings")
 
 # Inventories: 재고
 class Inventory(Base):

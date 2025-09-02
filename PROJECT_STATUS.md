@@ -73,12 +73,12 @@
 ### 1. API 서버 실행
 ```bash
 cd C:\Dev\daham-meal-management
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
+python -m uvicorn main:app --host 127.0.0.1 --port 8001
 ```
 
 ### 2. Swagger UI 접속
 ```
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8001/docs
 ```
 
 ### 3. 테스트 실행

@@ -7,7 +7,7 @@ import json
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://127.0.0.1:8001"
 
 def test_api_connection():
     """API 연결 테스트"""
@@ -20,7 +20,7 @@ def test_api_connection():
     except URLError:
         print("[ERROR] API 서버가 실행되지 않았습니다.")
         print("   먼저 다음 명령을 실행하세요:")
-        print("   python -m uvicorn main:app --host 127.0.0.1 --port 8000")
+        print("   python -m uvicorn main:app --host 127.0.0.1 --port 8001")
         return False
 
 def test_suppliers():
@@ -128,7 +128,7 @@ def main():
     print("\n" + "=" * 50)
     print("[완료] 모든 테스트 완료!")
     print("\nSwagger UI 접속:")
-    print("   http://127.0.0.1:8000/docs")
+    print("   http://127.0.0.1:8001/docs")
     print("=" * 50)
 
 if __name__ == "__main__":

@@ -16,11 +16,11 @@ from datetime import datetime, date, timedelta
 
 # 로컬 임포트
 from models import (
-    Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer, User, 
+    Base, DietPlan, Menu, MenuItem, Recipe, Ingredient, Supplier, Customer, User, CustomerMenu,
     MealCount, MealCountTimeline, MealCountTemplate,
     PurchaseOrder, PurchaseOrderItem, ReceivingRecord, ReceivingItem,
     PreprocessingMaster, PreprocessingInstruction, PreprocessingInstructionItem,
-    OrderTypeEnum, ReceivingStatusEnum
+    CustomerSupplierMapping, OrderTypeEnum, ReceivingStatusEnum
 )
 from business_logic import MenuCalculator, NutritionCalculator, CostAnalyzer
 
@@ -315,6 +315,16 @@ async def serve_admin_dashboard(request: Request):
     
     return FileResponse("admin_dashboard.html")
 
+@app.get("/admin/ingredient-upload-test")
+async def test_ingredient_route():
+    """테스트 라우트"""
+    return JSONResponse({"status": "working", "route": "ingredient-upload-test"})
+
+@app.get("/admin/simple-test")  
+async def simple_test():
+    """매우 간단한 테스트"""
+    return {"message": "simple test works"}
+
 @app.get("/supplier-management")
 async def serve_supplier_management(request: Request):
     """식자재 업체관리 페이지 서빙 (admin 권한 필요)"""
@@ -354,6 +364,33 @@ async def serve_admin_suppliers(request: Request):
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
     
     return FileResponse("supplier_management.html")
+
+@app.get("/admin/business-locations")
+async def serve_admin_business_locations(request: Request):
+    """관리자 사업장관리 페이지 서빙 (관리자 권한 필요)"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # 관리자 권한 확인
+    admin_roles = ['admin', 'manager', '관리자', '매니저', 'nutritionist', '영양사']
+    if user['role'] not in admin_roles:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    return FileResponse("business_location_management_v2.html")
+
+@app.get("/admin/ingredient-upload")
+async def serve_ingredient_upload_page(request: Request):
+    """식자재 파일 업로드 페이지"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    admin_roles = ['admin', 'manager', '관리자', '매니저', 'nutritionist', '영양사']
+    if user['role'] not in admin_roles:
+        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+    
+    return FileResponse("ingredient_file_upload.html")
 
 @app.get("/ingredients-management")
 async def serve_ingredients_management(request: Request):
@@ -2030,23 +2067,34 @@ async def reset_user_password(user_id: int, db: Session = Depends(get_db)):
 async def get_admin_sites(db: Session = Depends(get_db)):
     """관리자용 사업장 목록 조회"""
     try:
-        # 임시 사업장 데이터
-        sites = [
-            {"id": 1, "name": "본사"},
-            {"id": 2, "name": "A학교"},
-            {"id": 3, "name": "B학교"},
-            {"id": 4, "name": "C회사"},
-            {"id": 5, "name": "D병원"},
-        ]
+        # 실제 데이터베이스에서 사업장 목록 조회
+        customers = db.query(Customer).order_by(Customer.sort_order).all()
+        
+        sites = []
+        for customer in customers:
+            sites.append({
+                "id": customer.id,
+                "site_code": customer.site_code,
+                "name": customer.name,
+                "site_type": customer.site_type,
+                "contact_person": customer.contact_person,
+                "contact_phone": customer.contact_phone,
+                "address": customer.address,
+                "portion_size": customer.portion_size,
+                "description": customer.description,
+                "is_active": customer.is_active
+            })
         
         return sites
     except Exception as e:
+        print(f"사업장 목록 조회 중 오류: {e}")
         return []
 
 # 사업장 관리 API 엔드포인트들
 class SiteCreateRequest(BaseModel):
+    site_code: Optional[str] = None  # 사업장코드
     name: str
-    site_type: str  # head, detail, period
+    site_type: str  # 도시락, 운반, 학교, 요양원, 위탁, 일반음식점, 기타
     parent_id: Optional[int] = None
     contact_person: Optional[str] = None
     contact_phone: Optional[str] = None
@@ -2158,6 +2206,7 @@ async def get_site_detail(site_id: int, db: Session = Depends(get_db)):
 async def create_site(site_data: SiteCreateRequest, db: Session = Depends(get_db)):
     """새 사업장 생성"""
     try:
+        print(f"[DEBUG] Received site_data: {site_data.dict()}")
         # 계층 레벨 계산
         level = 0
         if site_data.parent_id:
@@ -2176,6 +2225,7 @@ async def create_site(site_data: SiteCreateRequest, db: Session = Depends(get_db
         
         # 새 사업장 생성
         new_customer = Customer(
+            site_code=site_data.site_code,
             name=site_data.name,
             site_type=site_data.site_type,
             parent_id=site_data.parent_id,
@@ -2193,9 +2243,16 @@ async def create_site(site_data: SiteCreateRequest, db: Session = Depends(get_db
         db.commit()
         db.refresh(new_customer)
         
+        # 사업장 생성 후 기본 식단표 자동 생성
+        created_meal_plans = create_default_meal_plans(db, new_customer.id, new_customer.name)
+        
+        success_message = f"{getSiteTypeDisplay(site_data.site_type)}이(가) 성공적으로 생성되었습니다"
+        if created_meal_plans > 0:
+            success_message += f" (기본 식단표 {created_meal_plans}개 생성됨)"
+        
         return {
             "success": True,
-            "message": f"{getSiteTypeDisplay(site_data.site_type)}이(가) 성공적으로 생성되었습니다",
+            "message": success_message,
             "site_id": new_customer.id
         }
     except Exception as e:
@@ -2366,6 +2423,23 @@ async def get_suppliers(request: Request, db: Session = Depends(get_db)):
         print(f"[ERROR] 공급업체 목록 조회 실패: {e}")
         raise HTTPException(status_code=500, detail="공급업체 목록 조회 실패")
 
+@app.get("/api/admin/ingredient-template")
+async def download_ingredient_template(request: Request):
+    """식자재 업로드 템플릿 다운로드"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+    
+    template_path = "sample data/upload/food_sample.xls"
+    if os.path.exists(template_path):
+        return FileResponse(
+            path=template_path,
+            filename="식자재_업로드_템플릿.xls",
+            media_type="application/vnd.ms-excel"
+        )
+    else:
+        raise HTTPException(status_code=404, detail="템플릿 파일을 찾을 수 없습니다.")
+
 @app.post("/api/admin/upload-ingredients")
 async def upload_ingredients(
     request: Request, 
@@ -2399,8 +2473,8 @@ async def upload_ingredients(
             # 엑셀 파일 읽기
             df = pd.read_excel(temp_path)
             
-            # 기본 검증
-            required_columns = ['식자재명', '단위', '단가']  # 필수 컬럼
+            # 기본 검증 - 규격 컬럼 포함
+            required_columns = ['식자재명', '규격', '단위']  # 필수 컬럼
             missing_columns = [col for col in required_columns if col not in df.columns]
             
             if missing_columns:
@@ -2419,17 +2493,28 @@ async def upload_ingredients(
                     if pd.isna(row.get('식자재명')) or str(row.get('식자재명')).strip() == '':
                         continue
                     
+                    # 규격 컬럼 포함하여 처리
                     ingredient_name = str(row['식자재명']).strip()
+                    specification = str(row['규격']).strip() if not pd.isna(row.get('규격')) else ''
                     base_unit = str(row['단위']).strip()
                     
-                    # 단가 처리 (숫자가 아닌 경우 None)
+                    # 추가 정보들
+                    ingredient_code = str(row.get('식자재코드', '')).strip() if not pd.isna(row.get('식자재코드')) else ''
+                    category = str(row.get('분류(대분류)', '')).strip() if not pd.isna(row.get('분류(대분류)')) else ''
+                    subcategory = str(row.get('기본식자재(소분류)', '')).strip() if not pd.isna(row.get('기본식자재(소분류)')) else ''
+                    storage_method = str(row.get('저장방법', '')).strip() if not pd.isna(row.get('저장방법')) else ''
+                    weight = str(row.get('중량', '')).strip() if not pd.isna(row.get('중량')) else ''
+                    weight_unit = str(row.get('중량단위', '')).strip() if not pd.isna(row.get('중량단위')) else ''
+                    notes = str(row.get('비고', '')).strip() if not pd.isna(row.get('비고')) else ''
+                    
+                    # 판매가 처리 (숫자가 아닌 경우 None)
                     try:
-                        price = float(row.get('단가', 0)) if not pd.isna(row.get('단가')) else None
+                        price = float(row.get('판매가', 0)) if not pd.isna(row.get('판매가')) else None
                     except:
                         price = None
                     
                     # 공급업체 처리
-                    supplier_name = str(row.get('공급업체', '')).strip() if not pd.isna(row.get('공급업체')) else None
+                    supplier_name = str(row.get('공급처명', '')).strip() if not pd.isna(row.get('공급처명')) else None
                     supplier_id = None
                     
                     if supplier_name:
@@ -2446,7 +2531,16 @@ async def upload_ingredients(
                     
                     if existing_ingredient:
                         # 기존 식자재 업데이트
+                        existing_ingredient.code = ingredient_code or existing_ingredient.code
+                        existing_ingredient.specification = specification or existing_ingredient.specification
                         existing_ingredient.base_unit = base_unit
+                        existing_ingredient.category = category or existing_ingredient.category
+                        existing_ingredient.subcategory = subcategory or existing_ingredient.subcategory
+                        existing_ingredient.storage_method = storage_method or existing_ingredient.storage_method
+                        existing_ingredient.weight = weight or existing_ingredient.weight
+                        existing_ingredient.weight_unit = weight_unit or existing_ingredient.weight_unit
+                        existing_ingredient.notes = notes or existing_ingredient.notes
+                        
                         if price is not None:
                             existing_ingredient.price = price
                         if supplier_id is not None:
@@ -2456,9 +2550,17 @@ async def upload_ingredients(
                         # 새 식자재 생성
                         new_ingredient = Ingredient(
                             name=ingredient_name,
+                            code=ingredient_code,
+                            specification=specification,
                             base_unit=base_unit,
                             price=price,
-                            supplier_id=supplier_id
+                            supplier_id=supplier_id,
+                            category=category,
+                            subcategory=subcategory,
+                            storage_method=storage_method,
+                            weight=weight,
+                            weight_unit=weight_unit,
+                            notes=notes
                         )
                         db.add(new_ingredient)
                     
@@ -3904,57 +4006,6 @@ async def init_supplier_extensions(request: Request, db: Session = Depends(get_d
         db.rollback()
         raise HTTPException(status_code=500, detail=f"데이터베이스 업데이트 실패: {str(e)}")
 
-@app.get("/api/admin/suppliers/enhanced")
-async def get_suppliers_enhanced(request: Request, page: int = 1, limit: int = 20, search: str = "", db: Session = Depends(get_db)):
-    """공급업체 목록 조회 (확장된 정보 포함)"""
-    user = get_current_user(request)
-    if not user or user.get('role') != 'admin':
-        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
-    
-    try:
-        # 검색 조건
-        where_clause = ""
-        params = {}
-        if search:
-            where_clause = """WHERE name LIKE :search OR contact LIKE :search 
-                             OR phone LIKE :search OR email LIKE :search 
-                             OR business_number LIKE :search"""
-            params["search"] = f"%{search}%"
-        
-        # 총 개수 조회
-        count_query = f"SELECT COUNT(*) FROM suppliers {where_clause}"
-        total = db.execute(text(count_query), params).scalar()
-        
-        # 공급업체 목록 조회
-        offset = (page - 1) * limit
-        query = f"""
-            SELECT 
-                s.id, s.name, s.contact, s.phone, s.fax, s.email, s.address,
-                s.business_number, s.business_type, s.business_item, s.representative,
-                s.manager_name, s.manager_phone, COALESCE(s.is_active, 1) as is_active,
-                s.notes, s.update_frequency, s.parent_code, s.site_code, s.site_name,
-                s.created_at, s.updated_at
-            FROM suppliers s
-            {where_clause}
-            ORDER BY s.name
-            LIMIT :limit OFFSET :offset
-        """
-        
-        params.update({"limit": limit, "offset": offset})
-        suppliers_result = db.execute(text(query), params).fetchall()
-        
-        suppliers = [dict(row._mapping) for row in suppliers_result]
-        
-        return {
-            "suppliers": suppliers,
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "total_pages": (total + limit - 1) // limit
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/admin/suppliers/{supplier_id}/detail")
 async def get_supplier_detail(supplier_id: int, request: Request, db: Session = Depends(get_db)):
@@ -4223,6 +4274,315 @@ async def get_supplier_detail(
         print(f"[ERROR] 공급업체 상세정보 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=f"공급업체 상세정보 조회 실패: {str(e)}")
 
+def create_default_meal_plans(db: Session, customer_id: int, customer_name: str) -> int:
+    """사업장 생성 시 기본 식단표를 자동으로 생성하는 함수"""
+    from datetime import date, timedelta
+    
+    try:
+        created_count = 0
+        today = date.today()
+        
+        # 향후 7일간의 기본 식단표 생성
+        for i in range(7):
+            target_date = today + timedelta(days=i)
+            
+            # 해당 날짜에 대한 DietPlan 생성 또는 기존 것 사용
+            diet_plan = db.query(DietPlan).filter(
+                DietPlan.date == target_date,
+                DietPlan.category == "기본"
+            ).first()
+            
+            if not diet_plan:
+                diet_plan = DietPlan(
+                    category="기본",
+                    date=target_date,
+                    description=f"{customer_name} - {target_date.strftime('%Y-%m-%d')} 기본 식단"
+                )
+                db.add(diet_plan)
+                db.flush()  # ID 생성을 위해
+            
+            # 각 끼니별 메뉴 생성 (조식, 중식, 석식)
+            meal_types = ["조식", "중식", "석식"]
+            for meal_type in meal_types:
+                # 기존 메뉴가 있는지 확인
+                existing_menu = db.query(Menu).filter(
+                    Menu.diet_plan_id == diet_plan.id,
+                    Menu.menu_type == meal_type
+                ).first()
+                
+                if not existing_menu:
+                    new_menu = Menu(
+                        diet_plan_id=diet_plan.id,
+                        menu_type=meal_type,
+                        target_num_persons=50,  # 기본값
+                        target_food_cost=3000.00,  # 기본값
+                        evaluation_score=80
+                    )
+                    db.add(new_menu)
+                    db.flush()  # ID 생성을 위해
+                    
+                    # 사업장과 메뉴 연결 (CustomerMenu)
+                    customer_menu = CustomerMenu(
+                        customer_id=customer_id,
+                        menu_id=new_menu.id,
+                        customer_num_persons=50,
+                        assigned_date=target_date
+                    )
+                    db.add(customer_menu)
+                    created_count += 1
+        
+        db.commit()
+        return created_count
+        
+    except Exception as e:
+        db.rollback()
+        print(f"기본 식단표 생성 중 오류: {e}")
+        return 0
+
+# ==============================================================================
+# 단가관리 API 엔드포인트
+# ==============================================================================
+
+@app.get("/api/customers")
+async def get_customers(db: Session = Depends(get_db)):
+    """사업장 목록 조회 (단가관리용)"""
+    try:
+        customers = db.query(Customer).order_by(Customer.sort_order).all()
+        
+        customer_list = []
+        for customer in customers:
+            customer_list.append({
+                "id": customer.id,
+                "name": customer.name,
+                "site_type": customer.site_type
+            })
+        
+        return customer_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/diet-plans")
+async def get_diet_plans(customer_id: int = None, db: Session = Depends(get_db)):
+    """식단표 목록 조회 (단가관리용)"""
+    try:
+        query = db.query(DietPlan).join(Customer)
+        
+        if customer_id:
+            query = query.filter(DietPlan.customer_id == customer_id)
+        
+        diet_plans = query.order_by(DietPlan.date).all()
+        
+        diet_plan_list = []
+        for plan in diet_plans:
+            # 식단 유형은 사업장의 site_type을 사용
+            meal_type = plan.customer.site_type or "기타"
+            
+            diet_plan_list.append({
+                "id": plan.id,
+                "customer_id": plan.customer_id,
+                "customer_name": plan.customer.name,
+                "date": plan.date.isoformat(),
+                "meal_type": meal_type,
+                "breakfast_menu": plan.breakfast_menu,
+                "lunch_menu": plan.lunch_menu,
+                "dinner_menu": plan.dinner_menu
+            })
+        
+        return diet_plan_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================
+# Customer-Supplier Mapping API
+# =============================
+
+class CustomerSupplierMappingCreate(BaseModel):
+    customer_id: int
+    supplier_id: int
+    delivery_code: str
+    priority: Optional[int] = 1
+    is_primary: Optional[bool] = False
+    contract_start_date: Optional[date] = None
+    contract_end_date: Optional[date] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = True
+
+class CustomerSupplierMappingUpdate(BaseModel):
+    customer_id: Optional[int] = None
+    supplier_id: Optional[int] = None
+    delivery_code: Optional[str] = None
+    priority: Optional[int] = None
+    is_primary: Optional[bool] = None
+    contract_start_date: Optional[date] = None
+    contract_end_date: Optional[date] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+@app.get("/api/admin/customer-supplier-mappings")
+async def get_customer_supplier_mappings(db: Session = Depends(get_db)):
+    """사업장-협력업체 매핑 목록 조회"""
+    try:
+        mappings = db.query(CustomerSupplierMapping).all()
+        
+        mapping_list = []
+        for mapping in mappings:
+            mapping_list.append({
+                "id": mapping.id,
+                "customer_id": mapping.customer_id,
+                "supplier_id": mapping.supplier_id,
+                "delivery_code": mapping.delivery_code,
+                "priority": mapping.priority,
+                "is_primary": mapping.is_primary,
+                "contract_start_date": mapping.contract_start_date.isoformat() if mapping.contract_start_date else None,
+                "contract_end_date": mapping.contract_end_date.isoformat() if mapping.contract_end_date else None,
+                "notes": mapping.notes,
+                "is_active": mapping.is_active,
+                "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None
+            })
+        
+        return {"success": True, "mappings": mapping_list}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/admin/customer-supplier-mappings")
+async def create_customer_supplier_mapping(mapping_data: CustomerSupplierMappingCreate, db: Session = Depends(get_db)):
+    """사업장-협력업체 매핑 생성"""
+    try:
+        # 중복 검사
+        existing = db.query(CustomerSupplierMapping).filter(
+            CustomerSupplierMapping.customer_id == mapping_data.customer_id,
+            CustomerSupplierMapping.supplier_id == mapping_data.supplier_id
+        ).first()
+        
+        if existing:
+            return {"success": False, "message": "이미 존재하는 매핑입니다."}
+        
+        # 사업장과 협력업체 존재 확인
+        customer = db.query(Customer).filter(Customer.id == mapping_data.customer_id).first()
+        if not customer:
+            return {"success": False, "message": "존재하지 않는 사업장입니다."}
+        
+        supplier = db.query(Supplier).filter(Supplier.id == mapping_data.supplier_id).first()
+        if not supplier:
+            return {"success": False, "message": "존재하지 않는 협력업체입니다."}
+        
+        # 새 매핑 생성
+        new_mapping = CustomerSupplierMapping(
+            customer_id=mapping_data.customer_id,
+            supplier_id=mapping_data.supplier_id,
+            delivery_code=mapping_data.delivery_code,
+            priority=mapping_data.priority,
+            is_primary=mapping_data.is_primary,
+            contract_start_date=mapping_data.contract_start_date,
+            contract_end_date=mapping_data.contract_end_date,
+            notes=mapping_data.notes,
+            is_active=mapping_data.is_active,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        db.add(new_mapping)
+        db.commit()
+        db.refresh(new_mapping)
+        
+        return {"success": True, "message": "매핑이 생성되었습니다.", "mapping_id": new_mapping.id}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+@app.put("/api/admin/customer-supplier-mappings/{mapping_id}")
+async def update_customer_supplier_mapping(mapping_id: int, mapping_data: CustomerSupplierMappingUpdate, db: Session = Depends(get_db)):
+    """사업장-협력업체 매핑 수정"""
+    try:
+        mapping = db.query(CustomerSupplierMapping).filter(CustomerSupplierMapping.id == mapping_id).first()
+        if not mapping:
+            return {"success": False, "message": "존재하지 않는 매핑입니다."}
+        
+        # 업데이트할 필드만 수정
+        if mapping_data.customer_id is not None:
+            # 사업장 존재 확인
+            customer = db.query(Customer).filter(Customer.id == mapping_data.customer_id).first()
+            if not customer:
+                return {"success": False, "message": "존재하지 않는 사업장입니다."}
+            mapping.customer_id = mapping_data.customer_id
+        
+        if mapping_data.supplier_id is not None:
+            # 협력업체 존재 확인
+            supplier = db.query(Supplier).filter(Supplier.id == mapping_data.supplier_id).first()
+            if not supplier:
+                return {"success": False, "message": "존재하지 않는 협력업체입니다."}
+            mapping.supplier_id = mapping_data.supplier_id
+        
+        if mapping_data.delivery_code is not None:
+            mapping.delivery_code = mapping_data.delivery_code
+        if mapping_data.priority is not None:
+            mapping.priority = mapping_data.priority
+        if mapping_data.is_primary is not None:
+            mapping.is_primary = mapping_data.is_primary
+        if mapping_data.contract_start_date is not None:
+            mapping.contract_start_date = mapping_data.contract_start_date
+        if mapping_data.contract_end_date is not None:
+            mapping.contract_end_date = mapping_data.contract_end_date
+        if mapping_data.notes is not None:
+            mapping.notes = mapping_data.notes
+        if mapping_data.is_active is not None:
+            mapping.is_active = mapping_data.is_active
+        
+        mapping.updated_at = datetime.now()
+        
+        db.commit()
+        
+        return {"success": True, "message": "매핑이 수정되었습니다."}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+@app.delete("/api/admin/customer-supplier-mappings/{mapping_id}")
+async def delete_customer_supplier_mapping(mapping_id: int, db: Session = Depends(get_db)):
+    """사업장-협력업체 매핑 삭제"""
+    try:
+        mapping = db.query(CustomerSupplierMapping).filter(CustomerSupplierMapping.id == mapping_id).first()
+        if not mapping:
+            return {"success": False, "message": "존재하지 않는 매핑입니다."}
+        
+        db.delete(mapping)
+        db.commit()
+        
+        return {"success": True, "message": "매핑이 삭제되었습니다."}
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+@app.get("/api/admin/customer-supplier-mappings/{mapping_id}")
+async def get_customer_supplier_mapping(mapping_id: int, db: Session = Depends(get_db)):
+    """특정 사업장-협력업체 매핑 조회"""
+    try:
+        mapping = db.query(CustomerSupplierMapping).filter(CustomerSupplierMapping.id == mapping_id).first()
+        if not mapping:
+            return {"success": False, "message": "존재하지 않는 매핑입니다."}
+        
+        return {
+            "success": True,
+            "mapping": {
+                "id": mapping.id,
+                "customer_id": mapping.customer_id,
+                "supplier_id": mapping.supplier_id,
+                "delivery_code": mapping.delivery_code,
+                "priority": mapping.priority,
+                "is_primary": mapping.is_primary,
+                "contract_start_date": mapping.contract_start_date.isoformat() if mapping.contract_start_date else None,
+                "contract_end_date": mapping.contract_end_date.isoformat() if mapping.contract_end_date else None,
+                "notes": mapping.notes,
+                "is_active": mapping.is_active,
+                "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+# Force reload

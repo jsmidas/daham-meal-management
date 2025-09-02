@@ -30,7 +30,14 @@
       "Read(C:\\Dev\\1st-menu-management/**)",
       "Read(C:\\Dev\\1st-menu-management/**)",
       "Read(c:\\Dev\\daham-meal-management/**)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git commit:*)",
+      "Bash(copy \"supplier_management.html\" \"supplier_management_backup.html\")",
+      "Bash(node:*)",
+      "Bash(uvicorn:*)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)",
+      "Read(c:\\Dev\\daham-meal-management\\sample data/**)"
     ],
     "deny": [],
     "ask": []

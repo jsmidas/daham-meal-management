@@ -845,9 +845,136 @@
         }
 
         // 템플릿 다운로드
-        function downloadTemplate() {
-            // 실제로는 서버에서 템플릿 파일을 다운로드
-            alert('식자재 등록 템플릿을 다운로드합니다.');
+        async function downloadTemplate() {
+            try {
+                showLoading(true, '템플릿 다운로드 중...');
+                
+                const response = await fetch('/api/admin/ingredient-template');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = '식자재_업로드_템플릿.xls';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showSuccess('템플릿 파일이 다운로드되었습니다.');
+                } else {
+                    showError('템플릿 다운로드에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('템플릿 다운로드 오류:', error);
+                showError('템플릿 다운로드 중 오류가 발생했습니다.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 유틸리티 함수들
+        function showLoading(show, message = '처리 중...') {
+            let loadingOverlay = document.getElementById('loadingOverlay');
+            
+            if (show) {
+                if (!loadingOverlay) {
+                    loadingOverlay = document.createElement('div');
+                    loadingOverlay.id = 'loadingOverlay';
+                    loadingOverlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                        font-family: 'Malgun Gothic', sans-serif;
+                    `;
+                    loadingOverlay.innerHTML = `
+                        <div style="
+                            background: white;
+                            padding: 30px;
+                            border-radius: 10px;
+                            display: flex;
+                            align-items: center;
+                            gap: 15px;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        ">
+                            <div style="
+                                width: 20px;
+                                height: 20px;
+                                border: 3px solid #f3f3f3;
+                                border-top: 3px solid #3498db;
+                                border-radius: 50%;
+                                animation: spin 1s linear infinite;
+                            "></div>
+                            <span id="loadingMessage">${message}</span>
+                        </div>
+                        <style>
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                        </style>
+                    `;
+                    document.body.appendChild(loadingOverlay);
+                } else {
+                    document.getElementById('loadingMessage').textContent = message;
+                    loadingOverlay.style.display = 'flex';
+                }
+            } else {
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            }
+        }
+
+        function showSuccess(message) {
+            showNotification(message, 'success');
+        }
+
+        function showError(message) {
+            showNotification(message, 'error');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                font-family: 'Malgun Gothic', sans-serif;
+                z-index: 10001;
+                max-width: 400px;
+                word-wrap: break-word;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
         }
 
         // 초기화
