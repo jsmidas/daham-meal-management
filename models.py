@@ -310,6 +310,7 @@ class Customer(Base):
     __tablename__ = "customers"
     
     id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True)  # 사업장 코드 (일반)
     site_code = Column(String(10), unique=True)  # 사업장코드
     name = Column(String(100), nullable=False)
     site_type = Column(String(20), default="detail")  # head, detail, period
@@ -604,4 +605,25 @@ class ReceivingItem(Base):
     
     # 관계 설정
     receiving_record = relationship("ReceivingRecord", back_populates="items")
-    order_item = relationship("PurchaseOrderItem", backref="receiving_items")
+
+# Meal Pricing: 식단가 관리
+class MealPricing(Base):
+    __tablename__ = "meal_pricing"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    location_id = Column(Integer, ForeignKey("customers.id"), nullable=False)  # 사업장 ID
+    location_name = Column(String(100), nullable=False)  # 사업장명
+    meal_plan_type = Column(String(100), nullable=False)  # 식단표 타입
+    meal_type = Column(String(10), nullable=False)  # 끼니 타입 (조/중/석/야)
+    plan_name = Column(String(100), nullable=False)  # 세부식단표명
+    apply_date_start = Column(Date, nullable=False)  # 적용 시작일
+    apply_date_end = Column(Date, nullable=True)  # 적용 종료일 (NULL이면 무기한)
+    selling_price = Column(DECIMAL(10, 2), default=0)  # 판매가 (부가세 제외)
+    material_cost_guideline = Column(DECIMAL(10, 2), default=0)  # 재료비 가이드라인
+    cost_ratio = Column(DECIMAL(5, 2), default=0)  # 재료비 비율 (%)
+    is_active = Column(Boolean, default=True)  # 활성화 여부
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    location = relationship("Customer", backref="meal_pricing")
