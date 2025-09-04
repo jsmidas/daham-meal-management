@@ -90,7 +90,7 @@ async def serve_admin_business_locations(request: Request):
     if user['role'] not in admin_roles:
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
     
-    return FileResponse("business_location_management_v2.html")
+    return RedirectResponse(url="/admin")
 
 # ==============================================================================
 # 사업장 기본 API
