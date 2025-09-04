@@ -5,7 +5,8 @@ from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 
-Base = declarative_base()
+# database.py에서 Base 임포트
+from app.database import Base
 
 class ColorEnum(enum.Enum):
     red = "red"

@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Supplier, CustomerSupplierMapping
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from models import Supplier
 from app.core.exceptions import BusinessLogicError, NotFoundError, DuplicateError
 
 
@@ -72,10 +75,7 @@ class SupplierService:
             NotFoundError: 협력업체 없음
         """
         supplier = self.db.query(Supplier).filter(
-            and_(
-                Supplier.id == supplier_id,
-                Supplier.is_deleted == False
-            )
+            Supplier.id == supplier_id
         ).first()
         
         if not supplier:
@@ -105,9 +105,7 @@ class SupplierService:
             페이지네이션된 협력업체 목록
         """
         # 기본 쿼리
-        query = self.db.query(Supplier).filter(
-            Supplier.is_deleted == False
-        )
+        query = self.db.query(Supplier)
         
         # 필터 적용
         if search:

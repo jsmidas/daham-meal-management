@@ -33,6 +33,9 @@
             color: white;
             padding: 15px 0;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         
         .logo {
@@ -375,7 +378,6 @@
             <a href="/" class="nav-item active"><i class="fas fa-home"></i>대시보드</a>
             <a href="/meal-plan" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
             <a href="/meal-count" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
-            <a href="/ingredients" class="nav-item"><i class="fas fa-carrot"></i>식자재 관리</a>
             <a href="/ordering" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
             <a href="/receiving" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
             <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
@@ -384,6 +386,13 @@
             <a href="/portion" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
             <div class="nav-divider"></div>
             <a href="/admin" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+            
+            <!-- 하단 버튼 -->
+            <div style="margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <a href="#" class="nav-item" style="background: rgba(52, 152, 219, 0.2); color: #3498db; font-size: 12px;">
+                    <i class="fas fa-truck"></i>협력업체 프로그램 (준비중)
+                </a>
+            </div>
         </nav>
         
         <!-- 메인 컨텐츠 -->

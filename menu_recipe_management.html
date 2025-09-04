@@ -1105,8 +1105,8 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({keyword: '', limit: 50}) // 50개씩 로드
                 });
-                const recipes = await response.json();
-                allMenus = recipes || [];
+                const result = await response.json();
+                allMenus = result.success ? (result.recipes || []) : [];
                 filteredMenus = [...allMenus];
                 
                 updateMenuCount();

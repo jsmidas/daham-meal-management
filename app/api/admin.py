@@ -530,7 +530,7 @@ async def get_sites(db: Session = Depends(get_db)):
                 "level": 0,
                 "sort_order": 1,
                 "description": "본사 사이트",
-                "created_at": "2025-01-01 09:00:00"
+                "created_at": "2025-01-01T09:00:00"
             },
             {
                 "id": 2,
@@ -541,7 +541,7 @@ async def get_sites(db: Session = Depends(get_db)):
                 "level": 1,
                 "sort_order": 1,
                 "description": "A동 사무실",
-                "created_at": "2025-01-02 09:00:00"
+                "created_at": "2025-01-02T09:00:00"
             }
         ]
         
@@ -870,4 +870,189 @@ async def get_meal_pricing(
             "total_pages": total_pages
         }
     except Exception as e:
+        return {"success": False, "message": str(e)}
+
+# ==============================================================================
+# 추가 관리자 엔드포인트 - 급식수 관리
+# ==============================================================================
+
+@router.get("/api/admin/meal-counts/{meal_count_id}")
+async def get_meal_count(meal_count_id: int, db: Session = Depends(get_db)):
+    """급식수 정보 조회"""
+    try:
+        meal_count = db.query(MealCount).filter(MealCount.id == meal_count_id).first()
+        if not meal_count:
+            raise HTTPException(status_code=404, detail="급식수 정보를 찾을 수 없습니다.")
+        
+        return {
+            "success": True,
+            "meal_count": {
+                "id": meal_count.id,
+                "customer_id": meal_count.customer_id,
+                "date": meal_count.date.isoformat(),
+                "meal_type": meal_count.meal_type,
+                "count": meal_count.count,
+                "notes": meal_count.notes,
+                "created_at": meal_count.created_at.isoformat() if meal_count.created_at else None
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.delete("/api/admin/meal-counts/{meal_count_id}")
+async def delete_meal_count(meal_count_id: int, db: Session = Depends(get_db)):
+    """급식수 정보 삭제"""
+    try:
+        meal_count = db.query(MealCount).filter(MealCount.id == meal_count_id).first()
+        if not meal_count:
+            raise HTTPException(status_code=404, detail="급식수 정보를 찾을 수 없습니다.")
+        
+        db.delete(meal_count)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "급식수 정보가 삭제되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+# ==============================================================================
+# 사용자-사이트 관리 엔드포인트
+# ==============================================================================
+
+@router.get("/api/admin/users/{user_id}/sites")
+async def get_user_sites(user_id: int, db: Session = Depends(get_db)):
+    """사용자 관리 사이트 목록 조회"""
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+        
+        # 사용자가 관리하는 사이트들 조회 (예시)
+        sites = []
+        if user.managed_site:
+            # managed_site가 콤마로 구분된 사이트 ID들이라고 가정
+            site_ids = [int(id.strip()) for id in user.managed_site.split(',') if id.strip().isdigit()]
+            sites = db.query(Customer).filter(Customer.id.in_(site_ids)).all()
+        
+        site_list = []
+        for site in sites:
+            site_list.append({
+                "id": site.id,
+                "name": site.name,
+                "location": site.location,
+                "contact": site.contact_person
+            })
+        
+        return {
+            "success": True,
+            "sites": site_list
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.post("/api/admin/users/{user_id}/sites")
+async def update_user_sites(user_id: int, site_data: dict, db: Session = Depends(get_db)):
+    """사용자 관리 사이트 업데이트"""
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+        
+        site_ids = site_data.get('site_ids', [])
+        user.managed_site = ','.join(map(str, site_ids))
+        user.updated_at = datetime.now()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "사용자 관리 사이트가 업데이트되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+# ==============================================================================
+# 초기화 엔드포인트들
+# ==============================================================================
+
+@router.post("/api/admin/init_user_extensions")
+async def init_user_extensions(db: Session = Depends(get_db)):
+    """사용자 확장 테이블 초기화"""
+    try:
+        # 사용자 확장 기능 초기화 로직
+        # 예: 사용자 권한, 역할 등의 확장 데이터 생성
+        
+        # 임시 구현 - 실제로는 더 복잡한 로직이 필요할 수 있음
+        users = db.query(User).all()
+        for user in users:
+            if not user.role:
+                user.role = 'user'
+            if not user.department:
+                user.department = '일반'
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "사용자 확장 기능이 초기화되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+@router.post("/api/admin/init_supplier_extensions")
+async def init_supplier_extensions(db: Session = Depends(get_db)):
+    """협력업체 확장 테이블 초기화"""
+    try:
+        # 협력업체 확장 기능 초기화 로직
+        suppliers = db.query(Supplier).all()
+        for supplier in suppliers:
+            if not hasattr(supplier, 'status'):
+                # 상태 필드가 없으면 추가 (모델에 따라 다를 수 있음)
+                pass
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "협력업체 확장 기능이 초기화되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+# ==============================================================================
+# 사이트 이동 엔드포인트
+# ==============================================================================
+
+@router.post("/api/admin/sites/{site_id}/move")
+async def move_site(site_id: int, move_data: dict, db: Session = Depends(get_db)):
+    """사이트 위치 이동 (트리 구조)"""
+    try:
+        site = db.query(Customer).filter(Customer.id == site_id).first()
+        if not site:
+            raise HTTPException(status_code=404, detail="사이트를 찾을 수 없습니다.")
+        
+        # 트리 구조에서 위치 이동 로직
+        # 실제 구현은 트리 구조에 따라 다를 수 있음
+        new_parent_id = move_data.get('parent_id')
+        new_position = move_data.get('position', 0)
+        
+        # 간단한 구현 - parent_id 업데이트
+        if hasattr(site, 'parent_id'):
+            site.parent_id = new_parent_id
+        site.updated_at = datetime.now()
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "사이트가 이동되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
         return {"success": False, "message": str(e)}

@@ -115,12 +115,12 @@ async def serve_recipes():
 @router.get("/cooking")
 async def serve_cooking():
     """조리 페이지"""
-    return FileResponse("cooking.html")
+    return FileResponse("cooking_instruction_management.html")
 
 @router.get("/portion")
 async def serve_portion():
     """분할 페이지"""
-    return FileResponse("portion.html")
+    return FileResponse("portion_instruction_management.html")
 
 # ==============================================================================
 # 식단표 API
@@ -825,6 +825,122 @@ async def bulk_replace_ingredient(replace_request: BulkReplaceRequest, db: Sessi
             "updated_count": updated_count,
             "old_ingredient": old_ingredient.name,
             "new_ingredient": new_ingredient.name
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+# ==============================================================================
+# 추가 식단 관리 엔드포인트
+# ==============================================================================
+
+@router.post("/api/create_diet_plan")
+async def create_diet_plan(diet_plan_data: dict, db: Session = Depends(get_db)):
+    """식단 생성"""
+    try:
+        # 식단 생성 로직
+        customer_id = diet_plan_data.get('customer_id')
+        menu_date = diet_plan_data.get('date')
+        menu_items = diet_plan_data.get('menu_items', [])
+        
+        # 기존 식단 확인
+        existing_plan = db.query(DietPlan).filter(
+            DietPlan.customer_id == customer_id,
+            DietPlan.date == menu_date
+        ).first()
+        
+        if existing_plan:
+            return {"success": False, "message": "해당 날짜에 이미 식단이 존재합니다."}
+        
+        # 새 식단 생성
+        new_plan = DietPlan(
+            customer_id=customer_id,
+            date=datetime.strptime(menu_date, '%Y-%m-%d').date(),
+            meal_type=diet_plan_data.get('meal_type', 'lunch'),
+            notes=diet_plan_data.get('notes', ''),
+            created_at=datetime.now()
+        )
+        
+        db.add(new_plan)
+        db.flush()  # ID를 얻기 위해
+        
+        # 메뉴 아이템들 추가
+        for item in menu_items:
+            menu_item = MenuItem(
+                diet_plan_id=new_plan.id,
+                recipe_id=item.get('recipe_id'),
+                quantity=item.get('quantity', 1),
+                notes=item.get('notes', '')
+            )
+            db.add(menu_item)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "diet_plan_id": new_plan.id,
+            "message": "식단이 성공적으로 생성되었습니다."
+        }
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "message": str(e)}
+
+@router.post("/api/save_weekly_plan")
+async def save_weekly_plan(plan_data: dict, db: Session = Depends(get_db)):
+    """주간 식단 저장"""
+    try:
+        customer_id = plan_data.get('customer_id')
+        week_start = plan_data.get('week_start')
+        daily_plans = plan_data.get('daily_plans', {})
+        
+        saved_plans = []
+        
+        for day, plan_info in daily_plans.items():
+            if not plan_info.get('menu_items'):
+                continue
+                
+            # 날짜 계산
+            day_date = datetime.strptime(f"{week_start} {day}", '%Y-%m-%d %A').date()
+            
+            # 기존 식단 확인 및 삭제
+            existing = db.query(DietPlan).filter(
+                DietPlan.customer_id == customer_id,
+                DietPlan.date == day_date
+            ).first()
+            
+            if existing:
+                db.delete(existing)
+            
+            # 새 식단 생성
+            new_plan = DietPlan(
+                customer_id=customer_id,
+                date=day_date,
+                meal_type=plan_info.get('meal_type', 'lunch'),
+                notes=plan_info.get('notes', ''),
+                created_at=datetime.now()
+            )
+            
+            db.add(new_plan)
+            db.flush()
+            
+            # 메뉴 아이템 추가
+            for item in plan_info.get('menu_items', []):
+                menu_item = MenuItem(
+                    diet_plan_id=new_plan.id,
+                    recipe_id=item.get('recipe_id'),
+                    quantity=item.get('quantity', 1),
+                    notes=item.get('notes', '')
+                )
+                db.add(menu_item)
+            
+            saved_plans.append(new_plan.id)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "saved_plans": saved_plans,
+            "message": f"{len(saved_plans)}일의 식단이 저장되었습니다."
         }
     except Exception as e:
         db.rollback()

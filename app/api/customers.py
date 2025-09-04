@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from app.database import get_db, DATABASE_URL
 from app.api.auth import get_current_user
 from models import Customer, CustomerSupplierMapping
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 router = APIRouter()
 
@@ -49,6 +49,8 @@ class CustomerUpdate(BaseModel):
     contact_phone: Optional[str] = None
     address: Optional[str] = None
     description: Optional[str] = None
+    portion_size: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class CustomerSupplierMappingCreate(BaseModel):
     customer_id: int
@@ -88,7 +90,7 @@ async def serve_admin_business_locations(request: Request):
     if user['role'] not in admin_roles:
         raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
     
-    return FileResponse("templates/admin_business_locations.html")
+    return FileResponse("business_location_management_v2.html")
 
 # ==============================================================================
 # 사업장 기본 API
@@ -378,12 +380,12 @@ async def get_customer_supplier_mappings(db: Session = Depends(get_db)):
                 "delivery_code": row.delivery_code,
                 "priority_order": row.priority_order,
                 "is_primary_supplier": row.is_primary_supplier,
-                "contract_start_date": row.contract_start_date.isoformat() if row.contract_start_date else None,
-                "contract_end_date": row.contract_end_date.isoformat() if row.contract_end_date else None,
+                "contract_start_date": row.contract_start_date.isoformat() if row.contract_start_date and hasattr(row.contract_start_date, 'isoformat') else str(row.contract_start_date) if row.contract_start_date else None,
+                "contract_end_date": row.contract_end_date.isoformat() if row.contract_end_date and hasattr(row.contract_end_date, 'isoformat') else str(row.contract_end_date) if row.contract_end_date else None,
                 "notes": row.notes,
                 "is_active": row.is_active,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-                "updated_at": row.updated_at.isoformat() if row.updated_at else None
+                "created_at": row.created_at.isoformat() if row.created_at and hasattr(row.created_at, 'isoformat') else str(row.created_at) if row.created_at else None,
+                "updated_at": row.updated_at.isoformat() if row.updated_at and hasattr(row.updated_at, 'isoformat') else str(row.updated_at) if row.updated_at else None
             })
         
         return {"success": True, "mappings": mapping_list}

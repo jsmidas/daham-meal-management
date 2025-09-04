@@ -810,13 +810,16 @@
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h2>다함 급식관리</h2>
-                <p>협력업체 관리</p>
+                <h2>관리자 시스템</h2>
+                <p>다함식단관리</p>
             </div>
             
             <div class="nav-menu">
                 <a href="/admin" class="nav-item">
-                    <span class="icon">📊</span>관리자 대시보드
+                    <span class="icon">📊</span>대시보드
+                </a>
+                <a href="/admin/users" class="nav-item">
+                    <span class="icon">👥</span>사용자 관리
                 </a>
                 <a href="/admin/suppliers" class="nav-item active">
                     <span class="icon">🚛</span>협력업체 관리
@@ -827,15 +830,21 @@
                 <a href="/menu_recipe_management.html" class="nav-item">
                     <span class="icon">🍽️</span>메뉴 관리
                 </a>
-                <a href="/meal_count_management.html" class="nav-item">
-                    <span class="icon">📊</span>식수 관리
+                <a href="/admin/meal-plans" class="nav-item">
+                    <span class="icon">🔐</span>식단가 관리
                 </a>
                 <a href="/ingredients-management" class="nav-item">
                     <span class="icon">🥬</span>식자재 관리
                 </a>
+                <a href="/admin/system" class="nav-item">
+                    <span class="icon">⚙️</span>시스템 설정
+                </a>
+                <a href="/admin/logs" class="nav-item">
+                    <span class="icon">📋</span>로그 관리
+                </a>
                 <div class="nav-divider"></div>
-                <a href="#" class="nav-item logout-item" onclick="logout()">
-                    <span class="icon">🚪</span>로그아웃
+                <a href="/dashboard.html" class="nav-item">
+                    <span class="icon">🍽️</span>급식관리로 이동
                 </a>
             </div>
         </nav>
@@ -1205,7 +1214,8 @@
                 console.log('API 호출 시작:', '/api/admin/suppliers/enhanced');
                 const response = await fetch('/api/admin/suppliers/enhanced');
                 if (response.ok) {
-                    const suppliers = await response.json();
+                    const result = await response.json();
+                    const suppliers = result.suppliers || result.data || [];
                     let filteredSuppliers = suppliers;
 
                     // 검색어 필터링
@@ -1328,7 +1338,8 @@
             try {
                 const response = await fetch(`/api/admin/suppliers/${id}/detail`);
                 if (response.ok) {
-                    const supplier = await response.json();
+                    const result = await response.json();
+                    const supplier = result.supplier || result;
                     showEditSupplierModal(supplier);
                 } else {
                     showError('협력업체 정보를 불러올 수 없습니다.');
@@ -1486,8 +1497,10 @@
                 ]);
 
                 if (supplierResponse.ok && locationsResponse.ok) {
-                    const supplier = await supplierResponse.json();
-                    const locations = await locationsResponse.json();
+                    const supplierResult = await supplierResponse.json();
+                    const locationsResult = await locationsResponse.json();
+                    const supplier = supplierResult.supplier || supplierResult;
+                    const locations = locationsResult.sites || locationsResult.data || [];
                     showLocationManagementModal(supplier, locations);
                 } else {
                     showError('납품처 관리 데이터를 불러올 수 없습니다.');
@@ -1609,8 +1622,10 @@
                 ]);
 
                 if (supplierResponse.ok && productsResponse.ok) {
-                    const supplier = await supplierResponse.json();
-                    const allIngredients = await productsResponse.json();
+                    const supplierResult = await supplierResponse.json();
+                    const ingredientsResult = await productsResponse.json();
+                    const supplier = supplierResult.supplier || supplierResult;
+                    const allIngredients = ingredientsResult.ingredients || ingredientsResult.data || [];
                     showProductManagementModal(supplier, allIngredients);
                 } else {
                     showError('상품 관리 데이터를 불러올 수 없습니다.');
@@ -1726,7 +1741,8 @@
             try {
                 const response = await fetch('/api/admin/suppliers/enhanced');
                 if (response.ok) {
-                    const suppliers = await response.json();
+                    const result = await response.json();
+                    const suppliers = result.suppliers || result.data || [];
                     exportToExcel(suppliers);
                 } else {
                     showError('데이터를 불러올 수 없습니다.');

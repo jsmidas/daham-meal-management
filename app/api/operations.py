@@ -86,12 +86,12 @@ class MealCountTimelineSave(BaseModel):
 @router.get("/ordering")
 async def serve_ordering():
     """발주 페이지"""
-    return FileResponse("ordering.html")
+    return FileResponse("ordering_management.html")
 
 @router.get("/receiving")
 async def serve_receiving():
     """입고 페이지"""
-    return FileResponse("receiving.html")
+    return FileResponse("receiving_management.html")
 
 @router.get("/preprocessing")
 async def serve_preprocessing():
@@ -101,7 +101,7 @@ async def serve_preprocessing():
 @router.get("/preprocessing-demo")
 async def serve_preprocessing_demo():
     """전처리 데모 페이지"""
-    return FileResponse("preprocessing_demo.html")
+    return FileResponse("preprocessing_management.html")
 
 # ==============================================================================
 # 발주 관리 API

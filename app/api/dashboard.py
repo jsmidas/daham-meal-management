@@ -63,7 +63,7 @@ async def serve_ingredients_management():
 @router.get("/ingredients")
 async def serve_ingredients():
     """식재료 페이지"""
-    return FileResponse("ingredients.html")
+    return FileResponse("ingredients_management.html")
 
 # ==============================================================================
 # 식재료 조회 API

@@ -4,7 +4,7 @@
 - 트랜잭션 관리
 - 에러 처리
 """
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from typing import Generator
@@ -77,9 +77,10 @@ def init_db():
     데이터베이스 테이블 생성
     - 개발 환경에서만 사용
     - 운영 환경은 마이그레이션 도구 사용
+    - 임시로 비활성화 (기존 데이터베이스 스키마 사용)
     """
     try:
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)  # 테이블 생성 활성화
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")
@@ -90,7 +91,7 @@ def test_db_connection():
     """데이터베이스 연결 상태 확인"""
     try:
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         logger.info("Database connection successful")
         return True
     except Exception as e:

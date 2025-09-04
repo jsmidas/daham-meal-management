@@ -249,7 +249,8 @@
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const ingredients = await response.json();
+                const result = await response.json();
+                const ingredients = result.success ? (result.ingredients || []) : [];
                 
                 document.getElementById('loadingDiv').style.display = 'none';
                 document.getElementById('ingredientsTable').style.display = 'table';
@@ -285,8 +286,10 @@
             } catch (error) {
                 console.error('Error loading ingredients:', error);
                 document.getElementById('loadingDiv').style.display = 'none';
-                document.getElementById('errorDiv').style.display = 'block';
-                document.getElementById('errorDiv').textContent = '식자재 목록을 불러오는데 실패했습니다: ' + error.message;
+                
+                const tbody = document.getElementById('ingredientsTableBody');
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #e74c3c;">❌ 식자재 목록을 불러오는데 실패했습니다: ' + error.message + '</td></tr>';
+                document.getElementById('ingredientsTable').style.display = 'table';
             }
         }
         

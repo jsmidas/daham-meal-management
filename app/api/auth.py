@@ -94,8 +94,10 @@ async def serve_login_page():
 async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     """사용자 로그인 API"""
     try:
+        print(f"Login attempt for user: {login_data.username}")
         # 데이터베이스에서 사용자 조회
         user = db.query(User).filter(User.username == login_data.username).first()
+        print(f"User found: {user is not None}")
         
         if not user:
             return JSONResponse(
@@ -103,11 +105,13 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 content={"success": False, "message": "존재하지 않는 사용자입니다."}
             )
         
-        # 간단한 비밀번호 확인 (나중에 해시 기반으로 변경)
+        # 비밀번호 확인
         import hashlib
         if user.password_hash:
             # 해시된 비밀번호 확인
             password_hash = hashlib.sha256(login_data.password.encode()).hexdigest()
+            print(f"Input password hash: {password_hash}")
+            print(f"Stored password hash: {user.password_hash}")
             if user.password_hash != password_hash:
                 return JSONResponse(
                     status_code=401,
@@ -142,7 +146,7 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "user": {
                 'id': user.id,
                 'username': user.username,
-                'role': user.role,
+                'role': str(user.role),
                 'department': getattr(user, 'department', ''),
                 'position': getattr(user, 'position', '')
             }

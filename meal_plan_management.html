@@ -17,39 +17,76 @@
             line-height: 1.4;
         }
         
-        .navigation-bar {
-            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        .container {
             display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+        
+        /* 사이드바 */
+        .sidebar {
+            width: 180px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            text-align: center;
+            padding: 0 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3498db;
         }
         
         .nav-item {
-            color: white;
-            padding: 8px 16px;
-            margin: 0 5px;
-            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
             text-decoration: none;
-            font-size: 14px;
             transition: all 0.3s;
-            cursor: pointer;
+            font-size: 13px;
         }
         
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .nav-item.active {
-            background: rgba(255,255,255,0.2);
-            font-weight: 600;
-        }
-        
-        .nav-logo {
-            font-size: 18px;
-            font-weight: bold;
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
             color: white;
-            margin-right: 30px;
+            border-right: 3px solid #3498db;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 14px;
+            width: 16px;
+        }
+        
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 15px;
+        }
+        
+        .admin-item {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .admin-item:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-right: 3px solid #e74c3c;
+        }
+        
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
@@ -65,8 +102,8 @@
         }
         
         .main-container {
-            height: calc(100vh - 140px);
             padding: 20px;
+            flex: 1;
         }
         
         /* 캘린더 영역 (전체 화면 사용) */
@@ -847,27 +884,34 @@
     </style>
 </head>
 <body>
-    <!-- 네비게이션 바 -->
-    <nav class="navigation-bar">
-        <div class="nav-logo">🍽️ 다함식단관리시스템</div>
-        <a href="/dashboard" class="nav-item">📈 대시보드</a>
-        <a href="/" class="nav-item">📋 메뉴/레시피 관리</a>
-        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
-        <a href="/meal-plan" class="nav-item active">📊 식단표 작성</a>
-        <a href="/ordering" class="nav-item">📈 발주 관리</a>
-        <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
-        <a href="#" class="nav-item">📋 각종 일지</a>
-        <a href="/preprocessing-demo" class="nav-item">🔪 전처리지시서</a>
-        <a href="/cooking" class="nav-item">👨‍🍳 조리지시서</a>
-        <a href="/portion" class="nav-item">📊 소분지시서</a>
-    </nav>
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>다함 급식관리</h1>
+            </div>
+            <a href="/" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="/meal-plan" class="nav-item active"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="/meal-count" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="/ordering" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="/receiving" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
+            <a href="/preprocessing-demo" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="/cooking" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="/portion" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <div class="nav-divider"></div>
+            <a href="/admin" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+        </nav>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="main-content">
 
-    <!-- 헤더 -->
-    <div class="header">
-        <h1>📅 식단표 관리</h1>
-    </div>
+            <!-- 헤더 -->
+            <div class="header">
+                <h1>📅 식단표 관리</h1>
+            </div>
 
-    <!-- 메인 컨테이너 -->
+            <!-- 메인 컨테이너 -->
     <div class="main-container">
         <!-- 캘린더 영역 (전체 화면 사용) -->
         <div class="calendar-section">
@@ -981,6 +1025,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script>
         // 전역 변수
         let currentDate = new Date();
@@ -1087,12 +1132,16 @@
             try {
                 const response = await fetch('/api/recipes');
                 const result = await response.json();
-                if (result.success) {
-                    allMenus = result.data;
+                if (result.success && result.recipes) {
+                    allMenus = result.recipes;
                     console.log('메뉴 데이터 로드 완료:', allMenus.length, '개');
+                } else {
+                    allMenus = [];
+                    console.log('메뉴 데이터가 없습니다.');
                 }
             } catch (error) {
                 console.error('메뉴 데이터 로드 실패:', error);
+                allMenus = [];
             }
         }
         
