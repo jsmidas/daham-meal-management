@@ -6553,14 +6553,8 @@
     console.log('[Settings] 설정 모듈 로드 완료');
     </script>
     
-    <!-- Dashboard Module JavaScript -->
-    <script>
-    /**
-     * Dashboard Module - 대시보드 데이터 관리
-     */
-    class DashboardModule {
-        constructor() {
-            this.refreshInterval = null;
+    <!-- 사업장 편집 모달 -->
+    <div id="business-location-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
             this.autoRefreshEnabled = true;
             this.refreshIntervalTime = 30000; // 30초
         }
