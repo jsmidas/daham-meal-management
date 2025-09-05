@@ -81,7 +81,8 @@
       "Read(/C:\\Dev\\daham-meal-management/**)",
       "Read(/C:\\Dev\\daham-meal-management/**)",
       "Read(/C:\\Dev\\daham-meal-management/**)",
-      "Read(/C:\\Dev\\daham-meal-management/**)"
+      "Read(/C:\\Dev\\daham-meal-management/**)",
+      "Bash(copy \"admin_dashboard.html\" \"admin_dashboard_backup_before_optimization.html\")"
     ],
     "deny": [],
     "ask": []
