@@ -1,0 +1,27 @@
+# 로고 교체 설정 파일
+# customer_logos.json
+
+{
+    "testfood": {
+        "company_name": "테스트푸드",
+        "logos": {
+            "main": "assets/logos/customers/testfood/main_logo.png",
+            "favicon": "assets/logos/customers/testfood/favicon.ico", 
+            "login": "assets/logos/customers/testfood/login_logo.png"
+        },
+        "fallback": {
+            "main": "assets/logos/templates/default_main.png",
+            "favicon": "assets/logos/templates/default_favicon.ico",
+            "login": "assets/logos/templates/default_login.png"
+        }
+    },
+    
+    "premium_hotel": {
+        "company_name": "프리미엄 호텔",
+        "logos": {
+            "main": "assets/logos/customers/premium_hotel/main_logo.png",
+            "favicon": "assets/logos/customers/premium_hotel/favicon.ico",
+            "login": "assets/logos/customers/premium_hotel/login_logo.png"
+        }
+    }
+}

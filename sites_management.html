@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사업장 관리</title>
+    <link rel="stylesheet" href="admin-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>사업장 관리</h2>
+            <div class="actions">
+                <button class="btn-primary" onclick="showAddSiteModal()">+ 사업장 추가</button>
+                <button class="btn-secondary" onclick="loadSitesTable()">테이블 뷰</button>
+                <button class="btn-secondary" onclick="loadSitesTree()">트리 뷰</button>
+            </div>
+        </div>
+
+        <div id="sites-content">
+            <!-- 사업장 목록이 여기에 로드됩니다 -->
+        </div>
+    </div>
+
+    <!-- 사업장 추가/수정 모달 -->
+    <div id="site-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="site-modal-title">사업장 추가</h3>
+                <button class="modal-close" onclick="closeSiteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="site-name">사업장명 *</label>
+                    <input type="text" id="site-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="site-code">사업장 코드</label>
+                    <input type="text" id="site-code">
+                </div>
+                <div class="form-group">
+                    <label for="site-contact-person">담당자</label>
+                    <input type="text" id="site-contact-person">
+                </div>
+                <div class="form-group">
+                    <label for="site-contact-phone">연락처</label>
+                    <input type="text" id="site-contact-phone">
+                </div>
+                <div class="form-group">
+                    <label for="site-address">주소</label>
+                    <input type="text" id="site-address">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="site-is-active" checked> 활성 상태
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="saveSite()">저장</button>
+                <button class="btn-secondary" onclick="closeSiteModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditSiteId = null;
+
+        // 페이지 로드시 사업장 목록 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSitesTable();
+        });
+
+        // 사업장 테이블 뷰 로드
+        async function loadSitesTable() {
+            try {
+                const response = await fetch('/api/admin/sites/debug');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '사업장 데이터 로드 실패');
+                }
+                
+                let tableHtml = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="padding: 12px; border: 1px solid #ddd;">ID</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">코드</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">이름</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">종류</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">활성</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">담당자</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.sites.forEach(site => {
+                    tableHtml += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.id}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.code || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.name}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.site_type || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.is_active ? '활성' : '비활성'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${site.contact_person || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                <button onclick="editSite(${site.id})">수정</button>
+                                <button onclick="deleteSite(${site.id})" style="margin-left: 5px;">삭제</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tableHtml += '</tbody></table>';
+                document.getElementById('sites-content').innerHTML = tableHtml;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('데이터 로드 실패: ' + error.message);
+            }
+        }
+
+        // 트리 뷰 (간단버전)
+        async function loadSitesTree() {
+            try {
+                const response = await fetch('/api/admin/sites/tree');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error('트리 데이터 로드 실패');
+                }
+
+                let treeHtml = '<ul>';
+                data.tree.forEach(site => {
+                    treeHtml += `
+                        <li style="margin: 10px 0;">
+                            <strong>${site.name} (${site.code})</strong>
+                            <button onclick="editSite(${site.id})" style="margin-left: 10px;">수정</button>
+                            <button onclick="deleteSite(${site.id})" style="margin-left: 5px;">삭제</button>
+                    `;
+                    
+                    if (site.children && site.children.length > 0) {
+                        treeHtml += '<ul>';
+                        site.children.forEach(child => {
+                            treeHtml += `
+                                <li style="margin: 5px 0; margin-left: 20px;">
+                                    ${child.name} (${child.code})
+                                    <button onclick="editSite(${child.id})" style="margin-left: 10px;">수정</button>
+                                    <button onclick="deleteSite(${child.id})" style="margin-left: 5px;">삭제</button>
+                                </li>
+                            `;
+                        });
+                        treeHtml += '</ul>';
+                    }
+                    treeHtml += '</li>';
+                });
+                treeHtml += '</ul>';
+                
+                document.getElementById('sites-content').innerHTML = treeHtml;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('트리 로드 실패: ' + error.message);
+            }
+        }
+
+        // 사업장 추가 모달 표시
+        function showAddSiteModal() {
+            currentEditSiteId = null;
+            document.getElementById('site-modal-title').textContent = '사업장 추가';
+            document.getElementById('site-name').value = '';
+            document.getElementById('site-code').value = '';
+            document.getElementById('site-contact-person').value = '';
+            document.getElementById('site-contact-phone').value = '';
+            document.getElementById('site-address').value = '';
+            document.getElementById('site-is-active').checked = true;
+            document.getElementById('site-modal').classList.remove('hidden');
+        }
+
+        // 사업장 수정
+        async function editSite(siteId) {
+            try {
+                const response = await fetch(`/api/admin/sites/${siteId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const site = await response.json();
+                
+                // 에러 응답 체크
+                if (site.success === false) {
+                    throw new Error(site.message || '사업장 정보를 불러올 수 없습니다.');
+                }
+                
+                currentEditSiteId = siteId;
+                document.getElementById('site-modal-title').textContent = '사업장 수정';
+                document.getElementById('site-name').value = site.name || '';
+                document.getElementById('site-code').value = site.code || '';
+                document.getElementById('site-contact-person').value = site.contact_person || '';
+                document.getElementById('site-contact-phone').value = site.contact_phone || '';
+                document.getElementById('site-address').value = site.address || '';
+                document.getElementById('site-is-active').checked = site.is_active;
+                document.getElementById('site-modal').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('사업장 정보 로드 실패: ' + error.message);
+            }
+        }
+
+        // 사업장 삭제
+        async function deleteSite(siteId) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/sites/${siteId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('삭제되었습니다.');
+                    loadSitesTable(); // 목록 새로고침
+                } else {
+                    alert('삭제 실패: ' + result.error.message);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('삭제 중 오류 발생');
+            }
+        }
+
+        // 사업장 저장
+        async function saveSite() {
+            const siteData = {
+                name: document.getElementById('site-name').value,
+                code: document.getElementById('site-code').value,
+                contact_person: document.getElementById('site-contact-person').value,
+                contact_phone: document.getElementById('site-contact-phone').value,
+                address: document.getElementById('site-address').value,
+                is_active: document.getElementById('site-is-active').checked
+            };
+
+            if (!siteData.name.trim()) {
+                alert('사업장명을 입력하세요.');
+                return;
+            }
+
+            try {
+                const url = currentEditSiteId 
+                    ? `/api/admin/sites/${currentEditSiteId}`
+                    : '/api/admin/sites';
+                
+                const method = currentEditSiteId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(siteData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success || response.ok) {
+                    alert(currentEditSiteId ? '수정되었습니다.' : '추가되었습니다.');
+                    closeSiteModal();
+                    loadSitesTable(); // 목록 새로고침
+                } else {
+                    alert('저장 실패: ' + (result.error?.message || result.message || '알 수 없는 오류'));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('저장 중 오류 발생: ' + error.message);
+            }
+        }
+
+        // 모달 닫기
+        function closeSiteModal() {
+            document.getElementById('site-modal').classList.add('hidden');
+            currentEditSiteId = null;
+        }
+    </script>
+</body>
+</html>

@@ -17,6 +17,8 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from pydantic import BaseModel
 import json
+import pandas as pd
+import io
 
 # 로컬 임포트
 from app.database import get_db, DATABASE_URL, test_db_connection
@@ -76,31 +78,110 @@ async def get_ingredients_list(
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db)
 ):
-    """식재료 목록 조회 (간단한 형태)"""
+    """식재료 목록 조회 (직접 SQL 사용)"""
     try:
-        query = db.query(Ingredient)
+        import sqlite3
         
-        if category:
-            query = query.filter(Ingredient.category == category)
+        # 직접 SQL 쿼리 사용
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+        
+        # 기본 쿼리
+        sql = """
+            SELECT id, category, sub_category, ingredient_code, ingredient_name, 
+                   origin, posting_status, specification, unit, tax_type, 
+                   delivery_days, purchase_price, selling_price, supplier_name, notes
+            FROM ingredients 
+            WHERE 1=1
+        """
+        
+        params = []
         
         if search:
-            search_term = f"%{search}%"
-            query = query.filter(Ingredient.name.ilike(search_term))
+            sql += " AND ingredient_name LIKE ?"
+            params.append(f"%{search}%")
+            
+        if category:
+            sql += " AND category = ?"
+            params.append(category)
+            
+        sql += f" LIMIT {limit}"
         
-        ingredients = query.limit(limit).all()
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
         
         ingredient_list = []
-        for ingredient in ingredients:
+        for row in rows:
             ingredient_list.append({
-                "id": ingredient.id,
-                "name": ingredient.name,
-                "category": ingredient.category,
-                "unit": ingredient.unit
+                "id": row[0],
+                "category": row[1],
+                "subcategory": row[2], 
+                "code": row[3],
+                "name": row[4],
+                "origin": row[5],
+                "calculation": row[6],
+                "specification": row[7],
+                "base_unit": row[8],
+                "tax_free": row[9],
+                "selective_order": row[10],
+                "purchase_price": float(row[11]) if row[11] else None,
+                "price": float(row[12]) if row[12] else None,
+                "supplier_name": row[13],
+                "memo": row[14]
+            })
+        
+        conn.close()
+        
+        return {"success": True, "ingredients": ingredient_list}
+        
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.get("/api/ingredients-simple/list")
+async def get_ingredients_simple_list():
+    """식재료 목록 조회 (간단 버전)"""
+    try:
+        import sqlite3
+        
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, category, sub_category, ingredient_code, ingredient_name, 
+                   origin, posting_status, specification, unit, tax_type, 
+                   delivery_days, purchase_price, selling_price, supplier_name, notes
+            FROM ingredients 
+            ORDER BY id
+        """)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        ingredient_list = []
+        for row in rows:
+            ingredient_list.append({
+                "id": row[0],
+                "category": row[1] or "",
+                "subcategory": row[2] or "", 
+                "code": row[3] or "",
+                "name": row[4] or "",
+                "origin": row[5] or "",
+                "calculation": row[6] or "",
+                "specification": row[7] or "",
+                "base_unit": row[8] or "",
+                "tax_free": row[9] or "",
+                "selective_order": row[10] or "",
+                "purchase_price": float(row[11]) if row[11] else 0,
+                "price": float(row[12]) if row[12] else 0,
+                "supplier_name": row[13] or "",
+                "memo": row[14] or ""
             })
         
         return {"success": True, "ingredients": ingredient_list}
+        
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        import traceback
+        return {"success": False, "message": str(e), "trace": traceback.format_exc()}
 
 @router.get("/api/ingredients")
 async def get_ingredients_detailed(
@@ -118,34 +199,37 @@ async def get_ingredients_detailed(
         # 필터링
         if search:
             search_term = f"%{search}%"
-            query = query.filter(Ingredient.name.ilike(search_term))
+            query = query.filter(Ingredient.ingredient_name.ilike(search_term))
         
         if category:
             query = query.filter(Ingredient.category == category)
         
         if supplier_id:
-            query = query.filter(Ingredient.supplier_id == supplier_id)
+            # supplier_id로 조회할 때는 Supplier 테이블에서 이름을 찾아서 supplier_name으로 검색
+            supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+            if supplier:
+                query = query.filter(Ingredient.supplier_name == supplier.name)
         
         total = query.count()
         
         # 페이징
         offset = (page - 1) * limit
-        ingredients = query.order_by(Ingredient.name).offset(offset).limit(limit).all()
+        ingredients = query.order_by(Ingredient.ingredient_name).offset(offset).limit(limit).all()
         
         ingredient_list = []
         for ingredient in ingredients:
             # 공급업체 정보 조회
-            supplier = db.query(Supplier).filter(Supplier.id == ingredient.supplier_id).first() if ingredient.supplier_id else None
+            supplier = db.query(Supplier).filter(Supplier.name == ingredient.supplier_name).first() if ingredient.supplier_name else None
             
             ingredient_list.append({
                 "id": ingredient.id,
-                "name": ingredient.name,
+                "name": ingredient.ingredient_name,
                 "category": ingredient.category,
                 "unit": ingredient.unit,
-                "cost_per_unit": float(ingredient.cost_per_unit) if ingredient.cost_per_unit else 0,
-                "supplier_id": ingredient.supplier_id,
-                "supplier_name": supplier.name if supplier else "미지정",
-                "description": ingredient.description,
+                "cost_per_unit": float(ingredient.selling_price) if ingredient.selling_price else 0,
+                "supplier_id": None,  # 위탁 업체 ID 필드 제거
+                "supplier_name": ingredient.supplier_name or "미지정",
+                "description": ingredient.notes,
                 "created_at": ingredient.created_at.isoformat() if ingredient.created_at else None
             })
         
@@ -162,25 +246,266 @@ async def get_ingredients_detailed(
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+@router.post("/api/admin/ingredients/upload-excel")
+async def upload_ingredients_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """식재료 Excel 파일 업로드"""
+    print(f"=== 업로드 시작: {file.filename} ===")
+    try:
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return {"success": False, "error": "Excel 파일만 업로드 가능합니다."}
+        
+        # 파일 읽기
+        import pandas as pd
+        import io
+        from decimal import Decimal
+        
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        total_rows = len(df)
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                # 필수 필드 검증
+                if pd.isna(row.iloc[2]) or pd.isna(row.iloc[3]):  # 고유코드, 식재료명
+                    error_count += 1
+                    errors.append(f"행 {index + 2}: 고유코드 또는 식재료명이 비어있습니다.")
+                    continue
+                
+                code = str(row.iloc[2]).strip()
+                name = str(row.iloc[3]).strip()
+                
+                # 기존 식재료 확인
+                existing = db.query(Ingredient).filter(Ingredient.ingredient_code == code).first()
+                
+                # 가격 처리
+                purchase_price = 0
+                selling_price = 0
+                
+                if not pd.isna(row.iloc[10]):  # K열: 입고가
+                    try:
+                        purchase_price = Decimal(str(row.iloc[10]).replace(',', ''))
+                    except:
+                        pass
+                
+                if not pd.isna(row.iloc[11]):  # L열: 판매가
+                    try:
+                        selling_price = Decimal(str(row.iloc[11]).replace(',', ''))
+                    except:
+                        pass
+                
+                if existing:
+                    # 업데이트
+                    existing.category = str(row.iloc[0]) if not pd.isna(row.iloc[0]) else existing.category
+                    existing.sub_category = str(row.iloc[1]) if not pd.isna(row.iloc[1]) else existing.sub_category
+                    existing.ingredient_name = name
+                    existing.origin = str(row.iloc[4]) if not pd.isna(row.iloc[4]) else existing.origin
+                    existing.posting_status = str(row.iloc[5]) if not pd.isna(row.iloc[5]) else existing.posting_status
+                    existing.specification = str(row.iloc[6]) if not pd.isna(row.iloc[6]) else existing.specification
+                    existing.unit = str(row.iloc[7]) if not pd.isna(row.iloc[7]) else existing.unit
+                    existing.tax_type = str(row.iloc[8]) if not pd.isna(row.iloc[8]) else existing.tax_type
+                    existing.delivery_days = str(row.iloc[9]) if not pd.isna(row.iloc[9]) else existing.delivery_days
+                    existing.purchase_price = purchase_price
+                    existing.selling_price = selling_price
+                    existing.supplier_name = str(row.iloc[12]) if not pd.isna(row.iloc[12]) else existing.supplier_name
+                    existing.notes = str(row.iloc[13]) if not pd.isna(row.iloc[13]) else existing.notes
+                else:
+                    # 새로 생성
+                    spec_value = row.iloc[6]
+                    final_spec = str(spec_value) if not pd.isna(spec_value) else None
+                    if index < 3:  # 처음 3개만 로그
+                        print(f"행 {index+1}: 규격 원본=[{spec_value}], 최종=[{final_spec}]")
+                    
+                    new_ingredient = Ingredient(
+                        category=str(row.iloc[0]) if not pd.isna(row.iloc[0]) else "기타",
+                        sub_category=str(row.iloc[1]) if not pd.isna(row.iloc[1]) else "기타",
+                        ingredient_code=code,
+                        ingredient_name=name,
+                        origin=str(row.iloc[4]) if not pd.isna(row.iloc[4]) else None,
+                        posting_status=str(row.iloc[5]) if not pd.isna(row.iloc[5]) else None,
+                        specification=final_spec,
+                        unit=str(row.iloc[7]) if not pd.isna(row.iloc[7]) else "EA",
+                        tax_type=str(row.iloc[8]) if not pd.isna(row.iloc[8]) else None,
+                        delivery_days=str(row.iloc[9]) if not pd.isna(row.iloc[9]) else "1",
+                        purchase_price=purchase_price,
+                        selling_price=selling_price,
+                        supplier_name=str(row.iloc[12]) if not pd.isna(row.iloc[12]) else "미지정",
+                        notes=str(row.iloc[13]) if not pd.isna(row.iloc[13]) else None,
+                        created_date=datetime.now()
+                    )
+                    db.add(new_ingredient)
+                
+                success_count += 1
+                
+                # 50개마다 커밋
+                if (index + 1) % 50 == 0:
+                    db.commit()
+                    
+            except Exception as row_error:
+                error_count += 1
+                errors.append(f"행 {index + 2}: {str(row_error)}")
+                continue
+        
+        # 최종 커밋
+        db.commit()
+        
+        return {
+            "success": True,
+            "total": total_rows,
+            "success": success_count,
+            "errors": error_count,
+            "error_details": errors[:10] if errors else []
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": f"업로드 처리 중 오류: {str(e)}"}
+
+@router.post("/api/ingredients")
+async def create_ingredient(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """식재료 생성"""
+    try:
+        data = await request.json()
+        
+        # 고유코드 중복 확인
+        if data.get('code'):
+            existing = db.query(Ingredient).filter(Ingredient.ingredient_code == data['code']).first()
+            if existing:
+                return {"success": False, "error": "이미 존재하는 고유코드입니다."}
+        
+        new_ingredient = Ingredient(
+            category=data.get('category', ''),
+            sub_category=data.get('subcategory', ''),
+            ingredient_code=data.get('code', ''),
+            ingredient_name=data.get('name', ''),
+            origin=data.get('origin'),
+            posting_status=data.get('calculation'),
+            specification=data.get('specification'),
+            unit=data.get('base_unit', 'EA'),
+            tax_type=data.get('tax_free'),
+            delivery_days=data.get('selective_order', '1'),
+            purchase_price=Decimal(str(data.get('purchase_price', 0))),
+            selling_price=Decimal(str(data.get('price', 0))),
+            supplier_name=data.get('supplier_name', '미지정'),
+            notes=data.get('memo'),
+            created_date=datetime.now()
+        )
+        
+        db.add(new_ingredient)
+        db.commit()
+        
+        return {"success": True, "message": "식재료가 생성되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": f"식재료 생성 중 오류: {str(e)}"}
+
+@router.put("/api/ingredients/{ingredient_id}")
+async def update_ingredient(
+    ingredient_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """식재료 수정"""
+    try:
+        data = await request.json()
+        
+        ingredient = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
+        if not ingredient:
+            return {"success": False, "error": "식재료를 찾을 수 없습니다."}
+        
+        # 필드 업데이트
+        if 'category' in data:
+            ingredient.category = data['category']
+        if 'subcategory' in data:
+            ingredient.sub_category = data['subcategory']
+        if 'code' in data:
+            ingredient.ingredient_code = data['code']
+        if 'name' in data:
+            ingredient.ingredient_name = data['name']
+        if 'origin' in data:
+            ingredient.origin = data['origin']
+        if 'calculation' in data:
+            ingredient.posting_status = data['calculation']
+        if 'specification' in data:
+            ingredient.specification = data['specification']
+        if 'base_unit' in data:
+            ingredient.unit = data['base_unit']
+        if 'tax_free' in data:
+            ingredient.tax_type = data['tax_free']
+        if 'selective_order' in data:
+            ingredient.delivery_days = data['selective_order']
+        if 'purchase_price' in data:
+            ingredient.purchase_price = Decimal(str(data['purchase_price'])) if data['purchase_price'] else None
+        if 'price' in data:
+            ingredient.selling_price = Decimal(str(data['price'])) if data['price'] else None
+        if 'supplier_name' in data:
+            ingredient.supplier_name = data['supplier_name']
+        if 'memo' in data:
+            ingredient.notes = data['memo']
+        
+        db.commit()
+        
+        return {"success": True, "message": "식재료가 수정되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": f"식재료 수정 중 오류: {str(e)}"}
+
+@router.delete("/api/ingredients/{ingredient_id}")
+async def delete_ingredient(
+    ingredient_id: int,
+    db: Session = Depends(get_db)
+):
+    """식재료 삭제"""
+    try:
+        ingredient = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
+        if not ingredient:
+            return {"success": False, "error": "식재료를 찾을 수 없습니다."}
+        
+        db.delete(ingredient)
+        db.commit()
+        
+        return {"success": True, "message": "식재료가 삭제되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": f"식재료 삭제 중 오류: {str(e)}"}
+
 @router.get("/suppliers/{supplier_id}/ingredients")
 async def get_supplier_ingredients(supplier_id: int, db: Session = Depends(get_db)):
     """특정 공급업체의 식재료 목록 조회"""
     try:
-        supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+        # Get supplier info
+        supplier_query = db.query(Supplier).filter(Supplier.id == supplier_id)
+        supplier = supplier_query.first()
+        
         if not supplier:
             return {"success": False, "message": "존재하지 않는 공급업체입니다."}
         
-        ingredients = db.query(Ingredient).filter(Ingredient.supplier_id == supplier_id).all()
+        # Query ingredients by supplier_name (not supplier_id since that column doesn't exist)
+        ingredients_query = db.query(Ingredient).filter(Ingredient.supplier_name == supplier.name)
+        ingredients = ingredients_query.all()
         
-        ingredient_list = []
-        for ingredient in ingredients:
-            ingredient_list.append({
-                "id": ingredient.id,
-                "name": ingredient.name,
-                "category": ingredient.category,
-                "unit": ingredient.unit,
-                "cost_per_unit": float(ingredient.cost_per_unit) if ingredient.cost_per_unit else 0,
-                "description": ingredient.description
+        # Build ingredient list
+        ingredient_data = []
+        for ing in ingredients:
+            ingredient_data.append({
+                "id": ing.id,
+                "name": ing.ingredient_name,
+                "category": ing.category,
+                "unit": ing.unit,
+                "cost_per_unit": float(ing.selling_price) if ing.selling_price else 0.0,
+                "description": ing.notes or ""
             })
         
         return {
@@ -191,10 +516,37 @@ async def get_supplier_ingredients(supplier_id: int, db: Session = Depends(get_d
                 "contact_person": supplier.contact_person,
                 "contact_phone": supplier.contact_phone
             },
-            "ingredients": ingredient_list
+            "ingredients": ingredient_data,
+            "count": len(ingredient_data)
         }
+        
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        return {"success": False, "message": f"오류가 발생했습니다: {str(e)}"}
+
+@router.get("/test/samsung-welstory-simple")
+async def test_samsung_welstory_simple():
+    """삼성웰스토리 데이터 직접 테스트"""
+    try:
+        from sqlalchemy import create_engine, text
+        from app.database import DATABASE_URL
+        
+        engine = create_engine(DATABASE_URL)
+        with engine.connect() as conn:
+            # 직접 SQL로 조회
+            result = conn.execute(text("SELECT COUNT(*) FROM ingredients WHERE supplier_name LIKE '%웰스토리%'"))
+            count = result.scalar()
+            
+            # 샘플 데이터 조회
+            result = conn.execute(text("SELECT ingredient_name, supplier_name FROM ingredients WHERE supplier_name LIKE '%웰스토리%' LIMIT 5"))
+            samples = result.fetchall()
+            
+            return {
+                "success": True,
+                "samsung_welstory_count": count,
+                "samples": [{"name": row[0], "supplier": row[1]} for row in samples]
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 # ==============================================================================
 # 데이터 통계 API
@@ -326,14 +678,15 @@ async def create_sample_data(db: Session = Depends(get_db)):
         ]
         
         for i, ingredient_data in enumerate(sample_ingredients):
-            existing = db.query(Ingredient).filter(Ingredient.name == ingredient_data["name"]).first()
+            existing = db.query(Ingredient).filter(Ingredient.ingredient_name == ingredient_data["name"]).first()
             if not existing:
                 new_ingredient = Ingredient(
                     name=ingredient_data["name"],
                     category=ingredient_data["category"],
                     unit=ingredient_data["unit"],
                     cost_per_unit=Decimal(str(ingredient_data["cost_per_unit"])),
-                    supplier_id=supplier_ids[i % len(supplier_ids)] if supplier_ids else None,
+                    # supplier_id 필드가 없으므로 supplier_name 사용
+                    supplier_name=suppliers[i % len(suppliers)].name if suppliers else "미지정",
                     created_at=datetime.now()
                 )
                 db.add(new_ingredient)
@@ -418,14 +771,15 @@ async def import_real_data(
         if import_request.data_type == "ingredients":
             for item_data in import_request.data:
                 # 중복 체크
-                existing = db.query(Ingredient).filter(Ingredient.name == item_data["name"]).first()
+                existing = db.query(Ingredient).filter(Ingredient.ingredient_name == item_data["name"]).first()
                 if not existing:
                     new_ingredient = Ingredient(
                         name=item_data["name"],
                         category=item_data.get("category", "기타"),
                         unit=item_data.get("unit", "kg"),
                         cost_per_unit=Decimal(str(item_data.get("cost_per_unit", 0))),
-                        supplier_id=item_data.get("supplier_id"),
+                        # supplier_id 필드가 없으므로 supplier_name 사용
+                        supplier_name=item_data.get("supplier_name", "미지정"),
                         description=item_data.get("description", ""),
                         created_at=datetime.now()
                     )
@@ -542,9 +896,9 @@ async def create_supplier_ingredient_data(db: Session = Depends(get_db)):
         
         # 식재료에 공급업체 할당 (순환 할당)
         for i, ingredient in enumerate(ingredients):
-            if not ingredient.supplier_id:
+            if not ingredient.supplier_name:
                 supplier_idx = i % len(suppliers)
-                ingredient.supplier_id = suppliers[supplier_idx].id
+                ingredient.supplier_name = suppliers[supplier_idx].name
                 ingredient.updated_at = datetime.now()
                 updated_count += 1
         
@@ -627,14 +981,14 @@ async def create_test_data(db: Session = Depends(get_db)):
             ]
             
             for ingredient_data in sample_ingredients:
-                existing = db.query(Ingredient).filter(Ingredient.name == ingredient_data["name"]).first()
+                existing = db.query(Ingredient).filter(Ingredient.ingredient_name == ingredient_data["name"]).first()
                 if not existing:
                     new_ingredient = Ingredient(
                         name=ingredient_data["name"],
                         category=ingredient_data["category"],
                         unit=ingredient_data["unit"],
                         cost_per_unit=Decimal(str(ingredient_data["cost_per_unit"])),
-                        supplier_id=supplier_id,
+                        supplier_name=suppliers[0].name if suppliers else "미지정",
                         created_at=datetime.now()
                     )
                     db.add(new_ingredient)

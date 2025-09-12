@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>협력업체 관리</title>
+    <link rel="stylesheet" href="admin-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>협력업체 관리</h2>
+            <div class="actions">
+                <button class="btn-primary" onclick="showAddSupplierModal()">+ 협력업체 추가</button>
+                <button class="btn-secondary" onclick="loadSuppliers()">새로고침</button>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <input type="text" id="supplier-search" placeholder="협력업체명, 사업자번호로 검색..." 
+                   onkeyup="handleSearchKeyup(event)" style="width: 300px; padding: 8px;">
+            <button class="btn-secondary" onclick="searchSuppliers()">검색</button>
+        </div>
+
+        <div id="suppliers-content">
+            <!-- 협력업체 목록이 여기에 로드됩니다 -->
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- 페이지네이션이 여기에 표시됩니다 -->
+        </div>
+    </div>
+
+    <!-- 협력업체 추가/수정 모달 -->
+    <div id="supplier-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="supplier-modal-title">협력업체 추가</h3>
+                <button class="modal-close" onclick="closeSupplierModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="supplier-name">업체명 *</label>
+                    <input type="text" id="supplier-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-business-number">사업자번호</label>
+                    <input type="text" id="supplier-business-number">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-contact-person">담당자</label>
+                    <input type="text" id="supplier-contact-person">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-contact-phone">연락처</label>
+                    <input type="text" id="supplier-contact-phone">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-email">이메일</label>
+                    <input type="email" id="supplier-email">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-address">주소</label>
+                    <input type="text" id="supplier-address">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-category">카테고리</label>
+                    <select id="supplier-category">
+                        <option value="">선택하세요</option>
+                        <option value="농산물">농산물</option>
+                        <option value="축산물">축산물</option>
+                        <option value="수산물">수산물</option>
+                        <option value="유제품">유제품</option>
+                        <option value="조미료">조미료</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="supplier-is-active" checked> 활성 상태
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="saveSupplier()">저장</button>
+                <button class="btn-secondary" onclick="closeSupplierModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditSupplierId = null;
+        let currentPage = 1;
+        let currentSearch = '';
+
+        // 페이지 로드시 협력업체 목록 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSuppliers();
+        });
+
+        // 협력업체 목록 로드
+        async function loadSuppliers(page = 1) {
+            try {
+                currentPage = page;
+                const searchParam = currentSearch ? `&search=${encodeURIComponent(currentSearch)}` : '';
+                const response = await fetch(`/api/admin/suppliers/enhanced?page=${page}&limit=20${searchParam}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '협력업체 데이터 로드 실패');
+                }
+                
+                let tableHtml = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="padding: 12px; border: 1px solid #ddd;">ID</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">업체명</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">사업자번호</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">담당자</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">연락처</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">카테고리</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">활성</th>
+                                <th style="padding: 12px; border: 1px solid #ddd;">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.suppliers.forEach(supplier => {
+                    tableHtml += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.id}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.name}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.business_number || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.contact_person || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.contact_phone || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.category || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${supplier.is_active ? '활성' : '비활성'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                <button onclick="editSupplier(${supplier.id})">수정</button>
+                                <button onclick="deleteSupplier(${supplier.id})" style="margin-left: 5px;">삭제</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tableHtml += '</tbody></table>';
+                document.getElementById('suppliers-content').innerHTML = tableHtml;
+                
+                // 페이지네이션 업데이트
+                updatePagination(data.total_pages, page);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('협력업체 데이터 로드 실패: ' + error.message);
+            }
+        }
+
+        // 페이지네이션 업데이트
+        function updatePagination(totalPages, currentPage) {
+            let paginationHtml = '';
+            
+            if (totalPages > 1) {
+                paginationHtml = '<div style="margin-top: 20px; text-align: center;">';
+                
+                // 이전 페이지
+                if (currentPage > 1) {
+                    paginationHtml += `<button onclick="loadSuppliers(${currentPage - 1})" style="margin: 0 5px;">이전</button>`;
+                }
+                
+                // 페이지 번호
+                for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+                    const active = i === currentPage ? 'style="background-color: #007bff; color: white;"' : '';
+                    paginationHtml += `<button onclick="loadSuppliers(${i})" ${active} style="margin: 0 2px; padding: 5px 10px;">${i}</button>`;
+                }
+                
+                // 다음 페이지
+                if (currentPage < totalPages) {
+                    paginationHtml += `<button onclick="loadSuppliers(${currentPage + 1})" style="margin: 0 5px;">다음</button>`;
+                }
+                
+                paginationHtml += '</div>';
+            }
+            
+            document.getElementById('pagination').innerHTML = paginationHtml;
+        }
+
+        // 검색 실행
+        function searchSuppliers() {
+            currentSearch = document.getElementById('supplier-search').value;
+            loadSuppliers(1);
+        }
+
+        // 검색 엔터키 처리
+        function handleSearchKeyup(event) {
+            if (event.key === 'Enter') {
+                searchSuppliers();
+            }
+        }
+
+        // 협력업체 추가 모달 표시
+        function showAddSupplierModal() {
+            currentEditSupplierId = null;
+            document.getElementById('supplier-modal-title').textContent = '협력업체 추가';
+            document.getElementById('supplier-name').value = '';
+            document.getElementById('supplier-business-number').value = '';
+            document.getElementById('supplier-contact-person').value = '';
+            document.getElementById('supplier-contact-phone').value = '';
+            document.getElementById('supplier-email').value = '';
+            document.getElementById('supplier-address').value = '';
+            document.getElementById('supplier-category').value = '';
+            document.getElementById('supplier-is-active').checked = true;
+            document.getElementById('supplier-modal').classList.remove('hidden');
+        }
+
+        // 협력업체 수정
+        async function editSupplier(supplierId) {
+            try {
+                const response = await fetch(`/api/admin/suppliers/${supplierId}`);
+                const supplier = await response.json();
+                
+                currentEditSupplierId = supplierId;
+                document.getElementById('supplier-modal-title').textContent = '협력업체 수정';
+                document.getElementById('supplier-name').value = supplier.name || '';
+                document.getElementById('supplier-business-number').value = supplier.business_number || '';
+                document.getElementById('supplier-contact-person').value = supplier.contact_person || '';
+                document.getElementById('supplier-contact-phone').value = supplier.contact_phone || '';
+                document.getElementById('supplier-email').value = supplier.email || '';
+                document.getElementById('supplier-address').value = supplier.address || '';
+                document.getElementById('supplier-category').value = supplier.category || '';
+                document.getElementById('supplier-is-active').checked = supplier.is_active;
+                document.getElementById('supplier-modal').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('협력업체 정보 로드 실패');
+            }
+        }
+
+        // 협력업체 삭제
+        async function deleteSupplier(supplierId) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/suppliers/${supplierId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('삭제되었습니다.');
+                    loadSuppliers(currentPage); // 현재 페이지 새로고침
+                } else {
+                    alert('삭제 실패: ' + (result.message || '알 수 없는 오류'));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('삭제 중 오류 발생');
+            }
+        }
+
+        // 협력업체 저장
+        async function saveSupplier() {
+            const supplierData = {
+                name: document.getElementById('supplier-name').value,
+                business_number: document.getElementById('supplier-business-number').value,
+                contact_person: document.getElementById('supplier-contact-person').value,
+                contact_phone: document.getElementById('supplier-contact-phone').value,
+                email: document.getElementById('supplier-email').value,
+                address: document.getElementById('supplier-address').value,
+                category: document.getElementById('supplier-category').value,
+                is_active: document.getElementById('supplier-is-active').checked
+            };
+
+            if (!supplierData.name.trim()) {
+                alert('업체명을 입력하세요.');
+                return;
+            }
+
+            try {
+                const url = currentEditSupplierId 
+                    ? `/api/admin/suppliers/${currentEditSupplierId}`
+                    : '/api/admin/suppliers';
+                
+                const method = currentEditSupplierId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(supplierData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success || response.ok) {
+                    alert(currentEditSupplierId ? '수정되었습니다.' : '추가되었습니다.');
+                    closeSupplierModal();
+                    loadSuppliers(currentPage); // 현재 페이지 새로고침
+                } else {
+                    alert('저장 실패: ' + (result.message || '알 수 없는 오류'));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('저장 중 오류 발생: ' + error.message);
+            }
+        }
+
+        // 모달 닫기
+        function closeSupplierModal() {
+            document.getElementById('supplier-modal').classList.add('hidden');
+            currentEditSupplierId = null;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Samsung Welstory Ingredients Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .btn-primary { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .data-table th { background-color: #f2f2f2; }
+        .status-success { color: green; font-weight: bold; }
+        .status-error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🏢 업체별 식자재 현황 테스트</h1>
+    
+    <button class="btn-primary" onclick="loadSamsungWelstoryIngredients()">
+        <i class="fas fa-sync"></i> 삼성웰스토리 식자재 로드
+    </button>
+    
+    <div id="status"></div>
+    
+    <table id="welstory-ingredients-table" class="data-table">
+        <thead>
+            <tr>
+                <th>식자재명</th>
+                <th>카테고리</th>
+                <th>단위</th>
+                <th>단가</th>
+                <th>설명</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        async function loadSamsungWelstoryIngredients() {
+            const statusDiv = document.getElementById('status');
+            const table = document.getElementById('welstory-ingredients-table');
+            const tbody = table.querySelector('tbody');
+            
+            try {
+                statusDiv.innerHTML = '<div>로딩 중...</div>';
+                
+                const response = await fetch('http://127.0.0.1:8004/test-samsung-welstory');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `<div class="status-success">✓ 삼성웰스토리 식자재 ${data.total_count}개 중 ${data.shown_count}개 로드 완료</div>`;
+                    
+                    tbody.innerHTML = data.ingredients.map((ingredient, index) => `
+                        <tr>
+                            <td>${ingredient.name}</td>
+                            <td>${ingredient.category}</td>
+                            <td>${ingredient.unit}</td>
+                            <td>₩${ingredient.cost_per_unit.toLocaleString()}</td>
+                            <td>${ingredient.description}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    statusDiv.innerHTML = `<div class="status-error">❌ 오류: ${data.message}</div>`;
+                    tbody.innerHTML = '<tr><td colspan="5">데이터를 불러올 수 없습니다.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading ingredients:', error);
+                statusDiv.innerHTML = `<div class="status-error">❌ 네트워크 오류: ${error.message}</div>`;
+                tbody.innerHTML = '<tr><td colspan="5">네트워크 연결을 확인해주세요.</td></tr>';
+            }
+        }
+        
+        // 페이지 로드 시 자동으로 데이터 로드
+        window.addEventListener('DOMContentLoaded', function() {
+            loadSamsungWelstoryIngredients();
+        });
+    </script>
+</body>
+</html>

@@ -15,15 +15,18 @@
 ├── operations: 발주/입고/전처리 관리
 └── dashboard: 대시보드/통계/유틸리티
 """
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 import logging
 
 # 데이터베이스 초기화
-from app.database import init_db, test_db_connection
+from app.database import init_db, test_db_connection, get_db
 
 # 모델 임포트 (테이블 생성을 위해 필요)
 import models
@@ -33,9 +36,19 @@ from app.api.auth import router as auth_router
 from app.api.suppliers import router as suppliers_router
 from app.api.customers import router as customers_router
 from app.api.admin import router as admin_router
+from app.api.admin_mealpricing import router as admin_mealpricing_router  # 식단가 관리 모듈
+from app.api.admin_users import router as admin_users_router  # 사용자 관리 모듈
+from app.api.admin_sites import router as admin_sites_router  # 사업장 관리 모듈
+from app.api.admin_ingredients import router as admin_ingredients_router  # 식재료 관리 모듈 (테스트용 활성화)
+from app.api.admin_ingredients_new import router as admin_ingredients_new_router  # 신규 식자재 관리 모듈
+from app.api.admin_ingredients_excel import router as admin_ingredients_excel_router  # Excel 구조 식자재 관리 모듈
+from app.api.admin_detailed_menus import router as admin_detailed_menus_router  # 세부식단표 관리 모듈
 from app.api.meal_plans import router as meal_plans_router
 from app.api.operations import router as operations_router
 from app.api.dashboard import router as dashboard_router
+from app.api.test_endpoints import router as test_router
+from app.api.admin_price_per_gram import router as admin_price_per_gram_router  # g당 단가 계산 모듈
+# simple_endpoints 제거됨
 
 # 예외 처리
 from app.core.exceptions import BaseCustomException, create_error_response
@@ -107,6 +120,33 @@ app.include_router(customers_router, tags=["사업장"])
 # 관리자 라우터
 app.include_router(admin_router, tags=["관리자"])
 
+# 식단가 관리 라우터 (독립 모듈)
+app.include_router(admin_mealpricing_router, tags=["식단가관리"])
+
+# 사용자 관리 라우터 (독립 모듈)
+app.include_router(admin_users_router, tags=["사용자관리"])
+
+# 사업장 관리 라우터 (독립 모듈)
+app.include_router(admin_sites_router, tags=["사업장관리"])
+
+# 식재료 관리 라우터 (독립 모듈)
+app.include_router(admin_ingredients_router, tags=["식재료관리"])  # 테스트용 활성화
+# 신규 식자재 관리 API
+app.include_router(admin_ingredients_new_router, tags=["신규식자재관리"])
+
+# Excel 구조 식자재 관리 API
+app.include_router(admin_ingredients_excel_router, tags=["Excel식자재관리"])
+
+# g당 단가 계산 API
+app.include_router(admin_price_per_gram_router, tags=["g당단가계산"])
+
+# 대용량 업로드 최적화 라우터
+from app.api.admin_bulk_upload import router as bulk_upload_router
+app.include_router(bulk_upload_router, tags=["대용량업로드"])
+
+# 세부식단표 관리 API
+app.include_router(admin_detailed_menus_router, prefix="/api/admin", tags=["세부식단표관리"])
+
 # 식단 관리 라우터
 app.include_router(meal_plans_router, tags=["식단관리"])
 
@@ -115,6 +155,168 @@ app.include_router(operations_router, tags=["운영관리"])
 
 # 대시보드 라우터
 app.include_router(dashboard_router, tags=["대시보드"])
+
+# 테스트 라우터
+app.include_router(test_router, prefix="/api/test", tags=["테스트"])
+
+# 매핑 엔드포인트 테스트
+@app.get("/api/admin/mappings-test")
+async def get_mappings_test():
+    """매핑 엔드포인트 테스트"""
+    return {"message": "테스트 성공", "status": "ok"}
+
+# 테스트용 HTML 엔드포인트
+@app.get("/test-html")
+async def test_html():
+    """HTML 테스트"""
+    import os
+    file_path = os.path.join(os.getcwd(), "meal_pricing_management_new.html")
+    return {"file_exists": os.path.exists(file_path), "file_path": file_path}
+
+# HTML 파일 서빙 엔드포인트
+@app.get("/meal_pricing_management_new.html")
+async def serve_meal_pricing_html():
+    """식단가 관리 HTML 파일 제공"""
+    from fastapi.responses import FileResponse
+    import os
+    file_path = os.path.join(os.getcwd(), "meal_pricing_management_new.html")
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="text/html")
+    else:
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
+
+# 임시 매핑 엔드포인트
+@app.get("/api/admin/mappings")
+async def get_mappings_temp(db: Session = Depends(get_db)):
+    """협력업체 매핑 목록 조회 (임시)"""
+    try:
+        # 직접 SQL 쿼리 사용
+        query = """
+        SELECT 
+            csm.id,
+            csm.customer_id,
+            csm.supplier_id,
+            c.name as customer_name,
+            s.name as supplier_name,
+            csm.delivery_code,
+            csm.is_active,
+            csm.is_primary_supplier,
+            csm.priority_order,
+            csm.contract_start_date,
+            csm.contract_end_date,
+            csm.notes,
+            csm.created_at,
+            csm.updated_at
+        FROM customer_supplier_mappings csm
+        LEFT JOIN customers c ON csm.customer_id = c.id
+        LEFT JOIN suppliers s ON csm.supplier_id = s.id
+        ORDER BY csm.id
+        """
+        
+        result = db.execute(text(query))
+        mappings_raw = result.fetchall()
+        
+        # 응답 데이터 구성
+        mapping_list = []
+        for row in mappings_raw:
+            mapping_data = {
+                "id": row[0],
+                "customer_id": row[1],
+                "supplier_id": row[2],
+                "customer_name": row[3],
+                "supplier_name": row[4],
+                "delivery_code": row[5],
+                "is_active": bool(row[6]),
+                "is_primary_supplier": bool(row[7]),
+                "priority_order": row[8],
+                "contract_start_date": row[9],
+                "contract_end_date": row[10],
+                "notes": row[11],
+                "created_at": row[12],
+                "updated_at": row[13],
+                "status_text": "주 협력업체" if row[7] else "보조 협력업체" if row[6] else "비활성"
+            }
+            mapping_list.append(mapping_data)
+        
+        return {
+            "success": True,
+            "mappings": mapping_list,
+            "count": len(mapping_list)
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": {"message": f"매핑 조회 중 오류: {str(e)}"},
+            "mappings": [],
+            "count": 0
+        }
+
+@app.delete("/api/admin/mappings/{mapping_id}")
+async def delete_mapping_temp(mapping_id: int, db: Session = Depends(get_db)):
+    """매핑 삭제 (임시)"""
+    try:
+        # 먼저 매핑이 존재하는지 확인
+        check_query = "SELECT id FROM customer_supplier_mappings WHERE id = :mapping_id"
+        result = db.execute(text(check_query), {"mapping_id": mapping_id})
+        
+        if not result.fetchone():
+            return {"success": False, "error": {"message": "매핑을 찾을 수 없습니다."}}
+        
+        # 삭제 실행
+        delete_query = "DELETE FROM customer_supplier_mappings WHERE id = :mapping_id"
+        db.execute(text(delete_query), {"mapping_id": mapping_id})
+        db.commit()
+        
+        return {"success": True, "message": "매핑이 삭제되었습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        return {"success": False, "error": {"message": f"매핑 삭제 중 오류: {str(e)}"}}
+
+# 사용자 관리는 admin.py의 엔드포인트만 사용 (중복 제거)
+
+# ==============================================================================
+# 정적 파일 서빙 (라우터 등록 직후)
+# ==============================================================================
+
+# HTML 파일 라우트 추가
+@app.get("/ingredient_registration_management")
+async def ingredient_registration_page():
+    """식자재 등록 관리 페이지"""
+    return FileResponse("ingredient_registration_management.html")
+
+# HTML 파일과 정적 파일 서빙
+import os
+try:
+    # 정적 파일 디렉토리 마운트 (절대 경로 사용)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    static_path = os.path.join(current_dir, "static")
+    modules_path = os.path.join(current_dir, "modules")
+    
+    logger.info(f"Current directory: {current_dir}")
+    logger.info(f"Static path: {static_path}")
+    logger.info(f"Modules path: {modules_path}")
+    logger.info(f"Static directory exists: {os.path.exists(static_path)}")
+    logger.info(f"Modules directory exists: {os.path.exists(modules_path)}")
+    
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+    app.mount("/modules", StaticFiles(directory=modules_path), name="modules")
+    
+    # 루트 디렉토리 HTML 파일들을 위한 마운트
+    app.mount("/", StaticFiles(directory=current_dir, html=True), name="root")
+    logger.info("Root directory mounted for HTML files")
+    logger.info("HTML files can now be accessed directly from root URL")
+    
+    # Fortress 시스템 디렉토리 마운트
+    system_path = os.path.join(current_dir, "system")
+    if os.path.exists(system_path):
+        app.mount("/system", StaticFiles(directory=system_path), name="system")
+        logger.info("Fortress system directory mounted")
+    
+    logger.info("Static files mounted successfully with absolute paths")
+except Exception as e:
+    logger.warning(f"Static files mounting failed: {e}")
 
 # ==============================================================================
 # 전역 예외 핸들러
@@ -127,6 +329,23 @@ async def custom_exception_handler(request: Request, exc: BaseCustomException):
     return JSONResponse(
         status_code=exc.status_code,
         content=create_error_response(exc)
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """요청 검증 오류 처리 (422)"""
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "error": {
+                "type": "ValidationError",
+                "message": "요청 데이터 검증에 실패했습니다",
+                "details": exc.errors(),
+                "status_code": 422
+            }
+        }
     )
 
 @app.exception_handler(HTTPException)
@@ -264,6 +483,12 @@ async def admin_page():
     from fastapi.responses import FileResponse
     return FileResponse("admin_dashboard.html")
 
+@app.get("/admin-fortress")
+async def admin_fortress_page():
+    """관리자 페이지 - AI-resistant Fortress 버전"""
+    from fastapi.responses import FileResponse
+    return FileResponse("admin_dashboard_fortress.html")
+
 @app.get("/admin-legacy")
 async def admin_legacy_page():
     """관리자 페이지 - 레거시 버전 (백업용)"""
@@ -287,6 +512,12 @@ async def ingredients_page():
     """식재료 관리"""
     from fastapi.responses import FileResponse
     return FileResponse("ingredients_management.html")
+
+@app.get("/ingredients-registration")
+async def ingredients_registration_page():
+    """식자재 등록 관리"""
+    from fastapi.responses import FileResponse
+    return FileResponse("ingredient_registration_management.html")
 
 @app.get("/cooking")
 async def cooking_page():
@@ -331,6 +562,30 @@ async def user_management_page():
     from fastapi.responses import FileResponse
     return FileResponse("user_management.html")
 
+@app.get("/sites")
+async def sites_management_page():
+    """사업장 관리 (단순화된 버전)"""
+    from fastapi.responses import FileResponse
+    return FileResponse("sites_management.html")
+
+@app.get("/users")
+async def users_management_page():
+    """사용자 관리 (단순화된 버전)"""
+    from fastapi.responses import FileResponse
+    return FileResponse("users_management.html")
+
+@app.get("/suppliers")
+async def suppliers_management_page():
+    """협력업체 관리 (단순화된 버전)"""
+    from fastapi.responses import FileResponse
+    return FileResponse("suppliers_management.html")
+
+@app.get("/simple")
+async def simple_dashboard_page():
+    """단순화된 대시보드"""
+    from fastapi.responses import FileResponse
+    return FileResponse("simple_dashboard.html")
+
 @app.get("/health")
 async def health_check():
     """헬스 체크"""
@@ -341,18 +596,22 @@ async def health_check():
         "version": "2.0.0"
     }
 
-# ==============================================================================
-# 정적 파일 서빙 (개발환경용)
-# ==============================================================================
+@app.get("/test-static")
+async def test_static():
+    """정적 파일 테스트"""
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    static_path = os.path.join(current_dir, "static")
+    test_file = os.path.join(static_path, "modules", "sites", "sites-complete.js")
+    
+    return {
+        "current_dir": current_dir,
+        "static_path": static_path,
+        "test_file": test_file,
+        "file_exists": os.path.exists(test_file),
+        "file_size": os.path.getsize(test_file) if os.path.exists(test_file) else 0
+    }
 
-# HTML 파일과 정적 파일 서빙
-import os
-try:
-    # CSS와 JS 파일이 루트 디렉토리에 있으므로 루트를 정적 파일로 서빙
-    app.mount("/static", StaticFiles(directory="."), name="static")
-    logger.info("Static files mounted successfully from current directory")
-except Exception as e:
-    logger.warning(f"Static files mounting failed: {e}")
 
 # ==============================================================================
 # 애플리케이션 실행
@@ -363,7 +622,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="127.0.0.1",
-        port=8001,
+        port=8003,
         reload=True,
         log_level="info"
     )

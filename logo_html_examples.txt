@@ -1,0 +1,33 @@
+
+<!-- HTML에서 로고 사용 예시 -->
+
+1. 메인 대시보드 상단 로고:
+<div class="header-logo">
+    <img src="static/images/logo.png" alt="회사 로고" style="height: 40px;">
+</div>
+
+2. 사이드바 브랜드 로고:
+<div class="sidebar-brand">
+    <img src="static/images/logo.png" alt="브랜드" style="width: 200px;">
+    <h3>{{COMPANY_NAME}}</h3>
+</div>
+
+3. 로그인 페이지 로고:
+<div class="login-logo">
+    <img src="assets/login_logo.png" alt="로그인" style="width: 300px;">
+</div>
+
+4. 파비콘 (HTML head):
+<link rel="icon" type="image/x-icon" href="static/favicon.ico">
+
+CSS에서 로고 스타일링:
+.header-logo img {
+    max-height: 50px;
+    width: auto;
+}
+
+.sidebar-brand img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+}

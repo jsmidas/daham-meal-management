@@ -1,0 +1,16 @@
+{
+  "customers": {
+    "testcompany": {
+      "customer_id": "testcompany",
+      "company_name": "테스트 급식회사",
+      "system_name": "테스트 급식회사 전용 급식관리 시스템",
+      "port": 8001,
+      "directory": "C:\\Dev\\daham-meal-management\\customers\\testcompany",
+      "database": "testcompany_meal.db",
+      "url": "http://127.0.0.1:8001",
+      "created_at": "2025-09-12T12:43:44.760218",
+      "status": "created"
+    }
+  },
+  "next_port": 8002
+}

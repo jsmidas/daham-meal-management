@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식자재 관리 - 최적화</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 가상 스크롤링을 위한 스타일 */
+        .virtual-scroll-container {
+            height: 600px;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid #ddd;
+        }
+        
+        .virtual-scroll-content {
+            position: relative;
+        }
+        
+        .virtual-item {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+            background: white;
+        }
+        
+        .virtual-item:hover {
+            background: #f5f5f5;
+        }
+        
+        /* 로딩 인디케이터 */
+        .loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .progress-bar {
+            width: 300px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        
+        /* 최적화된 테이블 스타일 */
+        .optimized-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        
+        .optimized-table th {
+            position: sticky;
+            top: 0;
+            background: #f0f0f0;
+            z-index: 10;
+        }
+        
+        /* 검색 디바운싱 인디케이터 */
+        .search-status {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .batch-upload-status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .chunk-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>식자재 관리 - 최적화 버전</h1>
+        
+        <!-- 검색 영역 (디바운싱 적용) -->
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="검색어 입력..." />
+            <span class="search-status" id="searchStatus"></span>
+        </div>
+        
+        <!-- 대량 업로드 영역 -->
+        <div class="upload-section">
+            <input type="file" id="bulkUpload" accept=".xlsx,.xls,.csv" />
+            <button onclick="handleBulkUpload()">대량 업로드 (최적화)</button>
+            <div id="uploadProgress" class="batch-upload-status" style="display: none;">
+                <div class="chunk-progress">
+                    <span>처리 중: </span>
+                    <span id="currentChunk">0</span> / <span id="totalChunks">0</span> 청크
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="uploadStats"></div>
+            </div>
+        </div>
+        
+        <!-- 가상 스크롤 컨테이너 -->
+        <div class="virtual-scroll-container" id="virtualContainer">
+            <div class="virtual-scroll-content" id="virtualContent"></div>
+        </div>
+        
+        <!-- 페이지 정보 -->
+        <div class="page-info">
+            전체: <span id="totalCount">0</span>개 | 
+            렌더링: <span id="visibleCount">0</span>개 |
+            메모리 사용: <span id="memoryUsage">0</span>MB
+        </div>
+    </div>
+    
+    <script>
+        // 전역 변수
+        let allData = [];
+        let filteredData = [];
+        let virtualScroller = null;
+        let searchDebounceTimer = null;
+        let dataCache = new Map();
+        const CHUNK_SIZE = 1000; // 청크 단위
+        const RENDER_BATCH = 50; // 한 번에 렌더링할 항목 수
+        const ITEM_HEIGHT = 40; // 각 항목의 높이
+        
+        class VirtualScroller {
+            constructor(container, itemHeight, renderBatch) {
+                this.container = container;
+                this.itemHeight = itemHeight;
+                this.renderBatch = renderBatch;
+                this.visibleStart = 0;
+                this.visibleEnd = renderBatch;
+                this.scrollTop = 0;
+                this.data = [];
+                this.renderedItems = new Map();
+                
+                this.container.addEventListener('scroll', this.handleScroll.bind(this));
+            }
+            
+            setData(data) {
+                this.data = data;
+                this.render();
+                document.getElementById('totalCount').textContent = data.length.toLocaleString();
+            }
+            
+            handleScroll() {
+                const scrollTop = this.container.scrollTop;
+                const containerHeight = this.container.clientHeight;
+                
+                this.visibleStart = Math.floor(scrollTop / this.itemHeight);
+                this.visibleEnd = Math.ceil((scrollTop + containerHeight) / this.itemHeight);
+                
+                // 버퍼 추가 (스크롤 성능 향상)
+                const buffer = 10;
+                this.visibleStart = Math.max(0, this.visibleStart - buffer);
+                this.visibleEnd = Math.min(this.data.length, this.visibleEnd + buffer);
+                
+                requestAnimationFrame(() => this.render());
+            }
+            
+            render() {
+                const content = document.getElementById('virtualContent');
+                content.style.height = `${this.data.length * this.itemHeight}px`;
+                
+                // 기존 렌더링된 항목 중 보이지 않는 것 제거
+                for (let [index, element] of this.renderedItems) {
+                    if (index < this.visibleStart || index >= this.visibleEnd) {
+                        element.remove();
+                        this.renderedItems.delete(index);
+                    }
+                }
+                
+                // 새로운 항목 렌더링
+                for (let i = this.visibleStart; i < this.visibleEnd && i < this.data.length; i++) {
+                    if (!this.renderedItems.has(i)) {
+                        const item = this.createItem(this.data[i], i);
+                        content.appendChild(item);
+                        this.renderedItems.set(i, item);
+                    }
+                }
+                
+                document.getElementById('visibleCount').textContent = 
+                    (this.visibleEnd - this.visibleStart).toLocaleString();
+            }
+            
+            createItem(data, index) {
+                const div = document.createElement('div');
+                div.className = 'virtual-item';
+                div.style.top = `${index * this.itemHeight}px`;
+                div.innerHTML = `
+                    <span style="flex: 0 0 100px">${data['고유코드'] || ''}</span>
+                    <span style="flex: 1">${data['식자재명'] || ''}</span>
+                    <span style="flex: 0 0 150px">${data['거래처명'] || ''}</span>
+                    <span style="flex: 0 0 100px">${data['판매가'] || ''}</span>
+                `;
+                return div;
+            }
+        }
+        
+        // 데이터 로드 (페이지네이션으로 분할 로드)
+        async function loadDataInChunks() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                <div>데이터 로딩 중...</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="loadProgress"></div>
+                </div>
+                <div id="loadStatus">0 / 0</div>
+            `;
+            document.body.appendChild(loadingDiv);
+            
+            allData = [];
+            let page = 1;
+            let hasMore = true;
+            
+            while (hasMore) {
+                try {
+                    const response = await fetch(`/api/admin/ingredients?page=${page}&limit=${CHUNK_SIZE}`);
+                    const result = await response.json();
+                    
+                    if (result.ingredients && result.ingredients.length > 0) {
+                        allData = allData.concat(result.ingredients);
+                        
+                        // 진행 상황 업데이트
+                        const progress = (allData.length / result.total) * 100;
+                        document.getElementById('loadProgress').style.width = `${progress}%`;
+                        document.getElementById('loadStatus').textContent = 
+                            `${allData.length.toLocaleString()} / ${result.total.toLocaleString()}`;
+                        
+                        // 첫 청크는 즉시 렌더링
+                        if (page === 1) {
+                            filteredData = [...allData];
+                            virtualScroller.setData(filteredData);
+                        }
+                        
+                        page++;
+                        hasMore = allData.length < result.total;
+                    } else {
+                        hasMore = false;
+                    }
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    hasMore = false;
+                }
+            }
+            
+            document.body.removeChild(loadingDiv);
+            filteredData = [...allData];
+            virtualScroller.setData(filteredData);
+            
+            // 메모리 사용량 추적
+            if (performance.memory) {
+                const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+                document.getElementById('memoryUsage').textContent = memoryMB;
+            }
+        }
+        
+        // 검색 (디바운싱 적용)
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            clearTimeout(searchDebounceTimer);
+            document.getElementById('searchStatus').textContent = '검색 중...';
+            
+            searchDebounceTimer = setTimeout(() => {
+                if (searchTerm === '') {
+                    filteredData = [...allData];
+                } else {
+                    // Web Worker를 사용한 병렬 검색 (대용량 데이터)
+                    filteredData = allData.filter(item => {
+                        return (item['식자재명'] && item['식자재명'].toLowerCase().includes(searchTerm)) ||
+                               (item['거래처명'] && item['거래처명'].toLowerCase().includes(searchTerm)) ||
+                               (item['고유코드'] && item['고유코드'].toLowerCase().includes(searchTerm));
+                    });
+                }
+                
+                virtualScroller.setData(filteredData);
+                document.getElementById('searchStatus').textContent = 
+                    `${filteredData.length.toLocaleString()}개 결과`;
+            }, 300); // 300ms 디바운싱
+        }
+        
+        // 대량 업로드 (청크 단위 처리)
+        async function handleBulkUpload() {
+            const fileInput = document.getElementById('bulkUpload');
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            document.getElementById('uploadProgress').style.display = 'block';
+            
+            // 파일을 청크로 나누어 처리
+            const fileSize = file.size;
+            const chunkSize = 1024 * 1024; // 1MB 청크
+            const totalChunks = Math.ceil(fileSize / chunkSize);
+            
+            document.getElementById('totalChunks').textContent = totalChunks;
+            
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, fileSize);
+                const chunk = file.slice(start, end);
+                
+                const formData = new FormData();
+                formData.append('chunk', chunk);
+                formData.append('chunkIndex', i);
+                formData.append('totalChunks', totalChunks);
+                formData.append('fileName', file.name);
+                
+                try {
+                    const response = await fetch('/api/admin/upload-chunk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    document.getElementById('currentChunk').textContent = i + 1;
+                    const progress = ((i + 1) / totalChunks) * 100;
+                    document.getElementById('progressFill').style.width = `${progress}%`;
+                    
+                    if (i === totalChunks - 1) {
+                        // 마지막 청크 처리 완료
+                        const result = await response.json();
+                        document.getElementById('uploadStats').innerHTML = `
+                            업로드 완료! 처리된 레코드: ${result.processed.toLocaleString()}개
+                        `;
+                        
+                        // 데이터 다시 로드
+                        setTimeout(() => loadDataInChunks(), 1000);
+                    }
+                } catch (error) {
+                    console.error('청크 업로드 실패:', error);
+                    document.getElementById('uploadStats').innerHTML = 
+                        `오류 발생: ${error.message}`;
+                    break;
+                }
+            }
+        }
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('virtualContainer');
+            virtualScroller = new VirtualScroller(container, ITEM_HEIGHT, RENDER_BATCH);
+            
+            // 검색 이벤트 리스너
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            
+            // 데이터 로드
+            loadDataInChunks();
+            
+            // 메모리 모니터링 (1초마다)
+            setInterval(() => {
+                if (performance.memory) {
+                    const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+                    document.getElementById('memoryUsage').textContent = memoryMB;
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

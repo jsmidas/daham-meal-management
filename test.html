@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>g당 단가 시스템 테스트</title>
+</head>
+<body>
+    <h1>g당 단가 시스템 테스트</h1>
+    <button onclick="testAPI()">g당 단가 통계 조회</button>
+    <div id="result"></div>
+    
+    <script>
+    async function testAPI() {
+        try {
+            const response = await fetch('http://localhost:8003/price-per-gram-stats');
+            const data = await response.json();
+            document.getElementById('result').innerHTML = 
+                `<h2>결과:</h2>
+                <p>전체 식자재: ${data.total_ingredients}개</p>
+                <p>계산 완료: ${data.calculated_count}개</p>
+                <p>정확도: ${data.coverage_percentage}%</p>`;
+        } catch (error) {
+            document.getElementById('result').innerHTML = '에러: ' + error;
+        }
+    }
+    </script>
+</body>
+</html>

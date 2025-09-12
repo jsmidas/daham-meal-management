@@ -651,8 +651,8 @@ async def check_menu_orderability(menu_data: dict, db: Session = Depends(get_db)
                     continue
                 
                 # 공급업체 확인
-                if ingredient.supplier_id:
-                    supplier = db.query(Supplier).filter(Supplier.id == ingredient.supplier_id).first()
+                if ingredient.supplier_name:
+                    supplier = db.query(Supplier).filter(Supplier.name == ingredient.supplier_name).first()
                     if supplier:
                         supplier_info.append({
                             "ingredient_name": ingredient.name,

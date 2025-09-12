@@ -90,7 +90,7 @@ body {
 
 .header-info {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     margin-top: 10px;
 }
@@ -761,7 +761,7 @@ body {
 
 .header-actions {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     gap: 20px;
 }
@@ -996,7 +996,7 @@ body {
     padding: 20px;
     border-bottom: 1px solid #dee2e6;
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -1108,7 +1108,7 @@ body {
 
 .panel-header {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 10px;

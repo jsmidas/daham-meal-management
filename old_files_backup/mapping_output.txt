@@ -1,0 +1,39 @@
+# Correct column mapping based on actual Excel file:
+column_mapping = {
+    '분류(대분류)': 'category',
+    # Sample: '가공식품'
+    # NOT FOUND for sub_category: ['기본', '소분류']
+    # NOT FOUND for ingredient_code: ['식자재코드', '코드']
+    '식자재명': 'ingredient_name',
+    # Sample: '베이킹소다,풍전식품,150G/PAC'
+    # NOT FOUND for brand_name: ['브랜드명', '브랜드']
+    # NOT FOUND for extra_field1: ['게시여부', '게시']
+    # NOT FOUND for product_name: ['입고명', '입고']
+    '단위': 'unit',
+    # Sample: 'PAC'
+    # NOT FOUND for tax_type: ['과세']
+    # NOT FOUND for delivery_days: ['배송일수', '배송']
+    '입고가': 'purchase_price',
+    # Sample: '490'
+    '판매가': 'selling_price',
+    # Sample: '540'
+    # NOT FOUND for supplier_name: ['판매처', '처명']
+    '비고': 'notes',
+    # Sample: '1.0'
+}
+
+All Excel columns:
+'분류(대분류)'
+'기본식자재(세분류)'
+'고유코드'
+'식자재명'
+'원산지'
+'게시유무'
+'규격'
+'단위'
+'면세'
+'선발주일'
+'입고가'
+'판매가'
+'거래처명'
+'비고'

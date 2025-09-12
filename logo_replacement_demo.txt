@@ -1,0 +1,24 @@
+
+def replace_logos(customer_id):
+    """고객사 로고로 교체"""
+    
+    logo_mapping = {
+        # 현재 시스템의 로고 위치 → 고객사 로고 위치
+        'static/images/logo.png': f'assets/logos/customers/{customer_id}/main_logo.png',
+        'static/favicon.ico': f'assets/logos/customers/{customer_id}/favicon.ico',
+        'assets/login_logo.png': f'assets/logos/customers/{customer_id}/login_logo.png'
+    }
+    
+    for system_logo, customer_logo in logo_mapping.items():
+        if os.path.exists(customer_logo):
+            # 백업 생성
+            if os.path.exists(system_logo):
+                shutil.copy2(system_logo, f"{system_logo}.backup")
+            
+            # 로고 교체
+            shutil.copy2(customer_logo, system_logo)
+            print(f"[LOGO] {system_logo} ← {customer_logo}")
+        else:
+            print(f"[WARNING] 고객 로고 없음: {customer_logo}")
+    
+    print(f"고객사 '{customer_id}' 로고 적용 완료!")

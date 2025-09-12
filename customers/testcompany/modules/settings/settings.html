@@ -1,0 +1,162 @@
+<!-- Settings Module HTML Template -->
+<div id="settings-page" class="page-content">
+    <div class="page-header">
+        <h2>⚙️ 시스템 설정</h2>
+        <p>시스템 전반적인 설정을 관리합니다.</p>
+    </div>
+
+    <div class="settings-container">
+        <!-- 기본 설정 섹션 -->
+        <div class="section-card">
+            <h3>🔧 기본 설정</h3>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <label for="system-name">시스템 이름</label>
+                    <input type="text" id="system-name" value="다함식단관리" />
+                </div>
+                <div class="setting-item">
+                    <label for="system-version">버전 정보</label>
+                    <input type="text" id="system-version" value="v1.0.0" readonly />
+                </div>
+            </div>
+        </div>
+
+        <!-- 사용자 설정 섹션 -->
+        <div class="section-card">
+            <h3>👤 사용자 설정</h3>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <label for="default-page">기본 페이지</label>
+                    <select id="default-page">
+                        <option value="dashboard">대시보드</option>
+                        <option value="users">사용자 관리</option>
+                        <option value="suppliers">협력업체 관리</option>
+                        <option value="business-locations">사업장 관리</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="items-per-page">페이지당 표시 항목</label>
+                    <select id="items-per-page">
+                        <option value="10">10개</option>
+                        <option value="20" selected>20개</option>
+                        <option value="50">50개</option>
+                        <option value="100">100개</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시스템 정보 섹션 -->
+        <div class="section-card">
+            <h3>ℹ️ 시스템 정보</h3>
+            <div class="settings-group">
+                <div class="info-item">
+                    <span class="info-label">데이터베이스 상태:</span>
+                    <span class="info-value status-active" id="db-status">연결됨</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">마지막 백업:</span>
+                    <span class="info-value" id="last-backup">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">사용자 수:</span>
+                    <span class="info-value" id="user-count">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 데이터 관리 섹션 -->
+        <div class="section-card">
+            <h3>💾 데이터 관리</h3>
+            <div class="settings-group">
+                <button onclick="SettingsModule.createBackup()" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 데이터 백업 생성
+                </button>
+                <button onclick="SettingsModule.checkSystemHealth()" class="btn btn-secondary">
+                    <i class="fas fa-heartbeat"></i> 시스템 상태 확인
+                </button>
+            </div>
+        </div>
+
+        <!-- 저장 버튼 -->
+        <div class="settings-actions">
+            <button onclick="SettingsModule.saveSettings()" class="btn btn-success">
+                <i class="fas fa-check"></i> 설정 저장
+            </button>
+            <button onclick="SettingsModule.resetSettings()" class="btn btn-warning">
+                <i class="fas fa-undo"></i> 기본값으로 리셋
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Settings Module Specific Styles */
+.settings-container {
+    max-width: 800px;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.setting-item label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.setting-item input,
+.setting-item select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 500;
+    color: #666;
+}
+
+.info-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.status-active {
+    color: #28a745;
+}
+
+.status-inactive {
+    color: #dc3545;
+}
+
+.settings-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+</style>

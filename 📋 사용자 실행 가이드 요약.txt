@@ -2,6 +2,39 @@
 
   🚀 실행 단계:
 
+● Read(README.md)
+  ⎿  Error reading file
+
+● Bash(dir)
+  ⎿ __pycache__
+    _old_main_legacy_backup_do_not_refer
+    ence.py
+    … +107 lines (ctrl+r to expand)
+
+
+● Read(run_server.bat)
+  ⎿  Read 17 lines (ctrl+r to expand)
+
+● Read(run_server_production.bat)
+  ⎿  Read 18 lines (ctrl+r to expand)
+
+● 서버 실행법
+
+  개발 모드 (권장):
+  run_server.bat
+
+  운영 모드:
+  run_server_production.bat
+
+  직접 명령어:
+  python -m uvicorn main:app --host
+  127.0.0.1 --port 8001 --reload
+
+  실행 후 http://127.0.0.1:8001/docs 에서    
+   API 문서 확인 가능
+
+
+   
   1. 터미널/PowerShell 열기
 
   cd C:\Dev\daham-meal-management
