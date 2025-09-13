@@ -56,12 +56,14 @@ class DashboardCore {
         // 실시간 업데이트 (DateTimeUtils 사용 가능한 경우에만)
         if (window.DateTimeUtils && typeof window.DateTimeUtils.startRealTimeUpdate === 'function') {
             try {
-                this.dateUpdateInterval = DateTimeUtils.startRealTimeUpdate('current-date', 'korean');
+                this.dateUpdateInterval = window.DateTimeUtils.startRealTimeUpdate('current-date', 'korean');
                 console.log('[DashboardCore] DateTimeUtils 실시간 업데이트 활성화');
                 return;
             } catch (error) {
                 console.warn('[DashboardCore] DateTimeUtils 사용 실패, 기본 타이머 사용:', error);
             }
+        } else {
+            console.log('[DashboardCore] DateTimeUtils 사용 불가 - window.DateTimeUtils:', !!window.DateTimeUtils, 'startRealTimeUpdate:', typeof window.DateTimeUtils?.startRealTimeUpdate);
         }
         
         // 기본 타이머로 1분마다 업데이트
@@ -155,29 +157,48 @@ class DashboardCore {
             
             const moduleName = pageToModule[pageName];
             if (moduleName) {
-                // ModuleLoader를 통한 안전한 모듈 로드
-                const ModuleClass = await ModuleLoader.loadModule(moduleName);
-                
-                if (ModuleClass) {
-                    // 컨테이너 준비
-                    const containerId = `${pageName}-content`;
-                    let container = document.getElementById(containerId);
-                    
-                    if (!container) {
-                        console.warn(`[DashboardCore] 컨테이너 ${containerId}를 찾을 수 없습니다`);
-                        return;
+                // 이미 로드된 모듈 인스턴스 확인
+                const existingInstance = window[`${moduleName}Management`];
+
+                if (existingInstance && existingInstance.load) {
+                    console.log(`[DashboardCore] 기존 ${pageName} 모듈 인스턴스 사용`);
+                    this.modules[pageName] = existingInstance;
+
+                    // 모듈 로드 (HTML 생성 포함)
+                    if (!existingInstance.isLoaded) {
+                        await existingInstance.load();
                     }
-                    
+                    console.log(`[DashboardCore] ${pageName} 모듈 로드 완료`);
+                    return;
+                }
+
+                // ModuleLoader를 통한 안전한 모듈 로드
+                const ModuleClass = await window.ModuleLoader.loadModule(moduleName);
+
+                if (ModuleClass) {
                     // 모듈이 객체인지 클래스인지 확인
                     if (typeof ModuleClass === 'function') {
                         this.modules[pageName] = new ModuleClass();
+                        // 모듈이 HTML을 생성하는 load 메서드를 호출
+                        if (this.modules[pageName].load) {
+                            await this.modules[pageName].load();
+                        }
                     } else if (typeof ModuleClass === 'object' && ModuleClass.load) {
-                        // 기존 모듈 방식 - 컨테이너에 임시 ID 추가
+                        // 기존 모듈 방식
+                        const containerId = `${pageName}-content`;
+                        let container = document.getElementById(containerId);
+
+                        if (!container) {
+                            console.warn(`[DashboardCore] 컨테이너 ${containerId}를 찾을 수 없습니다`);
+                            return;
+                        }
+
+                        // 컨테이너에 임시 ID 추가
                         const moduleId = `${moduleName}-module`;
                         if (!document.getElementById(moduleId)) {
                             container.innerHTML = `<div id="${moduleId}"></div>`;
                         }
-                        
+
                         this.modules[pageName] = ModuleClass;
                         await ModuleClass.load();
                     }

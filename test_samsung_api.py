@@ -36,6 +36,26 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
 
+class SupplierCreate(BaseModel):
+    name: str
+    parent_code: Optional[str] = ""
+    business_number: Optional[str] = ""
+    representative: Optional[str] = ""
+    headquarters_address: Optional[str] = ""
+    headquarters_phone: Optional[str] = ""
+    email: Optional[str] = ""
+    notes: Optional[str] = ""
+
+class SupplierUpdate(BaseModel):
+    name: Optional[str] = None
+    parent_code: Optional[str] = None
+    business_number: Optional[str] = None
+    representative: Optional[str] = None
+    headquarters_address: Optional[str] = None
+    headquarters_phone: Optional[str] = None
+    email: Optional[str] = None
+    notes: Optional[str] = None
+
 # 데이터베이스 경로를 환경 변수 또는 기본값으로 설정
 DATABASE_PATH = os.getenv("DAHAM_DB_PATH", "backups/working_state_20250912/daham_meal.db")
 
@@ -300,11 +320,12 @@ async def get_admin_users():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-@app.get("/api/admin/business-locations") 
+@app.get("/api/admin/business-locations")
 async def get_admin_business_locations():
     """관리자용 사업장 목록 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = str
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -1075,6 +1096,171 @@ async def get_customer_supplier_mapping(mapping_id: int):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# 식단가 관리 API 엔드포인트
+@app.get("/api/admin/meal-pricing")
+async def get_meal_pricing():
+    """식단가 목록 조회"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        # UTF-8 디코딩을 위한 text_factory 설정
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
+        cursor = conn.cursor()
+
+        # 식단가 데이터 조회
+        cursor.execute("""
+            SELECT
+                id, location_id, location_name, meal_plan_type, meal_type,
+                plan_name, apply_date_start, apply_date_end, selling_price,
+                material_cost_guideline, cost_ratio, is_active, created_at
+            FROM meal_pricing
+            ORDER BY location_name, meal_plan_type, meal_type
+        """)
+
+        meal_pricing = []
+        for row in cursor.fetchall():
+            meal_pricing.append({
+                "id": row[0],
+                "location_id": row[1],
+                "location_name": row[2],
+                "meal_plan_type": row[3],
+                "meal_type": row[4],
+                "plan_name": row[5],
+                "apply_date_start": row[6],
+                "apply_date_end": row[7],
+                "selling_price": float(row[8] or 0),
+                "material_cost_guideline": float(row[9] or 0),
+                "cost_ratio": float(row[10] or 0),
+                "is_active": bool(row[11]),
+                "created_at": row[12]
+            })
+
+        # 통계 계산
+        total = len(meal_pricing)
+        active = sum(1 for mp in meal_pricing if mp["is_active"])
+        locations = len(set(mp["location_name"] for mp in meal_pricing))
+
+        avg_selling_price = 0
+        avg_cost_ratio = 0
+        if meal_pricing:
+            avg_selling_price = sum(mp["selling_price"] for mp in meal_pricing) / len(meal_pricing)
+            avg_cost_ratio = sum(mp["cost_ratio"] for mp in meal_pricing) / len(meal_pricing)
+
+        conn.close()
+
+        return {
+            "success": True,
+            "meal_pricing": meal_pricing,
+            "statistics": {
+                "total": total,
+                "active": active,
+                "locations": locations,
+                "avg_selling_price": avg_selling_price,
+                "avg_cost_ratio": avg_cost_ratio
+            }
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/meal-pricing")
+async def create_meal_pricing(data: dict):
+    """식단가 추가"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO meal_pricing (
+                location_id, location_name, meal_plan_type, meal_type,
+                plan_name, apply_date_start, apply_date_end, selling_price,
+                material_cost_guideline, cost_ratio, is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        """, (
+            data.get("location_id", 1),  # 기본값 1
+            data.get("location_name"),
+            data.get("meal_plan_type"),
+            data.get("meal_type"),
+            data.get("plan_name"),
+            data.get("apply_date_start"),
+            data.get("apply_date_end"),
+            data.get("selling_price"),
+            data.get("material_cost_guideline"),
+            data.get("cost_ratio", 50),
+            data.get("is_active", 1)
+        ))
+
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+
+        return {"success": True, "id": new_id}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/admin/meal-pricing/{pricing_id}")
+async def update_meal_pricing(pricing_id: int, data: dict):
+    """식단가 수정"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE meal_pricing SET
+                location_name = ?,
+                meal_plan_type = ?,
+                meal_type = ?,
+                plan_name = ?,
+                apply_date_start = ?,
+                apply_date_end = ?,
+                selling_price = ?,
+                material_cost_guideline = ?,
+                cost_ratio = ?,
+                is_active = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+        """, (
+            data.get("location_name"),
+            data.get("meal_plan_type"),
+            data.get("meal_type"),
+            data.get("plan_name"),
+            data.get("apply_date_start"),
+            data.get("apply_date_end"),
+            data.get("selling_price"),
+            data.get("material_cost_guideline"),
+            data.get("cost_ratio"),
+            data.get("is_active"),
+            pricing_id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/admin/meal-pricing/{pricing_id}")
+async def delete_meal_pricing(pricing_id: int):
+    """식단가 삭제"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM meal_pricing WHERE id = ?", (pricing_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # 사용자 관리 API 엔드포인트
 @app.get("/api/users")
 async def get_all_users(page: int = 1, limit: int = 20, search: str = "", role: str = ""):
@@ -1474,12 +1660,526 @@ async def get_user_stats():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# 사용자 통계 API 엔드포인트 (충돌 방지를 위해 별도 경로 사용)
+@app.get("/api/admin/users/stats")
+async def get_users_stats():
+    """사용자 통계 정보 반환"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 전체 사용자 수
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0]
+
+        # 활성 사용자 수 (is_active가 1인 사용자)
+        cursor.execute("SELECT COUNT(*) FROM users WHERE is_active = 1")
+        active_users = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "success": True,
+            "total": total_users,
+            "active": active_users
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/users")
+async def create_user(user_data: dict):
+    """새 사용자 생성"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO users (username, contact_info, department, role, password_hash, notes, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+        """, (
+            user_data.get("username"),
+            user_data.get("contact_info"),
+            user_data.get("department"),
+            user_data.get("role"),
+            f"hashed_{user_data.get('password', 'default')}",  # 간단한 해시 처리
+            user_data.get("notes", "")
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "사용자가 생성되었습니다."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/users/{user_id}/deactivate")
+async def deactivate_user(user_id: int):
+    """사용자 비활성화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "사용자가 비활성화되었습니다."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/users/{user_id}/activate")
+async def activate_user(user_id: int):
+    """사용자 활성화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("UPDATE users SET is_active = 1 WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "사용자가 활성화되었습니다."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/users/{user_id}")
+async def get_user(user_id: int):
+    """특정 사용자 정보 반환"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, username, contact_info, department, role, is_active,
+                   created_at, notes
+            FROM users WHERE id = ?
+        """, (user_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            return {"success": False, "error": "사용자를 찾을 수 없습니다."}
+
+        user = {
+            "id": row[0],
+            "username": row[1],
+            "contact_info": row[2],
+            "department": row[3],
+            "role": row[4],
+            "is_active": bool(row[5]),
+            "created_at": row[6],
+            "notes": row[7]
+        }
+
+        conn.close()
+        return user
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/users/{user_id}")
+async def update_user(user_id: int, user_data: dict):
+    """사용자 정보 수정"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE users
+            SET username = ?, contact_info = ?, department = ?, role = ?, notes = ?
+            WHERE id = ?
+        """, (
+            user_data.get("username"),
+            user_data.get("contact_info"),
+            user_data.get("department"),
+            user_data.get("role"),
+            user_data.get("notes", ""),
+            user_id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "사용자 정보가 수정되었습니다."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/users")
+async def get_users(page: int = 1, per_page: int = 10, search: str = "", role: str = ""):
+    """사용자 목록 반환 (페이지네이션 지원)"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 기본 쿼리
+        base_query = "FROM users WHERE 1=1"
+        params = []
+
+        # 검색 조건 추가
+        if search:
+            base_query += " AND (username LIKE ? OR contact_info LIKE ? OR department LIKE ?)"
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+
+        # 권한 필터 추가
+        if role:
+            base_query += " AND role = ?"
+            params.append(role)
+
+        # 전체 개수 조회
+        cursor.execute(f"SELECT COUNT(*) {base_query}", params)
+        total_items = cursor.fetchone()[0]
+
+        # 페이지네이션 계산
+        offset = (page - 1) * per_page
+        total_pages = (total_items + per_page - 1) // per_page
+
+        # 사용자 목록 조회
+        cursor.execute(f"""
+            SELECT id, username, contact_info, department, role, is_active,
+                   created_at, notes
+            {base_query}
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        """, params + [per_page, offset])
+
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                "id": row[0],
+                "username": row[1],
+                "contact_info": row[2],
+                "department": row[3],
+                "role": row[4],
+                "is_active": bool(row[5]),
+                "created_at": row[6],
+                "notes": row[7]
+            })
+
+        conn.close()
+
+        return {
+            "success": True,
+            "users": users,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_items": total_items,
+                "items_per_page": per_page,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# ===============================
+# 협력업체 관리 API 엔드포인트들
+# ===============================
+
+@app.get("/api/admin/suppliers/stats")
+async def get_supplier_stats():
+    """협력업체 통계 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 총 협력업체 수
+        cursor.execute("SELECT COUNT(*) FROM suppliers")
+        total = cursor.fetchone()[0]
+
+        # 활성 협력업체 수
+        cursor.execute("SELECT COUNT(*) FROM suppliers WHERE is_active = 1")
+        active = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "success": True,
+            "total": total,
+            "active": active
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/suppliers")
+async def get_suppliers(page: int = 1, per_page: int = 10, search: str = "", status: str = ""):
+    """협력업체 목록 조회 (페이지네이션, 검색, 필터링)"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # WHERE 조건 구성
+        where_conditions = []
+        params = []
+
+        if search:
+            where_conditions.append("(name LIKE ? OR parent_code LIKE ? OR business_number LIKE ?)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+
+        if status:
+            if status == "active":
+                where_conditions.append("is_active = 1")
+            elif status == "inactive":
+                where_conditions.append("is_active = 0")
+
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+
+        # 총 개수 조회
+        count_query = f"SELECT COUNT(*) FROM suppliers {where_clause}"
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()[0]
+
+        # 페이징 계산
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+
+        # 데이터 조회
+        data_query = f"""
+            SELECT id, name, parent_code, business_number, representative,
+                   headquarters_phone, email, is_active, created_at
+            FROM suppliers
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        """
+
+        cursor.execute(data_query, params + [per_page, offset])
+        suppliers = []
+
+        for row in cursor.fetchall():
+            suppliers.append({
+                "id": row[0],
+                "name": row[1] or "",
+                "parent_code": row[2] or "",
+                "business_number": row[3] or "",
+                "representative": row[4] or "",
+                "headquarters_phone": row[5] or "",
+                "email": row[6] or "",
+                "is_active": bool(row[7]),
+                "created_at": row[8]
+            })
+
+        conn.close()
+
+        return {
+            "success": True,
+            "suppliers": suppliers,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_items": total_count,
+                "items_per_page": per_page,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/suppliers")
+async def create_supplier(supplier: SupplierCreate):
+    """협력업체 생성"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 중복 이름 확인
+        cursor.execute("SELECT id FROM suppliers WHERE name = ?", (supplier.name,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="이미 존재하는 협력업체 이름입니다.")
+
+        # 협력업체 추가
+        cursor.execute("""
+            INSERT INTO suppliers (
+                name, parent_code, business_number, representative,
+                headquarters_address, headquarters_phone, email, notes,
+                is_active, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+        """, (
+            supplier.name,
+            supplier.parent_code,
+            supplier.business_number,
+            supplier.representative,
+            supplier.headquarters_address,
+            supplier.headquarters_phone,
+            supplier.email,
+            supplier.notes
+        ))
+
+        supplier_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "협력업체가 생성되었습니다.",
+            "supplier_id": supplier_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/suppliers/{supplier_id}")
+async def get_supplier_detail(supplier_id: int):
+    """협력업체 상세 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, name, parent_code, business_number, representative,
+                   headquarters_address, headquarters_phone, email, notes,
+                   is_active, created_at
+            FROM suppliers
+            WHERE id = ?
+        """, (supplier_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="협력업체를 찾을 수 없습니다.")
+
+        supplier = {
+            "id": row[0],
+            "name": row[1] or "",
+            "parent_code": row[2] or "",
+            "business_number": row[3] or "",
+            "representative": row[4] or "",
+            "headquarters_address": row[5] or "",
+            "headquarters_phone": row[6] or "",
+            "email": row[7] or "",
+            "notes": row[8] or "",
+            "is_active": bool(row[9]),
+            "created_at": row[10]
+        }
+
+        conn.close()
+        return supplier
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/suppliers/{supplier_id}")
+async def update_supplier(supplier_id: int, supplier: SupplierUpdate):
+    """협력업체 수정"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 협력업체 존재 확인
+        cursor.execute("SELECT id FROM suppliers WHERE id = ?", (supplier_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="협력업체를 찾을 수 없습니다.")
+
+        # 이름 중복 확인 (본인 제외)
+        if supplier.name:
+            cursor.execute("SELECT id FROM suppliers WHERE name = ? AND id != ?", (supplier.name, supplier_id))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="이미 존재하는 협력업체 이름입니다.")
+
+        # 수정할 필드들 수집
+        update_fields = []
+        params = []
+
+        for field_name, field_value in supplier.dict(exclude_unset=True).items():
+            update_fields.append(f"{field_name} = ?")
+            params.append(field_value)
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="수정할 데이터가 없습니다.")
+
+        # 업데이트 실행
+        params.append(supplier_id)
+        update_query = f"""
+            UPDATE suppliers
+            SET {', '.join(update_fields)}, updated_at = datetime('now')
+            WHERE id = ?
+        """
+
+        cursor.execute(update_query, params)
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "협력업체가 수정되었습니다."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/suppliers/{supplier_id}/activate")
+async def activate_supplier(supplier_id: int):
+    """협력업체 활성화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM suppliers WHERE id = ?", (supplier_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="협력업체를 찾을 수 없습니다.")
+
+        cursor.execute("""
+            UPDATE suppliers
+            SET is_active = 1, updated_at = datetime('now')
+            WHERE id = ?
+        """, (supplier_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "협력업체가 활성화되었습니다."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/suppliers/{supplier_id}/deactivate")
+async def deactivate_supplier(supplier_id: int):
+    """협력업체 비활성화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM suppliers WHERE id = ?", (supplier_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="협력업체를 찾을 수 없습니다.")
+
+        cursor.execute("""
+            UPDATE suppliers
+            SET is_active = 0, updated_at = datetime('now')
+            WHERE id = ?
+        """, (supplier_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "협력업체가 비활성화되었습니다."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import os
     
-    # 환경 변수에서 포트 읽기, 기본값은 8006
-    port = int(os.getenv("API_PORT", "8006"))
+    # 환경 변수에서 포트 읽기, 기본값은 8015
+    port = int(os.getenv("API_PORT", "8010"))
     host = os.getenv("API_HOST", "127.0.0.1")
     
     print(f"API 서버 시작: {host}:{port}")

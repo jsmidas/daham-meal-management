@@ -1,686 +1,601 @@
 /**
  * 사용자 관리 모듈
- * 독립적인 사용자 관리 기능 제공
+ * admin 대시보드용 완전한 사용자 관리 기능
  */
 
-window.UsersModule = {
-    isLoaded: false,
-    currentPage: 1,
-    pageSize: 20,
-    totalUsers: 0,
+class UserManagement {
+    constructor() {
+        this.API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8015';
+        this.currentUserId = null;
+        this.isEditMode = false;
+        this.isLoaded = false;
+    }
 
     async load() {
         if (this.isLoaded) return;
+        console.log('🚀 [UserManagement] 사용자 관리 모듈 초기화');
 
-        const container = document.getElementById('users-module');
-        if (!container) return;
+        // 페이지 컨텐츠 영역에 사용자 관리 HTML 구조 생성
+        await this.renderUserManagementHTML();
 
-        this.render(container);
-        this.setupEventListeners(container);
+        this.setupEventListeners();
+        await this.loadUserStats();
         await this.loadUsers();
-        
+
         this.isLoaded = true;
-        console.log('👥 Users Module 로드됨');
-    },
+    }
 
-    render(container) {
-        container.innerHTML = `
-            <div class="users-module">
-                <div class="module-header">
-                    <h2>👥 사용자 관리</h2>
-                    <div class="header-actions">
-                        <input type="text" id="users-search" placeholder="사용자 검색..." class="search-input">
-                        <button id="add-user-btn" class="btn btn-primary">+ 사용자 추가</button>
+    // 사용자 관리 HTML 동적 생성
+    async renderUserManagementHTML() {
+        const contentArea = document.getElementById('content-area');
+        if (!contentArea) {
+            console.error('Content area not found');
+            return;
+        }
+
+        const userHTML = `
+            <div id="users-content" class="page-content">
+                <div class="user-management-container">
+                    <!-- 헤더 섹션 -->
+                    <div class="page-header">
+                        <h1>사용자 관리</h1>
+                        <button class="btn btn-primary" onclick="openCreateModal()">
+                            <i class="fas fa-plus"></i> 사용자 추가
+                        </button>
                     </div>
-                </div>
 
-                <div class="users-stats" id="users-stats">
-                    <div class="loading">통계 로딩 중...</div>
-                </div>
+                    <!-- 통계 카드 섹션 -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="totalUsers">로딩중...</h3>
+                                <p>전체 사용자</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="activeUsers">로딩중...</h3>
+                                <p>활성 사용자</p>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="users-table-container">
-                    <table class="users-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>사용자명</th>
-                                <th>이름</th>
-                                <th>이메일</th>
-                                <th>역할</th>
-                                <th>활성화</th>
-                                <th>생성일</th>
-                                <th>작업</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-table-body">
-                            <tr>
-                                <td colspan="8" class="loading-cell">사용자 목록 로딩 중...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <!-- 검색 및 필터 섹션 -->
+                    <div class="filters-section">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="사용자명 또는 연락처로 검색...">
+                        </div>
+                        <div class="filter-group">
+                            <select id="roleFilter">
+                                <option value="">모든 권한</option>
+                                <option value="admin">관리자</option>
+                                <option value="nutritionist">영양사</option>
+                                <option value="operator">운영자</option>
+                                <option value="viewer">조회자</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="pagination" id="users-pagination">
+                    <!-- 테이블 섹션 -->
+                    <div class="table-container">
+                        <!-- 로딩 인디케이터 -->
+                        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>데이터를 불러오고 있습니다...</span>
+                        </div>
+
+                        <!-- 사용자 테이블 -->
+                        <table id="usersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>사용자명</th>
+                                    <th>연락처</th>
+                                    <th>부서</th>
+                                    <th>권한</th>
+                                    <th>상태</th>
+                                    <th>등록일</th>
+                                    <th>작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- 동적으로 생성될 사용자 목록 -->
+                            </tbody>
+                        </table>
+
+                        <!-- 빈 상태 -->
+                        <div id="emptyState" class="empty-state" style="display: none;">
+                            <i class="fas fa-users"></i>
+                            <h3>사용자가 없습니다</h3>
+                            <p>검색 조건을 변경하거나 새 사용자를 추가해보세요.</p>
+                        </div>
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    <div id="pagination" class="pagination-container">
+                        <!-- 동적으로 생성될 페이지네이션 -->
+                    </div>
                 </div>
 
                 <!-- 사용자 추가/수정 모달 -->
-                <div id="user-modal" class="modal" style="display: none;">
+                <div id="userModal" class="modal" style="display: none;">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h3 id="modal-title">사용자 추가</h3>
-                            <span class="modal-close">&times;</span>
+                            <h2 id="modalTitle">사용자 추가</h2>
+                            <button type="button" class="close-btn" onclick="closeModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
-                        <div class="modal-body">
-                            <form id="user-form">
-                                <div class="form-group">
-                                    <label for="username">사용자명 *</label>
-                                    <input type="text" id="username" name="username" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="password">비밀번호 *</label>
-                                    <input type="password" id="password" name="password" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="contact_info">연락처/이름 *</label>
-                                    <input type="text" id="contact_info" name="contact_info" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="role">역할</label>
-                                    <select id="role" name="role">
-                                        <option value="nutritionist">영양사</option>
-                                        <option value="admin">관리자</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="is_active" name="is_active" checked>
-                                        활성화
-                                    </label>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">저장</button>
-                                    <button type="button" class="btn btn-secondary" onclick="UsersModule.closeModal()">취소</button>
-                                </div>
-                            </form>
-                        </div>
+
+                        <form id="userForm" class="modal-form">
+                            <div class="form-group">
+                                <label for="username">사용자명 *</label>
+                                <input type="text" id="username" name="username" required>
+                            </div>
+
+                            <div class="form-group" id="passwordGroup">
+                                <label for="password">비밀번호 *</label>
+                                <input type="password" id="password" name="password" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="contact_info">연락처</label>
+                                <input type="text" id="contact_info" name="contact_info" placeholder="전화번호 또는 이메일">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="department">부서</label>
+                                <input type="text" id="department" name="department" placeholder="소속 부서">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="role">권한 *</label>
+                                <select id="role" name="role" required>
+                                    <option value="">권한 선택</option>
+                                    <option value="admin">관리자</option>
+                                    <option value="nutritionist">영양사</option>
+                                    <option value="operator">운영자</option>
+                                    <option value="viewer">조회자</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="notes">비고</label>
+                                <textarea id="notes" name="notes" placeholder="추가 정보나 메모"></textarea>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                                <button type="submit" id="submitBtn" class="btn btn-primary">추가</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
+
+                <!-- 알림 컨테이너 -->
+                <div id="alertContainer" class="alert-container"></div>
             </div>
         `;
 
-        this.applyStyles();
-    },
+        contentArea.innerHTML = userHTML;
+    }
 
-    applyStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            .users-module {
-                padding: 20px;
-                max-width: 1200px;
-            }
-
-            .module-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #eee;
-            }
-
-            .module-header h2 {
-                color: #333;
-                margin: 0;
-            }
-
-            .header-actions {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-            }
-
-            .search-input {
-                padding: 8px 12px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                width: 200px;
-            }
-
-            .users-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin-bottom: 20px;
-            }
-
-            .stat-card {
-                background: white;
-                padding: 15px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                text-align: center;
-            }
-
-            .stat-value {
-                font-size: 24px;
-                font-weight: bold;
-                color: #667eea;
-            }
-
-            .stat-label {
-                font-size: 14px;
-                color: #666;
-                margin-top: 5px;
-            }
-
-            .users-table-container {
-                background: white;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                margin-bottom: 20px;
-            }
-
-            .users-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
-            .users-table th,
-            .users-table td {
-                padding: 12px;
-                text-align: left;
-                border-bottom: 1px solid #eee;
-            }
-
-            .users-table th {
-                background: #f8f9fa;
-                font-weight: 600;
-                color: #333;
-            }
-
-            .users-table tr:hover {
-                background: #f8f9fa;
-            }
-
-            .loading-cell {
-                text-align: center;
-                color: #666;
-                font-style: italic;
-            }
-
-            .btn {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 500;
-                text-decoration: none;
-                display: inline-block;
-            }
-
-            .btn-primary {
-                background: #667eea;
-                color: white;
-            }
-
-            .btn-secondary {
-                background: #6c757d;
-                color: white;
-            }
-
-            .btn-danger {
-                background: #dc3545;
-                color: white;
-            }
-
-            .btn-warning {
-                background: #ffc107;
-                color: #333;
-            }
-
-            .btn:hover {
-                opacity: 0.9;
-            }
-
-            .btn-sm {
-                padding: 4px 8px;
-                font-size: 12px;
-            }
-
-            .status-badge {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: 500;
-            }
-
-            .status-active {
-                background: #d4edda;
-                color: #155724;
-            }
-
-            .status-inactive {
-                background: #f8d7da;
-                color: #721c24;
-            }
-
-            .modal {
-                position: fixed;
-                z-index: 1000;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-            }
-
-            .modal-content {
-                background: white;
-                margin: 5% auto;
-                padding: 0;
-                border-radius: 8px;
-                width: 90%;
-                max-width: 500px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            }
-
-            .modal-header {
-                padding: 20px;
-                border-bottom: 1px solid #eee;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .modal-close {
-                font-size: 28px;
-                font-weight: bold;
-                cursor: pointer;
-                color: #aaa;
-            }
-
-            .modal-close:hover {
-                color: #000;
-            }
-
-            .modal-body {
-                padding: 20px;
-            }
-
-            .form-group {
-                margin-bottom: 15px;
-            }
-
-            .form-group label {
-                display: block;
-                margin-bottom: 5px;
-                font-weight: 500;
-                color: #333;
-            }
-
-            .form-group input,
-            .form-group select {
-                width: 100%;
-                padding: 8px 12px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-
-            .form-actions {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-                margin-top: 20px;
-            }
-
-            .pagination {
-                display: flex;
-                justify-content: center;
-                gap: 5px;
-            }
-
-            .pagination button {
-                padding: 8px 12px;
-                border: 1px solid #ddd;
-                background: white;
-                cursor: pointer;
-            }
-
-            .pagination button.active {
-                background: #667eea;
-                color: white;
-                border-color: #667eea;
-            }
-
-            .pagination button:hover:not(.active) {
-                background: #f8f9fa;
-            }
-        `;
-        document.head.appendChild(style);
-    },
-
-    setupEventListeners(container) {
-        // 검색
-        const searchInput = container.querySelector('#users-search');
+    setupEventListeners() {
+        // 검색 입력 시 실시간 검색
+        const searchInput = document.getElementById('searchInput');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(this.searchTimeout);
-                this.searchTimeout = setTimeout(() => {
-                    this.searchUsers(e.target.value);
-                }, 300);
-            });
+            searchInput.addEventListener('input', this.debounce(() => this.loadUsers(), 500));
         }
 
-        // 사용자 추가 버튼
-        const addBtn = container.querySelector('#add-user-btn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.showAddModal());
+        // 권한 필터 변경 시
+        const roleFilter = document.getElementById('roleFilter');
+        if (roleFilter) {
+            roleFilter.addEventListener('change', () => this.loadUsers());
         }
 
-        // 모달 닫기
-        const modal = container.querySelector('#user-modal');
-        const closeBtn = container.querySelector('.modal-close');
-        if (closeBtn && modal) {
-            closeBtn.addEventListener('click', () => this.closeModal());
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.closeModal();
-            });
+        // 사용자 폼 제출
+        const userForm = document.getElementById('userForm');
+        if (userForm) {
+            userForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
         }
 
-        // 폼 제출
-        const form = container.querySelector('#user-form');
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.submitForm();
-            });
-        }
-    },
-
-    async loadUsers(search = '', page = 1) {
-        try {
-            const params = {
-                page,
-                limit: this.pageSize,
-                search
-            };
-
-            const response = await apiGet('/api/admin/users', params);
-            console.log('API Response:', response);
-            
-            if (response.success !== false) {
-                console.log('Response users:', response.users);
-                console.log('Users length:', response.users ? response.users.length : 0);
-                this.displayUsers(response.users || []);
-                this.totalUsers = response.total || 0;
-                this.updatePagination(page, Math.ceil(this.totalUsers / this.pageSize));
-            } else {
-                console.log('Response failed:', response);
-                this.displayError('사용자 목록을 불러올 수 없습니다.');
-            }
-
-            // 통계 로드
-            this.loadStats();
-
-        } catch (error) {
-            console.error('사용자 로드 중 오류:', error);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-            // 오류 발생 시 빈 배열 대신 오류 메시지 표시
-            this.displayError(`사용자 목록 로드 실패: ${error.message}`);
-            this.displayUsers([]);
-            this.totalUsers = 0;
-            this.updatePagination(1, 1);
-        }
-    },
-
-    async loadStats() {
-        try {
-            const response = await apiGet('/api/admin/user-stats');
-            
-            if (response.success !== false && response.stats) {
-                this.displayStats(response.stats);
-            }
-        } catch (error) {
-            console.warn('사용자 통계 로드 중 인증 오류 (일시적으로 무시):', error.message);
-            // 인증 문제인 경우 기본 통계로 표시
-            this.displayStats({
-                total: 0,
-                active: 0,
-                inactive: 0,
-                admins: 0
-            });
-        }
-    },
-
-    displayUsers(users) {
-        const tbody = document.getElementById('users-table-body');
-        if (!tbody) return;
-
-        if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">등록된 사용자가 없습니다.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = users.map(user => `
-            <tr>
-                <td>${user.id}</td>
-                <td><strong>${user.username}</strong></td>
-                <td>${user.contact_info}</td>
-                <td>${user.email || '-'}</td>
-                <td><span class="status-badge">${user.role}</span></td>
-                <td>
-                    <span class="status-badge ${user.is_active ? 'status-active' : 'status-inactive'}">
-                        ${user.is_active ? '활성' : '비활성'}
-                    </span>
-                </td>
-                <td>${user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="UsersModule.editUser(${user.id})">수정</button>
-                    <button class="btn btn-sm btn-secondary" onclick="UsersModule.resetPassword(${user.id})">비밀번호 초기화</button>
-                    <button class="btn btn-sm btn-danger" onclick="UsersModule.deleteUser(${user.id})">삭제</button>
-                </td>
-            </tr>
-        `).join('');
-    },
-
-    displayStats(stats) {
-        const container = document.getElementById('users-stats');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-value">${stats.total_users || 0}</div>
-                <div class="stat-label">총 사용자</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${stats.active_users || 0}</div>
-                <div class="stat-label">활성 사용자</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${stats.admin_users || 0}</div>
-                <div class="stat-label">관리자</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${stats.regular_users || 0}</div>
-                <div class="stat-label">일반 사용자</div>
-            </div>
-        `;
-    },
-
-    displayError(message) {
-        const tbody = document.getElementById('users-table-body');
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="8" class="loading-cell" style="color: #dc3545;">${message}</td></tr>`;
-        }
-    },
-
-    updatePagination(currentPage, totalPages) {
-        const container = document.getElementById('users-pagination');
-        if (!container || totalPages <= 1) {
-            container.innerHTML = '';
-            return;
-        }
-
-        let buttons = [];
-
-        // 이전 페이지
-        if (currentPage > 1) {
-            buttons.push(`<button onclick="UsersModule.loadUsers('', ${currentPage - 1})">이전</button>`);
-        }
-
-        // 페이지 번호들
-        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-            buttons.push(`
-                <button class="${i === currentPage ? 'active' : ''}" 
-                        onclick="UsersModule.loadUsers('', ${i})">${i}</button>
-            `);
-        }
-
-        // 다음 페이지
-        if (currentPage < totalPages) {
-            buttons.push(`<button onclick="UsersModule.loadUsers('', ${currentPage + 1})">다음</button>`);
-        }
-
-        container.innerHTML = buttons.join('');
-    },
-
-    async searchUsers(query) {
-        this.currentPage = 1;
-        await this.loadUsers(query, 1);
-    },
-
-    showAddModal() {
-        document.getElementById('modal-title').textContent = '사용자 추가';
-        document.getElementById('user-form').reset();
-        
-        // 새 사용자 추가 시 비밀번호 필수로 설정
-        const passwordField = document.getElementById('password');
-        passwordField.placeholder = '비밀번호';
-        passwordField.required = true;
-        
-        document.getElementById('user-modal').style.display = 'block';
-        this.editingUserId = null;
-    },
-
-    closeModal() {
-        document.getElementById('user-modal').style.display = 'none';
-    },
-
-    async submitForm() {
-        const form = document.getElementById('user-form');
-        const formData = new FormData(form);
-        
-        const userData = {
-            username: formData.get('username'),
-            contact_info: formData.get('contact_info'),
-            role: formData.get('role') || 'nutritionist',
-            is_active: formData.has('is_active')
-        };
-
-        // 비밀번호가 입력된 경우에만 추가
-        const password = formData.get('password');
-        if (password && password.trim()) {
-            userData.password = password;
-        }
-
-        try {
-            let response;
-            if (this.editingUserId) {
-                delete userData.password; // 수정 시 비밀번호 제외
-                response = await apiPut(`/api/admin/users/${this.editingUserId}`, userData);
-            } else {
-                console.log('Sending user data:', userData);
-                response = await apiPost('/api/admin/users', userData);
-            }
-
-            if (response.success !== false) {
-                showMessage(this.editingUserId ? '사용자가 수정되었습니다.' : '사용자가 추가되었습니다.', 'success');
+        // 모달 외부 클릭 시 닫기
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('userModal');
+            if (event.target === modal) {
                 this.closeModal();
-                this.loadUsers();
-            } else {
-                showMessage(response.message || '처리 중 오류가 발생했습니다.', 'error');
-            }
-        } catch (error) {
-            console.error('사용자 저장 오류:', error);
-            
-            // HTTP 오류의 경우 더 구체적인 메시지 표시
-            if (error.message && error.message.includes('HTTP error! status: 400')) {
-                showMessage('이미 존재하는 사용자명입니다. 다른 사용자명을 입력해주세요.', 'error');
-            } else if (error.message && error.message.includes('HTTP error! status: 422')) {
-                showMessage('입력한 데이터가 올바르지 않습니다. 모든 필수 항목을 확인해주세요.', 'error');
-            } else {
-                showMessage('사용자 저장 중 오류가 발생했습니다.', 'error');
-            }
-        }
-    },
-
-    async editUser(userId) {
-        try {
-            const response = await apiGet(`/api/admin/users/${userId}`);
-            
-            if (response.success !== false) {
-                const user = response.user || response;
-                
-                document.getElementById('modal-title').textContent = '사용자 수정';
-                document.getElementById('username').value = user.username;
-                document.getElementById('contact_info').value = user.contact_info;
-                document.getElementById('role').value = user.role;
-                document.getElementById('is_active').checked = user.is_active;
-                
-                // 비밀번호 필드를 선택사항으로 표시
-                const passwordField = document.getElementById('password');
-                passwordField.value = '';
-                passwordField.placeholder = '새 비밀번호 (변경하지 않으려면 비워두세요)';
-                passwordField.required = false;
-                
-                this.editingUserId = userId;
-                document.getElementById('user-modal').style.display = 'block';
-            } else {
-                showMessage('사용자 정보를 불러올 수 없습니다.', 'error');
-            }
-        } catch (error) {
-            console.error('사용자 정보 로드 오류:', error);
-            showMessage('사용자 정보 로딩 중 오류가 발생했습니다.', 'error');
-        }
-    },
-
-    async deleteUser(userId) {
-        confirmAction('정말로 이 사용자를 삭제하시겠습니까?', async () => {
-            try {
-                const response = await apiDelete(`/api/admin/users/${userId}`);
-                
-                if (response.success !== false) {
-                    showMessage('사용자가 삭제되었습니다.', 'success');
-                    this.loadUsers();
-                } else {
-                    showMessage(response.message || '사용자 삭제 중 오류가 발생했습니다.', 'error');
-                }
-            } catch (error) {
-                console.error('사용자 삭제 오류:', error);
-                showMessage('사용자 삭제 중 오류가 발생했습니다.', 'error');
-            }
-        });
-    },
-
-    async resetPassword(userId) {
-        confirmAction('이 사용자의 비밀번호를 초기화하시겠습니까?', async () => {
-            try {
-                const response = await apiPost(`/api/admin/users/${userId}/reset-password`);
-                
-                if (response.success && response.temporary_password) {
-                    alert(`비밀번호가 초기화되었습니다.\\n임시 비밀번호: ${response.temporary_password}`);
-                } else {
-                    showMessage(response.message || '비밀번호 초기화 중 오류가 발생했습니다.', 'error');
-                }
-            } catch (error) {
-                console.error('비밀번호 초기화 오류:', error);
-                showMessage('비밀번호 초기화 중 오류가 발생했습니다.', 'error');
             }
         });
     }
-};
 
-console.log('👥 Users Module 준비됨');
+    // 디바운스 함수
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func.apply(this, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // 사용자 통계 로드
+    async loadUserStats() {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/admin/users/stats`);
+            if (!response.ok) throw new Error('통계 로드 실패');
+
+            const stats = await response.json();
+
+            const totalUsersElement = document.getElementById('totalUsers');
+            const activeUsersElement = document.getElementById('activeUsers');
+
+            if (totalUsersElement) totalUsersElement.textContent = stats.total || '0';
+            if (activeUsersElement) activeUsersElement.textContent = stats.active || '0';
+        } catch (error) {
+            console.error('사용자 통계 로드 오류:', error);
+            const totalUsersElement = document.getElementById('totalUsers');
+            const activeUsersElement = document.getElementById('activeUsers');
+
+            if (totalUsersElement) totalUsersElement.textContent = '오류';
+            if (activeUsersElement) activeUsersElement.textContent = '오류';
+        }
+    }
+
+    // 사용자 목록 로드
+    async loadUsers(page = 1) {
+        try {
+            this.showLoading(true);
+
+            const search = document.getElementById('searchInput')?.value || '';
+            const role = document.getElementById('roleFilter')?.value || '';
+
+            const params = new URLSearchParams({
+                page: page.toString(),
+                per_page: '10'
+            });
+
+            if (search) params.append('search', search);
+            if (role) params.append('role', role);
+
+            const response = await fetch(`${this.API_BASE_URL}/api/users?${params}`);
+            if (!response.ok) throw new Error('사용자 목록 로드 실패');
+
+            const data = await response.json();
+
+            this.renderUsersTable(data.users || []);
+            this.renderPagination(data.pagination);
+
+        } catch (error) {
+            console.error('사용자 목록 로드 오류:', error);
+            this.showError('사용자 목록을 불러오는데 실패했습니다.');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // 사용자 테이블 렌더링
+    renderUsersTable(users) {
+        const tbody = document.getElementById('usersTableBody');
+        const table = document.getElementById('usersTable');
+        const emptyState = document.getElementById('emptyState');
+
+        if (!tbody) return;
+
+        if (!users || users.length === 0) {
+            if (table) table.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        if (table) table.style.display = 'table';
+        if (emptyState) emptyState.style.display = 'none';
+
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td>${this.escapeHtml(user.username || '')}</td>
+                <td>${this.escapeHtml(user.contact_info || '')}</td>
+                <td>${this.escapeHtml(user.department || '-')}</td>
+                <td><span class="role-badge role-${user.role}">${this.getRoleText(user.role)}</span></td>
+                <td><span class="status-badge status-${user.is_active ? 'active' : 'inactive'}">${user.is_active ? '활성' : '비활성'}</span></td>
+                <td>${this.formatDate(user.created_at)}</td>
+                <td>
+                    <div class="actions">
+                        <button class="btn btn-sm btn-primary" onclick="window.userManagement.editUser(${user.id})">수정</button>
+                        ${user.is_active ?
+                            `<button class="btn btn-sm btn-danger" onclick="window.userManagement.deactivateUser(${user.id})">비활성화</button>` :
+                            `<button class="btn btn-sm btn-success" onclick="window.userManagement.activateUser(${user.id})">활성화</button>`
+                        }
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 페이지네이션 렌더링
+    renderPagination(pagination) {
+        const container = document.getElementById('pagination');
+        if (!container || !pagination) return;
+
+        let html = '';
+
+        // 이전 페이지 버튼
+        html += `<button ${!pagination.has_prev ? 'disabled' : ''} onclick="window.userManagement.loadUsers(${pagination.current_page - 1})">이전</button>`;
+
+        // 페이지 번호들
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="${i === pagination.current_page ? 'active' : ''}" onclick="window.userManagement.loadUsers(${i})">${i}</button>`;
+        }
+
+        // 다음 페이지 버튼
+        html += `<button ${!pagination.has_next ? 'disabled' : ''} onclick="window.userManagement.loadUsers(${pagination.current_page + 1})">다음</button>`;
+
+        container.innerHTML = html;
+    }
+
+    // 권한 텍스트 변환
+    getRoleText(role) {
+        const roleMap = {
+            'admin': '관리자',
+            'nutritionist': '영양사',
+            'operator': '운영자',
+            'viewer': '조회자'
+        };
+        return roleMap[role] || role;
+    }
+
+    // 날짜 포맷팅
+    formatDate(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ko-KR');
+    }
+
+    // HTML 이스케이프
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // 사용자 추가 모달 열기
+    openCreateModal() {
+        this.currentUserId = null;
+        this.isEditMode = false;
+
+        const modalTitle = document.getElementById('modalTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const passwordField = document.getElementById('password');
+        const userForm = document.getElementById('userForm');
+        const userModal = document.getElementById('userModal');
+
+        if (modalTitle) modalTitle.textContent = '사용자 추가';
+        if (submitBtn) submitBtn.textContent = '추가';
+        if (passwordGroup) passwordGroup.style.display = 'block';
+        if (passwordField) passwordField.required = true;
+        if (userForm) userForm.reset();
+        if (userModal) userModal.style.display = 'block';
+    }
+
+    // 사용자 수정 모달 열기
+    async editUser(userId) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/users/${userId}`);
+            if (!response.ok) throw new Error('사용자 정보 로드 실패');
+
+            const user = await response.json();
+
+            this.currentUserId = userId;
+            this.isEditMode = true;
+
+            const modalTitle = document.getElementById('modalTitle');
+            const submitBtn = document.getElementById('submitBtn');
+            const passwordGroup = document.getElementById('passwordGroup');
+            const passwordField = document.getElementById('password');
+            const userModal = document.getElementById('userModal');
+
+            if (modalTitle) modalTitle.textContent = '사용자 수정';
+            if (submitBtn) submitBtn.textContent = '수정';
+            if (passwordGroup) passwordGroup.style.display = 'none';
+            if (passwordField) passwordField.required = false;
+
+            // 폼에 데이터 채우기
+            const usernameField = document.getElementById('username');
+            const contactField = document.getElementById('contact_info');
+            const departmentField = document.getElementById('department');
+            const roleField = document.getElementById('role');
+            const notesField = document.getElementById('notes');
+
+            if (usernameField) usernameField.value = user.username || '';
+            if (contactField) contactField.value = user.contact_info || '';
+            if (departmentField) departmentField.value = user.department || '';
+            if (roleField) roleField.value = user.role || '';
+            if (notesField) notesField.value = user.notes || '';
+
+            if (userModal) userModal.style.display = 'block';
+
+        } catch (error) {
+            console.error('사용자 정보 로드 오류:', error);
+            this.showError('사용자 정보를 불러오는데 실패했습니다.');
+        }
+    }
+
+    // 모달 닫기
+    closeModal() {
+        const userModal = document.getElementById('userModal');
+        const userForm = document.getElementById('userForm');
+
+        if (userModal) userModal.style.display = 'none';
+        if (userForm) userForm.reset();
+    }
+
+    // 사용자 폼 제출
+    async handleFormSubmit(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const userData = {
+            username: formData.get('username'),
+            contact_info: formData.get('contact_info'),
+            department: formData.get('department'),
+            role: formData.get('role'),
+            notes: formData.get('notes')
+        };
+
+        if (!this.isEditMode) {
+            userData.password = formData.get('password');
+        }
+
+        try {
+            const url = this.isEditMode
+                ? `${this.API_BASE_URL}/api/users/${this.currentUserId}`
+                : `${this.API_BASE_URL}/api/users`;
+
+            const method = this.isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || '요청 처리 실패');
+            }
+
+            this.showSuccess(this.isEditMode ? '사용자가 수정되었습니다.' : '사용자가 추가되었습니다.');
+            this.closeModal();
+            await this.loadUsers();
+            await this.loadUserStats();
+
+        } catch (error) {
+            console.error('사용자 저장 오류:', error);
+            this.showError(`사용자 ${this.isEditMode ? '수정' : '추가'}에 실패했습니다: ${error.message}`);
+        }
+    }
+
+    // 사용자 비활성화
+    async deactivateUser(userId) {
+        if (!confirm('정말로 이 사용자를 비활성화하시겠습니까?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/users/${userId}/deactivate`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) throw new Error('비활성화 실패');
+
+            this.showSuccess('사용자가 비활성화되었습니다.');
+            await this.loadUsers();
+            await this.loadUserStats();
+
+        } catch (error) {
+            console.error('사용자 비활성화 오류:', error);
+            this.showError('사용자 비활성화에 실패했습니다.');
+        }
+    }
+
+    // 사용자 활성화
+    async activateUser(userId) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/users/${userId}/activate`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) throw new Error('활성화 실패');
+
+            this.showSuccess('사용자가 활성화되었습니다.');
+            await this.loadUsers();
+            await this.loadUserStats();
+
+        } catch (error) {
+            console.error('사용자 활성화 오류:', error);
+            this.showError('사용자 활성화에 실패했습니다.');
+        }
+    }
+
+    // 로딩 표시
+    showLoading(show) {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const table = document.getElementById('usersTable');
+
+        if (loadingIndicator) {
+            loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+        if (table) {
+            table.style.display = show ? 'none' : 'table';
+        }
+    }
+
+    // 성공 메시지 표시
+    showSuccess(message) {
+        this.showAlert(message, 'success');
+    }
+
+    // 오류 메시지 표시
+    showError(message) {
+        this.showAlert(message, 'error');
+    }
+
+    // 알림 메시지 표시
+    showAlert(message, type = 'success') {
+        const container = document.getElementById('alertContainer');
+        if (!container) return;
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+
+        container.appendChild(alert);
+
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.parentNode.removeChild(alert);
+            }
+        }, 5000);
+    }
+}
+
+// 전역 함수들 (onclick 핸들러용)
+function openCreateModal() {
+    if (window.userManagement) {
+        window.userManagement.openCreateModal();
+    }
+}
+
+function closeModal() {
+    if (window.userManagement) {
+        window.userManagement.closeModal();
+    }
+}
+
+function loadUsers() {
+    if (window.userManagement) {
+        window.userManagement.loadUsers();
+    }
+}
+
+// 모듈 익스포트
+window.UserManagement = UserManagement;

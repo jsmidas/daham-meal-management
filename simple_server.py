@@ -16,7 +16,7 @@ import threading
 import time
 
 # 고정 설정 - 절대 변경되지 않음
-PORT = 9000
+PORT = 9001
 DB_FILE = os.environ.get("DAHAM_DB_FILE", "backups/daham_meal.db")
 
 class AllInOneHandler(http.server.SimpleHTTPRequestHandler):

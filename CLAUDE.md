@@ -1,243 +1,248 @@
-## 클로드 코드에서의 mcp-installer를 사용한 MCP (Model Context Protocol) 설치 및 설정 가이드 
-공통 주의사항
-1. 현재 사용 환경을 확인할 것. 모르면 사용자에게 물어볼 것. 
-2. OS(윈도우,리눅스,맥) 및 환경들(WSL,파워셀,명령프롬프트등)을 파악해서 그에 맞게 세팅할 것. 모르면 사용자에게 물어볼 것.
-3. mcp-installer을 이용해 필요한 MCP들을 설치할 것
-   (user 스코프로 설치 및 적용할것)
-4. 특정 MCP 설치시, 바로 설치하지 말고, WebSearch 도구로 해당 MCP의 공식 사이트 확인하고 현재 OS 및 환경 매치하여, 공식 설치법부터 확인할 것
-5. 공식 사이트 확인 후에는 context7 MCP 존재하는 경우, context7으로 다시 한번 확인할 것
-6. MCP 설치 후, task를 통해 디버그 모드로 서브 에이전트 구동한 후, /mcp 를 통해 실제 작동여부를 반드시 확인할 것 
-7. 설정 시, API KEY 환경 변수 설정이 필요한 경우, 가상의 API 키로 디폴트로 설치 및 설정 후, 올바른 API 키 정보를 입력해야 함을 사용자에게 알릴 것
-8. Mysql MCP와 같이 특정 서버가 구동중 상태여만 정상 작동한 것은 에러가 나도 재설치하지 말고, 정상 구동을 위한 조건을 사용자에게 알릴 것
-9. 현재 클로드 코드가 실행되는 환경이야.
-10. 설치 요청 받은 MCP만 설치하면 돼. 혹시 이미 설치된 다른 MCP 에러 있어도, 그냥 둘 것
-11. 일단, 터미널에서 설치하려는 MCP 작동 성공한 경우, 성공 시의 인자 및 환경 변수 이름을 활용해, 올바른 위치의 json 파일에 MCP 설정을 직접할 것
-12. WSL sudo 패스워드: qsc1445!   
+# 🍱 다함 식자재 관리 시스템 - 개발 가이드
 
-*윈도우에서의 주의사항*
-1. 설정 파일 직접 세팅시, Windows 경로 구분자는 백슬래시(\)이며, JSON 내에서는 반드시 이스케이프 처리(\\\\)해야 해.
-** OS 공통 주의사항**
-1. Node.js가 %PATH%에 등록되어 있는지, 버전이 최소 v18 이상인지 확인할 것
-2. npx -y 옵션을 추가하면 버전 호환성 문제를 줄일 수 있음
+## 📌 프로젝트 개요
+다함 식자재 관리 시스템은 급식업체와 협력업체 간의 식자재 관리, 가격 관리, 매핑 관리를 통합한 웹 기반 관리 시스템입니다.
 
-### MCP 서버 설치 순서
+## 🚀 빠른 시작
 
-1. 기본 설치
-	mcp-installer를 사용해 설치할 것
-
-2. 설치 후 정상 설치 여부 확인하기	
-	claude mcp list 으로 설치 목록에 포함되는지 내용 확인한 후,
-	task를 통해 디버그 모드로 서브 에이전트 구동한 후 (claude --debug), 최대 2분 동안 관찰한 후, 그 동안의 디버그 메시지(에러 시 관련 내용이 출력됨)를 확인하고 /mcp 를 통해(Bash(echo "/mcp" | claude --debug)) 실제 작동여부를 반드시 확인할 것
-
-3. 문제 있을때 다음을 통해 직접 설치할 것
-
-	*User 스코프로 claude mcp add 명령어를 통한 설정 파일 세팅 예시*
-	예시1:
-	claude mcp add --scope user youtube-mcp \
-	  -e YOUTUBE_API_KEY=$YOUR_YT_API_KEY \
-
-	  -e YOUTUBE_TRANSCRIPT_LANG=ko \
-	  -- npx -y youtube-data-mcp-server
-
-
-4. 정상 설치 여부 확인 하기
-	claude mcp list 으로 설치 목록에 포함되는지 내용 확인한 후,
-	task를 통해 디버그 모드로 서브 에이전트 구동한 후 (claude --debug), 최대 2분 동안 관찰한 후, 그 동안의 디버그 메시지(에러 시 관련 내용이 출력됨)를 확인하고, /mcp 를 통해(Bash(echo "/mcp" | claude --debug)) 실제 작동여부를 반드시 확인할 것
-
-
-5. 문제 있을때 공식 사이트 다시 확인후 권장되는 방법으로 설치 및 설정할 것
-	(npm/npx 패키지를 찾을 수 없는 경우) pm 전역 설치 경로 확인 : npm config get prefix
-	권장되는 방법을 확인한 후, npm, pip, uvx, pip 등으로 직접 설치할 것
-
-	#### uvx 명령어를 찾을 수 없는 경우
-	# uv 설치 (Python 패키지 관리자)
-	curl -LsSf https://astral.sh/uv/install.sh | sh
-
-	#### npm/npx 패키지를 찾을 수 없는 경우
-	# npm 전역 설치 경로 확인
-	npm config get prefix
-
-
-	#### uvx 명령어를 찾을 수 없는 경우
-	# uv 설치 (Python 패키지 관리자)
-	curl -LsSf https://astral.sh/uv/install.sh | sh
-
-
-	## 설치 후 터미널 상에서 작동 여부 점검할 것 ##
-	
-	## 위 방법으로, 터미널에서 작동 성공한 경우, 성공 시의 인자 및 환경 변수 이름을 활용해서, 클로드 코드의 올바른 위치의 json 설정 파일에 MCP를 직접 설정할 것 ##
-
-
-	설정 예시
-		(설정 파일 위치)
-		**리눅스, macOS 또는 윈도우 WSL 기반의 클로드 코드인 경우**
-		- **User 설정**: `~/.claude/` 디렉토리
-		- **Project 설정**: 프로젝트 루트/.claude
-
-		**윈도우 네이티브 클로드 코드인 경우**
-		- **User 설정**: `C:\Users\{사용자명}\.claude` 디렉토리
-		- *User 설정파일*  C:\Users\{사용자명}\.claude.json
-		- **Project 설정**: 프로젝트 루트\.claude
-
-		1. npx 사용
-
-		{
-		  "youtube-mcp": {
-		    "type": "stdio",
-		    "command": "npx",
-		    "args": ["-y", "youtube-data-mcp-server"],
-		    "env": {
-		      "YOUTUBE_API_KEY": "YOUR_API_KEY_HERE",
-		      "YOUTUBE_TRANSCRIPT_LANG": "ko"
-		    }
-		  }
-		}
-
-
-		2. cmd.exe 래퍼 + 자동 동의)
-		{
-		  "mcpServers": {
-		    "mcp-installer": {
-		      "command": "cmd.exe",
-		      "args": ["/c", "npx", "-y", "@anaisbetts/mcp-installer"],
-		      "type": "stdio"
-		    }
-		  }
-		}
-
-		3. 파워셀예시
-		{
-		  "command": "powershell.exe",
-		  "args": [
-		    "-NoLogo", "-NoProfile",
-		    "-Command", "npx -y @anaisbetts/mcp-installer"
-		  ]
-		}
-
-		4. npx 대신 node 지정
-		{
-		  "command": "node",
-		  "args": [
-		    "%APPDATA%\\npm\\node_modules\\@anaisbetts\\mcp-installer\\dist\\index.js"
-		  ]
-		}
-
-		5. args 배열 설계 시 체크리스트
-		토큰 단위 분리: "args": ["/c","npx","-y","pkg"] 와
-			"args": ["/c","npx -y pkg"] 는 동일해보여도 cmd.exe 내부에서 따옴표 처리 방식이 달라질 수 있음. 분리가 안전.
-		경로 포함 시: JSON에서는 \\ 두 번. 예) "C:\\tools\\mcp\\server.js".
-		환경변수 전달:
-			"env": { "UV_DEPS_CACHE": "%TEMP%\\uvcache" }
-		타임아웃 조정: 느린 PC라면 MCP_TIMEOUT 환경변수로 부팅 최대 시간을 늘릴 수 있음 (예: 10000 = 10 초) 
-
-**중요사항**
-	윈도우 네이티브 환경이고 MCP 설정에 어려움이 있는데 npx 환경이라면, cmd나 node 등으로 다음과 같이 대체해 볼것:
-	{
-	"mcpServers": {
-	      "context7": {
-		 "command": "cmd",
-		 "args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]
-	      }
-	   }
-	}
-
-	claude mcp add-json context7 -s user '{"type":"stdio","command":"cmd","args": ["/c", "npx", "-y", "@upstash/context7-mcp@latest"]}'
-
-(설치 및 설정한 후는 항상 아래 내용으로 검증할 것)
-	claude mcp list 으로 설치 목록에 포함되는지 내용 확인한 후,
-	task를 통해 디버그 모드로 서브 에이전트 구동한 후 (claude --debug), 최대 2분 동안 관찰한 후, 그 동안의 디버그 메시지(에러 시 관련 내용이 출력됨)를 확인하고 /mcp 를 통해 실제 작동여부를 반드시 확인할 것
-
-ㅊㅇ 
-		
-** MCP 서버 제거가 필요할 때 예시: **
-claude mcp remove youtube-mcp
-
-
-## 윈도우 네이티브 클로드 코드에서 클로드 데스크탑의 MCP 가져오는 방법 ###
-"C:\Users\<사용자이름>\AppData\Roaming\Claude\claude_desktop_config.json" 이 파일이 존재한다면 클로드 데스크탑이 설치된 상태야.
-이 파일의 mcpServers 내용을 클로드 코드 설정 파일(C:\Users\{사용자명}\.claude.json)의 user 스코프 위치(projects 항목에 속하지 않은 mcpServers가 user 스코프에 해당)로 그대로 가지고 오면 돼.
-가지고 온 후, task를 통해 디버그 모드로 서브 에이전트 구동하여 (claude --debug) 클로드 코드에 문제가 없는지 확인할 것
-
-# 🚨 **다함 식자재 관리 시스템 - API 빠른 연결 필수 가이드**
-
-## ⚡ **API 연결시 필수 확인사항 (30초 빠른 시작법)**
-
-**❗ API 연결 작업을 시작하기 전에 반드시 다음 문서들을 먼저 읽고 확인할 것:**
-
-### 📚 **필수 참조 문서 (우선순위 순)**
-1. **`API_QUICK_START_GUIDE.md`** ← **가장 중요!** 30초 시작법
-2. **`BACKUP_SUMMARY.md`** ← 핵심 정보 요약
-3. **`quick_start.bat`** ← 자동 실행 스크립트
-
-### 🎯 **검증된 API 연결 방식 (다시 구축 금지)**
+### 1. 서버 시작 (한 번에 모든 서버 실행)
 ```bash
-# 1단계: 검증된 API 서버 사용
-python test_samsung_api.py     # Port 8006 (검증됨)
+# Windows 환경
+python test_samsung_api.py  # API 서버 (포트 8010)
 
-# 2단계: 프론트엔드 연결 
-start ingredients_management.html  # 수정완료된 버전
-
-# 3단계: 연결 확인
-curl "http://127.0.0.1:8006/all-ingredients-for-suppliers?limit=1"
+# 또는 통합 컨트롤 타워 사용
+python unified_control_tower.py  # 포트 8080
 ```
 
-### ✅ **이미 해결된 문제들 (다시 시도 금지)**
-- ❌ **main.py 사용** → ✅ **test_samsung_api.py 사용**
-- ❌ **Port 8005** → ✅ **Port 8006**  
-- ❌ **ingredients 배열에서 supplier 추출** → ✅ **supplier_stats 직접 사용**
-- ❌ **ORM 사용** → ✅ **Direct SQLite 연결**
-
-### 🔒 **현재 검증된 설정 (변경 금지)**
-```python
-# test_samsung_api.py - Line 226
-uvicorn.run(app, host="127.0.0.1", port=8006)
-
-# ingredients_management.html - Line 908  
-fetch('http://127.0.0.1:8006/all-ingredients-for-suppliers')
-
-# ingredients_management.html - Line 973
-updateSuppliersGrid(data.supplier_stats || {});
+### 2. 관리자 대시보드 접속
+```
+http://127.0.0.1:8080/admin_dashboard.html
 ```
 
-### 📊 **검증된 데이터 현황**
-- ✅ **총 식자재**: 84,215개
-- ✅ **주요 업체**: 삼성웰스토리(18,928), 현대그린푸드(18,469), CJ(16,606), 푸디스트(15,622), 동원홈푸드(14,590)
-- ✅ **API 응답시간**: ~200ms
-- ✅ **페이지 로딩**: ~3초
+## 🏗️ 시스템 구조
 
-### 🚨 **AI 필수 수행사항**
-1. **API 연결 요청시**: 먼저 `API_QUICK_START_GUIDE.md` 읽기
-2. **문제 발생시**: `BACKUP_SUMMARY.md`의 문제해결법 확인  
-3. **새로 시작할 때**: `quick_start.bat` 실행하여 즉시 연결
-4. **변경 금지**: 위의 검증된 설정들을 절대 수정하지 말 것
-5. **🚨 절대 데이터 생성 금지**: 임의로 데이터 생성하지 말고 반드시 실제 데이터베이스에서 찾을 것
+### 📁 주요 디렉토리 구조
+```
+daham-meal-management/
+├── admin_dashboard.html          # 메인 관리자 대시보드
+├── test_samsung_api.py          # API 서버 (포트 8010)
+├── unified_control_tower.py     # 통합 컨트롤 서버 (포트 8080)
+├── daham_api.py                 # 레거시 API
+├── backups/                     # 데이터베이스 백업
+│   └── daham_meal.db           # SQLite 데이터베이스
+├── static/                      # 정적 리소스
+│   ├── css/                    # 스타일시트
+│   ├── js/                     # JavaScript 파일
+│   └── modules/                # 모듈별 JavaScript
+│       ├── dashboard-core/     # 대시보드 코어
+│       ├── ingredients/        # 식자재 관리
+│       ├── suppliers/          # 협력업체 관리
+│       ├── users/              # 사용자 관리
+│       ├── sites/              # 사업장 관리
+│       ├── mappings/           # 협력업체 매핑
+│       └── meal-pricing/       # 식단가 관리
+└── config.js                    # 설정 파일
+```
 
-### 💡 **시간 절약 원칙**
-- **30초 시작**: `quick_start.bat` 더블클릭
-- **즉시 확인**: 브라우저에서 "업체별 식자재 현황" 박스 5개 표시 여부
-- **문제시 복원**: `backups/working_state_20250912/` 파일들 사용
+## 📊 데이터베이스 구조
 
-**📌 이 가이드를 따르면 API 연결에 시간을 낭비하지 않고 즉시 작업 재개 가능!**
+### 주요 테이블
+- **users**: 사용자 정보 (js, admin 등)
+- **suppliers**: 협력업체 정보 (삼성웰스토리, 현대그린푸드, CJ, 푸디스트, 동원홈푸드 등)
+- **business_locations**: 사업장 정보 (도시락, 운반, 학교, 요양원 등)
+- **ingredients**: 식자재 정보 (84,215개 데이터)
+- **customer_supplier_mappings**: 협력업체-사업장 매핑 (28개 매핑)
+
+### 📈 현재 데이터 현황
+- 총 식자재: 84,215개
+- 주요 협력업체:
+  - 삼성웰스토리: 18,928개
+  - 현대그린푸드: 18,469개
+  - CJ: 16,606개
+  - 푸디스트: 15,622개
+  - 동원홈푸드: 14,590개
+
+## 🔧 API 엔드포인트
+
+### 기본 URL
+- API 서버: `http://127.0.0.1:8010`
+- 통합 서버: `http://127.0.0.1:8080`
+
+### 주요 엔드포인트
+```
+GET  /api/admin/dashboard-stats          # 대시보드 통계
+GET  /api/admin/users                    # 사용자 목록
+GET  /api/admin/suppliers                # 협력업체 목록
+GET  /api/admin/business-locations       # 사업장 목록
+GET  /api/admin/ingredients-new          # 식자재 목록 (페이징)
+GET  /api/admin/customer-supplier-mappings # 매핑 목록
+POST /api/admin/ingredients              # 식자재 추가
+PUT  /api/admin/ingredients/{id}         # 식자재 수정
+DELETE /api/admin/ingredients/{id}       # 식자재 삭제
+```
+
+## 💻 모듈별 기능
+
+### 1. 대시보드 (Dashboard)
+- 실시간 통계 표시
+- 최근 활동 로그
+- 주요 지표 시각화
+
+### 2. 협력업체 관리 (Suppliers)
+- 협력업체 목록 조회
+- 협력업체별 식자재 현황
+- 거래 상태 관리
+
+### 3. 사용자 관리 (Users)
+- 사용자 권한 관리
+- 로그인 이력 추적
+- 접근 권한 설정
+
+### 4. 사업장 관리 (Sites)
+- 사업장 정보 관리
+- 지역별 분류
+- 운영 상태 관리
+
+### 5. 협력업체 매핑 (Supplier Mapping)
+- 사업장-협력업체 연결
+- 협력업체 코드 관리
+- 배송 코드 설정
+- 통계 및 현황 표시
+
+### 6. 식자재 관리 (Ingredients)
+- 84,215개 식자재 데이터 관리
+- 카테고리별 분류
+- 가격 정보 관리
+- 재고 추적
+
+### 7. 식단가 관리 (Meal Pricing)
+- 단가 계산
+- 가격 이력 관리
+- 비용 분석
+
+## 🎨 UI/UX 특징
+
+### 디자인 원칙
+- **컴팩트 뷰**: 한 화면에 최대한 많은 정보 표시
+- **빠른 응답**: API 응답 시간 ~200ms
+- **직관적 네비게이션**: 사이드바 메뉴 구조
+- **실시간 업데이트**: 자동 새로고침 기능
+
+### 주요 UI 컴포넌트
+- 통계 박스 (대시보드)
+- 데이터 테이블 (페이징 지원)
+- 모달 다이얼로그 (편집/추가)
+- 필터 및 검색 기능
+
+## 🐛 문제 해결
+
+### 포트 충돌 시
+```bash
+# Windows에서 포트 사용 프로세스 확인
+netstat -ano | findstr :8010
+
+# Python 프로세스 종료
+taskkill /F /IM python.exe
+```
+
+### 데이터베이스 오류 시
+- 백업 파일 확인: `backups/daham_meal.db`
+- SQLite 직접 접근: `sqlite3 backups/daham_meal.db`
+
+### 모듈 로딩 실패 시
+1. 브라우저 캐시 삭제
+2. F12 개발자 도구에서 콘솔 확인
+3. 네트워크 탭에서 404 오류 확인
+
+## 📝 개발 규칙
+
+### 코드 스타일
+- JavaScript: ES6+ 문법 사용
+- Python: PEP 8 준수
+- HTML/CSS: BEM 명명 규칙
+
+### 커밋 메시지
+```
+feat: 새로운 기능 추가
+fix: 버그 수정
+docs: 문서 수정
+style: 코드 포맷팅
+refactor: 코드 리팩토링
+test: 테스트 추가
+chore: 빌드 업무 수정
+```
+
+### API 응답 형식
+```json
+{
+  "success": true,
+  "data": {...},
+  "message": "성공",
+  "timestamp": "2025-01-14T10:00:00Z"
+}
+```
+
+## 🔒 보안 고려사항
+
+### 필수 보안 규칙
+- ❌ 실제 API 키를 코드에 하드코딩 금지
+- ❌ 실제 비밀번호를 평문으로 저장 금지
+- ✅ 환경 변수 사용 권장
+- ✅ HTTPS 사용 (프로덕션)
+- ✅ SQL 인젝션 방지 (파라미터화된 쿼리)
+
+## 📱 브라우저 호환성
+- Chrome 90+ (권장)
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## 🚦 서버 상태 확인
+
+### 실행 중인 서버 확인
+```bash
+# API 서버 상태
+curl http://127.0.0.1:8010/api/admin/dashboard-stats
+
+# 통합 서버 상태
+curl http://127.0.0.1:8080/control
+```
+
+## 📞 문제 발생 시
+
+### 로그 확인
+1. 브라우저 콘솔 (F12)
+2. Python 서버 콘솔
+3. 네트워크 탭 확인
+
+### 일반적인 해결책
+1. 서버 재시작
+2. 브라우저 캐시 삭제
+3. 포트 충돌 확인
+4. 데이터베이스 경로 확인
+
+## 🔄 업데이트 이력
+
+### 2025-09-14
+- 협력업체 매핑 관리 개선
+- 테이블 컴팩트 뷰 적용
+- 통계 박스 추가
+- 모달 최적화
+
+### 2025-09-13
+- API 포트 통합 (8010)
+- 모듈 로딩 최적화
+- display 속성 직접 제어
+
+## 📚 참고 문서
+- [FastAPI 문서](https://fastapi.tiangolo.com/)
+- [SQLite 문서](https://www.sqlite.org/docs.html)
+- [JavaScript MDN](https://developer.mozilla.org/)
 
 ---
 
-## 🚨 **데이터 정책 - 절대 준수사항**
+**주의**: 이 시스템은 다함 내부용으로 개발되었으며, 실제 운영 환경에서는 추가적인 보안 설정이 필요합니다.
 
-### **❌ 절대 하지 말 것**
-- 임의로 사용자, 공급업체, 사업장 데이터 생성
-- 하드코딩된 더미 데이터 사용
-- "테스트용" 가짜 데이터 만들기
-- 추측으로 데이터 구조 맞춤
+**개발 환경**: Windows 10/11, Python 3.8+, 모던 브라우저
 
-### **✅ 반드시 해야 할 것**
-1. **실제 데이터베이스 탐색**: SQLite 쿼리로 실제 데이터 확인
-2. **기존 데이터 구조 분석**: 테이블 스키마와 실제 값 확인
-3. **실제 데이터 연결**: DB의 정확한 필드명과 값 사용
-4. **데이터 검증**: 사용자가 언급한 특정 데이터('js' 사용자 등) 반드시 찾기
-
-### **📍 올바른 데이터 소스**
-- **Primary DB**: `backups/working_state_20250912/daham_meal.db`
-- **검증된 테이블들**: users, suppliers, business_locations, ingredients
-- **확인된 실제 데이터**: 'js' 사용자, 도시락/운반/학교/요양원 사업장
-
-**⚠️ 이 정책을 위반하면 사용자가 매우 불만을 표현합니다. 반드시 실제 데이터만 사용하세요!**
+**마지막 업데이트**: 2025-09-14

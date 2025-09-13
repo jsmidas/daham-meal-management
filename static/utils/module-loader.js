@@ -44,9 +44,34 @@ class ModuleLoader {
                     global: 'UsersAdminModule',
                     dependencies: ['config', 'admin-cache']
                 },
+                'users': {
+                    path: 'static/modules/users/users.js',
+                    global: 'UserManagement',
+                    dependencies: ['config']
+                },
+                'suppliers': {
+                    path: 'static/modules/suppliers/suppliers.js',
+                    global: 'SupplierManagement',
+                    dependencies: ['config']
+                },
+                'sites': {
+                    path: 'static/modules/sites/sites.js',
+                    global: 'SiteManagement',
+                    dependencies: ['config']
+                },
+                'meal-pricing': {
+                    path: 'static/modules/meal-pricing/meal-pricing.js',
+                    global: 'MealPricingManagement',
+                    dependencies: ['config']
+                },
+                'ingredients': {
+                    path: 'static/modules/ingredients/ingredients.js',
+                    global: 'IngredientManagement',
+                    dependencies: ['config']
+                },
                 'suppliers-admin': {
                     path: 'static/modules/suppliers-admin/suppliers-admin.js',
-                    global: 'SuppliersAdminModule', 
+                    global: 'SuppliersAdminModule',
                     dependencies: ['config', 'admin-cache']
                 },
                 'sites-admin': {

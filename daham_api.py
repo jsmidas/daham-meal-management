@@ -240,16 +240,16 @@ async def get_admin_users():
     try:
         conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT id, username, contact_info, role, is_active, created_at
-            FROM users 
+            FROM users
             ORDER BY created_at DESC
         """)
-        
+
         users_data = cursor.fetchall()
         users = []
-        
+
         for user in users_data:
             users.append({
                 "id": user[0],
@@ -259,26 +259,242 @@ async def get_admin_users():
                 "active": bool(user[4]),
                 "created_at": user[5]
             })
-        
+
         conn.close()
-        
+
         return {
             "success": True,
             "users": users,
             "total": len(users)
         }
-        
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/users/stats")
+async def get_users_stats():
+    """사용자 통계 조회"""
+    try:
+        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM users WHERE is_active = 1")
+        active_users = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_users = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "success": True,  # user_management.html이 기대하는 필드 추가
+            "stats": {
+                "total_users": total_users,
+                "active_users": active_users,
+                "admin_users": admin_users,
+                "inactive_users": total_users - active_users
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/users")
+async def get_users(page: int = 1, limit: int = 10):
+    """사용자 목록 조회 (페이징)"""
+    try:
+        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        cursor = conn.cursor()
+
+        offset = (page - 1) * limit
+
+        cursor.execute("""
+            SELECT id, username, contact_info, role, is_active, created_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        """, (limit, offset))
+
+        users_data = cursor.fetchall()
+
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_count = cursor.fetchone()[0]
+
+        users = []
+        for user in users_data:
+            users.append({
+                "id": user[0],
+                "username": user[1],
+                "name": user[2] or user[1],
+                "role": user[3] or "user",
+                "isActive": bool(user[4]) if user[4] is not None else True,
+                "createdAt": user[5] or ""
+            })
+
+        conn.close()
+
+        return {
+            "success": True,  # user_management.html이 기대하는 필드 추가
+            "users": users,
+            "pagination": {
+                "current_page": page,
+                "total_pages": (total_count + limit - 1) // limit,
+                "has_prev": page > 1,
+                "has_next": page < (total_count + limit - 1) // limit,
+                "total_items": total_count,
+                "items_per_page": limit
+            }
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/admin/list-users-simple")
+async def list_users_simple():
+    """사용자 목록 조회 (단순화된 버전)"""
+    try:
+        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, username, contact_info, role, is_active, created_at
+            FROM users
+            ORDER BY created_at DESC
+        """)
+
+        users_data = cursor.fetchall()
+        users = []
+
+        for user in users_data:
+            users.append({
+                "id": user[0],
+                "username": user[1],
+                "email": user[2] or "",
+                "role": user[3] or "user",
+                "active": bool(user[4]) if user[4] is not None else True,
+                "created_at": user[5] or ""
+            })
+
+        conn.close()
+
+        return {
+            "success": True,
+            "users": users,
+            "total": len(users)
+        }
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
+@app.get("/api/suppliers")
+async def get_suppliers(page: int = 1, limit: int = 10, search: str = None):
+    """협력업체 목록 조회 (페이징)"""
+    try:
+        # daham_meal.db 사용 (실제 suppliers 테이블이 있는 DB)
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+
+        offset = (page - 1) * limit
+
+        # Count query first
+        if search:
+            cursor.execute("""
+                SELECT COUNT(*) FROM suppliers
+                WHERE name LIKE ? OR parent_code LIKE ?
+            """, (f'%{search}%', f'%{search}%'))
+        else:
+            cursor.execute("SELECT COUNT(*) FROM suppliers")
+
+        total_count = cursor.fetchone()[0]
+
+        # Then data query
+        if search:
+            cursor.execute("""
+                SELECT id, name, parent_code, business_number, business_type,
+                       representative, headquarters_phone, email, is_active, created_at
+                FROM suppliers
+                WHERE name LIKE ? OR parent_code LIKE ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, (f'%{search}%', f'%{search}%', limit, offset))
+        else:
+            cursor.execute("""
+                SELECT id, name, parent_code, business_number, business_type,
+                       representative, headquarters_phone, email, is_active, created_at
+                FROM suppliers
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+
+        suppliers_data = cursor.fetchall()
+
+        suppliers = []
+        for supplier in suppliers_data:
+            suppliers.append({
+                "id": supplier[0],
+                "name": supplier[1],
+                "code": supplier[2],
+                "businessNumber": supplier[3],
+                "businessType": supplier[4],
+                "representative": supplier[5],
+                "phone": supplier[6],
+                "email": supplier[7],
+                "isActive": bool(supplier[8]),
+                "createdAt": supplier[9]
+            })
+
+        conn.close()
+
+        return {
+            "success": True,
+            "suppliers": suppliers,
+            "pagination": {
+                "current_page": page,
+                "total_pages": (total_count + limit - 1) // limit,
+                "has_prev": page > 1,
+                "has_next": page < (total_count + limit - 1) // limit,
+                "total_items": total_count,
+                "items_per_page": limit
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/suppliers/stats")
+async def get_supplier_stats():
+    """협력업체 통계 조회"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM suppliers")
+        total_suppliers = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM suppliers WHERE is_active = 1")
+        active_suppliers = cursor.fetchone()[0]
+
+        conn.close()
+
+        return {
+            "success": True,
+            "stats": {
+                "total_suppliers": total_suppliers,
+                "active_suppliers": active_suppliers
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @app.get("/api/admin/suppliers")
 async def get_admin_suppliers():
-    """관리자용 협력업체 목록 조회"""
+    """관리자용 협력업체 목록 조회 (구 버전 호환용)"""
     try:
         conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
         cursor = conn.cursor()
-        
+
         # suppliers 테이블이 있는지 확인
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='suppliers'")
         suppliers_table_exists = cursor.fetchone()

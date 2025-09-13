@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supplier Mapping Test</title>
+</head>
+<body>
+    <h1>협력업체 매칭 테스트</h1>
+    <div id="supplier-mapping-content"></div>
+    
+    <script src="config.js"></script>
+    <script src="static/modules/mappings/supplier-mapping.js"></script>
+    <script>
+        // 페이지 로드 후 모듈 초기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('테스트 시작...');
+            if (window.supplierMapping) {
+                console.log('supplierMapping 모듈 발견');
+                await window.supplierMapping.init();
+                console.log('초기화 완료');
+            } else {
+                console.error('supplierMapping 모듈을 찾을 수 없습니다');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 연결 테스트</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 대시보드 연결 진단</h1>
+
+    <div id="config-test" class="status loading">CONFIG 로드 확인 중...</div>
+    <div id="api-test" class="status loading">API 연결 테스트 중...</div>
+    <div id="dashboard-test" class="status loading">대시보드 통계 로드 중...</div>
+
+    <h2>📊 테스트 결과</h2>
+    <pre id="results"></pre>
+
+    <script src="config.js"></script>
+    <script>
+        const results = [];
+
+        function log(message) {
+            console.log(message);
+            results.push(`${new Date().toLocaleTimeString()}: ${message}`);
+            document.getElementById('results').textContent = results.join('\n');
+        }
+
+        function updateStatus(id, success, message) {
+            const element = document.getElementById(id);
+            element.className = `status ${success ? 'success' : 'error'}`;
+            element.textContent = `${success ? '✅' : '❌'} ${message}`;
+        }
+
+        // 1. CONFIG 테스트
+        setTimeout(() => {
+            try {
+                if (typeof CONFIG !== 'undefined' && CONFIG.API && CONFIG.API.BASE_URL) {
+                    updateStatus('config-test', true, `CONFIG 로드 성공: ${CONFIG.API.BASE_URL}`);
+                    log(`CONFIG.API.BASE_URL: ${CONFIG.API.BASE_URL}`);
+                } else {
+                    updateStatus('config-test', false, 'CONFIG 객체를 찾을 수 없습니다');
+                    log('ERROR: CONFIG 객체가 정의되지 않았습니다');
+                }
+            } catch (error) {
+                updateStatus('config-test', false, `CONFIG 오류: ${error.message}`);
+                log(`CONFIG ERROR: ${error.message}`);
+            }
+        }, 100);
+
+        // 2. API 연결 테스트
+        setTimeout(async () => {
+            try {
+                const response = await fetch(`${CONFIG.API.BASE_URL}/api/admin/dashboard-stats`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('api-test', true, `API 연결 성공 (${response.status})`);
+                    log(`API Response: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    updateStatus('api-test', false, `API 오류: ${response.status} ${response.statusText}`);
+                    log(`API ERROR: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                updateStatus('api-test', false, `네트워크 오류: ${error.message}`);
+                log(`NETWORK ERROR: ${error.message}`);
+            }
+        }, 500);
+
+        // 3. 대시보드 데이터 테스트
+        setTimeout(async () => {
+            try {
+                const endpoints = [
+                    '/api/admin/dashboard-stats',
+                    '/api/admin/recent-activity',
+                    '/api/admin/users',
+                    '/api/admin/suppliers'
+                ];
+
+                let allSuccess = true;
+                for (const endpoint of endpoints) {
+                    const response = await fetch(`${CONFIG.API.BASE_URL}${endpoint}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        log(`✅ ${endpoint}: OK (${Object.keys(data).length} keys)`);
+                    } else {
+                        log(`❌ ${endpoint}: ${response.status} ${response.statusText}`);
+                        allSuccess = false;
+                    }
+                }
+
+                if (allSuccess) {
+                    updateStatus('dashboard-test', true, '모든 대시보드 데이터 로드 성공');
+                } else {
+                    updateStatus('dashboard-test', false, '일부 대시보드 데이터 로드 실패');
+                }
+            } catch (error) {
+                updateStatus('dashboard-test', false, `대시보드 테스트 오류: ${error.message}`);
+                log(`DASHBOARD TEST ERROR: ${error.message}`);
+            }
+        }, 1000);
+
+        log('테스트 시작...');
+    </script>
+</body>
+</html>

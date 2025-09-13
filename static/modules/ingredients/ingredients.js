@@ -901,4 +901,7 @@ window.removeFile = removeFile;
 window.processSelectedFiles = processSelectedFiles;
 window.displayBulkUploadResults = displayBulkUploadResults;
 
+// 호환성을 위한 별칭 추가
+window.IngredientManagement = window.IngredientsModule;
+
 })(); // IIFE 종료

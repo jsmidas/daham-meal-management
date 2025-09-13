@@ -67,7 +67,14 @@
       "Bash(timeout:*)",
       "Bash(set API_PORT=8006)",
       "Bash(del check_db_schema.py)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(set API_PORT=8007)",
+      "Bash(set API_PORT=8010)",
+      "Bash(set API_PORT=8015)",
+      "Bash(clean_restart.bat)",
+      "Bash(pip install:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(del check_business_locations.py)"
     ],
     "deny": [],
     "ask": []
