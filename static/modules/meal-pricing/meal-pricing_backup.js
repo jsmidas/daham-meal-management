@@ -10,7 +10,7 @@ let mealPlans = [];
 async function loadBusinessLocationsForMealPricing() {
     try {
         console.log('사업장 목록 로드 시작...');
-        const response = await fetch('/api/admin/sites');
+        const response = await fetch('http://localhost:9000/api/admin/sites');
         const result = await response.json();
         console.log('API 응답:', result);
         
@@ -245,7 +245,7 @@ function initializeMealPricingPage() {
 // 식단가 저장 기능 추가
 async function saveMealPricing(mealPricingData) {
     try {
-        const response = await fetch('/api/admin/meal-pricing', {
+        const response = await fetch('http://localhost:9000/api/admin/meal-pricing', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -385,7 +385,7 @@ async function saveMealPricing() {
 // API 호출 함수 (기존 saveMealPricing과 구분)
 async function saveMealPricingToAPI(mealPricingData) {
     try {
-        const response = await fetch('/api/admin/meal-pricing', {
+        const response = await fetch('http://localhost:9000/api/admin/meal-pricing', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -459,7 +459,7 @@ async function handleMealPricingSubmit() {
 // 식단가 목록 로드
 async function loadMealPricingList() {
     try {
-        const response = await fetch('/api/admin/meal-pricing');
+        const response = await fetch('http://localhost:9000/api/admin/meal-pricing');
         const result = await response.json();
         
         if (response.ok && result.pricings) {

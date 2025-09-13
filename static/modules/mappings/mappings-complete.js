@@ -36,7 +36,7 @@ window.MappingsModule = {
     async loadMappingData() {
         try {
             console.log('[LoadMappings] 매핑 목록 로드 시작...');
-            const response = await fetch('/api/admin/customer-supplier-mappings');
+            const response = await fetch('http://localhost:9000/api/admin/customer-supplier-mappings');
             const data = await response.json();
             
             if (data.success) {
@@ -149,7 +149,7 @@ window.MappingsModule = {
             console.log('필터 조건:', { customerFilter, supplierFilter, statusFilter });
             
             // API에서 전체 매핑 데이터 가져오기
-            const response = await fetch('/api/admin/customer-supplier-mappings');
+            const response = await fetch('http://localhost:9000/api/admin/customer-supplier-mappings');
             const data = await response.json();
             
             if (data.success) {
@@ -197,8 +197,8 @@ window.MappingsModule = {
     async loadCustomersAndSuppliers() {
         try {
             const [customersResponse, suppliersResponse] = await Promise.all([
-                fetch('/api/admin/sites/tree'),
-                fetch('/api/admin/suppliers/enhanced')
+                fetch('http://localhost:9000/api/admin/sites/tree'),
+                fetch('http://localhost:9000/api/admin/suppliers/enhanced')
             ]);
             
             const customersData = await customersResponse.json();

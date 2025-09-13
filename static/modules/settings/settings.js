@@ -77,7 +77,7 @@ class SettingsModule {
             const userCountElement = document.getElementById('user-count');
             if (userCountElement) {
                 try {
-                    const response = await fetch('/api/admin/users');
+                    const response = await fetch('http://localhost:9000/api/admin/users');
                     if (response.ok) {
                         const data = await response.json();
                         const userCount = data.success ? data.users.length : 0;
@@ -157,7 +157,7 @@ class SettingsModule {
         try {
             this.showNotification('백업을 생성하고 있습니다...', 'info');
             
-            const response = await fetch('/api/backup/create', {
+            const response = await fetch('http://localhost:9000/api/backup/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -184,11 +184,11 @@ class SettingsModule {
             this.showNotification('시스템 상태를 확인하고 있습니다...', 'info');
             
             // 데이터베이스 연결 확인
-            const dbResponse = await fetch('/api/health/database');
+            const dbResponse = await fetch('http://localhost:9000/api/health/database');
             const dbHealthy = dbResponse.ok;
             
             // API 서버 상태 확인  
-            const apiResponse = await fetch('/api/health/status');
+            const apiResponse = await fetch('http://localhost:9000/api/health/status');
             const apiHealthy = apiResponse.ok;
             
             if (dbHealthy && apiHealthy) {

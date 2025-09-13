@@ -33,7 +33,7 @@ class DashboardModule {
         try {
             console.log('[Dashboard] 통계 데이터 로드 시작');
             
-            const response = await fetch('/api/admin/dashboard-stats');
+            const response = await fetch('http://127.0.0.1:8006/api/admin/dashboard-stats');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -57,12 +57,11 @@ class DashboardModule {
      * 통계 데이터 UI 업데이트
      */
     updateStatistics(data) {
-        const stats = data.stats || {};
         const mappedStats = {
-            'total-users': stats.users?.total || 0,
-            'total-sites': stats.sites?.total || 0,
-            'today-menus': stats.suppliers?.total || 0,  // "협력업체 수"로 변경
-            'price-updates': stats.ingredients?.total || 0  // "전체 식자재"로 변경
+            'total-users': data.totalUsers || 0,
+            'total-sites': data.totalSites || 0,
+            'today-menus': data.totalSuppliers || 0,  // "협력업체 수"로 변경
+            'price-updates': data.totalIngredients || 0  // "전체 식자재"로 변경
         };
 
         Object.entries(mappedStats).forEach(([elementId, value]) => {
@@ -161,7 +160,7 @@ class DashboardModule {
         try {
             console.log('[Dashboard] 최근 활동 로드 시작');
             
-            const response = await fetch('/api/admin/recent-activity');
+            const response = await fetch('http://127.0.0.1:8006/api/admin/recent-activity');
             
             if (response.ok) {
                 const result = await response.json();

@@ -53,7 +53,21 @@
       "Bash(git credential-manager:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(del check_mapping_data.py)",
+      "Bash(start http://localhost:3000/admin_dashboard.html)",
+      "Bash(start http://localhost:9000/admin_simple.html)",
+      "Bash(start http://localhost:9000/admin_dashboard.html)",
+      "Bash(chcp:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python simple_server.py)",
+      "Bash(start:*)",
+      "Bash(move:*)",
+      "Bash(set API_PORT=8013)",
+      "Bash(del admin_simple.html)",
+      "Bash(timeout:*)",
+      "Bash(set API_PORT=8006)",
+      "Bash(del check_db_schema.py)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "ask": []

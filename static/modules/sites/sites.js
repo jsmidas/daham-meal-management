@@ -20,8 +20,13 @@ window.SitesModule = {
     },
 
     async render() {
+        console.log('[DEBUG] render() called');
         const container = document.getElementById('sites-module');
-        if (!container) return;
+        console.log('[DEBUG] sites-module container:', container);
+        if (!container) {
+            console.error('[ERROR] sites-module container not found!');
+            return;
+        }
 
         container.innerHTML = `
             <style>
@@ -369,7 +374,8 @@ window.SitesModule = {
                             <tr>
                                 <th>ID</th>
                                 <th>사업장명</th>
-                                <th>주소</th>
+                                <th>사업장타입</th>
+                                <th>지역</th>
                                 <th>연락처</th>
                                 <th>상태</th>
                                 <th>등록일</th>
@@ -378,7 +384,7 @@ window.SitesModule = {
                         </thead>
                         <tbody id="sites-table-body">
                             <tr>
-                                <td colspan="7" class="loading-cell">사업장 목록을 불러오는 중...</td>
+                                <td colspan="8" class="loading-cell">사업장 목록을 불러오는 중...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -464,11 +470,18 @@ window.SitesModule = {
             
             console.log('Sites response:', response);
             
+            console.log('[DEBUG] response.success:', response.success);
+            console.log('[DEBUG] response.sites length:', response.sites ? response.sites.length : 'undefined');
+            
             if (response.success) {
+                console.log('[DEBUG] Calling renderSites with sites:', response.sites);
+                console.log('[DEBUG] First site data:', response.sites[0]);
+                window.lastSitesData = response.sites; // 디버깅용
                 this.renderSites(response.sites || []);
                 this.updatePagination(response.total, response.page, response.limit);
                 await this.loadSiteStats();
             } else {
+                console.error('[ERROR] API response success is false');
                 showMessage('사업장 목록을 불러올 수 없습니다.', 'error');
                 this.renderSites([]);
             }
@@ -496,13 +509,18 @@ window.SitesModule = {
     },
 
     renderSites(sites) {
+        console.log('[DEBUG] renderSites called with:', sites);
         const tbody = document.getElementById('sites-table-body');
-        if (!tbody) return;
+        console.log('[DEBUG] tbody element:', tbody);
+        if (!tbody) {
+            console.error('[ERROR] sites-table-body element not found!');
+            return;
+        }
 
         if (sites.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="loading-cell">등록된 사업장이 없습니다.</td>
+                    <td colspan="8" class="loading-cell">등록된 사업장이 없습니다.</td>
                 </tr>
             `;
             return;
@@ -511,9 +529,10 @@ window.SitesModule = {
         tbody.innerHTML = sites.map(site => `
             <tr>
                 <td>${site.id}</td>
-                <td><strong>${site.site_name}</strong></td>
-                <td>${site.address || '-'}</td>
-                <td>${site.contact_info || '-'}</td>
+                <td><strong>${site.site_name || '-'}</strong></td>
+                <td>${site.site_type || '-'}</td>
+                <td>${site.region || '-'}</td>
+                <td>${site.phone || site.manager_phone || '-'}</td>
                 <td>
                     <span class="status-badge ${site.is_active ? 'status-active' : 'status-inactive'}">
                         ${site.is_active ? '활성' : '비활성'}

@@ -39,7 +39,7 @@ window.SuppliersModule = {
         try {
             const search = document.getElementById('supplier-search')?.value || '';
             const page = this.currentPage || 1;
-            const response = await fetch(`/api/admin/suppliers/enhanced?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+            const response = await fetch(`${window.API_BASE_URL}/api/admin/suppliers/enhanced?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
             const data = await response.json();
             
             if (data.success) {
@@ -58,7 +58,7 @@ window.SuppliersModule = {
     // 공급업체 통계 로드
     async loadSupplierStatistics() {
         try {
-            const response = await fetch(`/api/admin/suppliers/enhanced?page=1&limit=100`);
+            const response = await fetch(`${window.API_BASE_URL}/api/admin/suppliers/enhanced?page=1&limit=100`);
             const data = await response.json();
             
             if (data.success && data.suppliers) {
@@ -167,7 +167,7 @@ async function loadSuppliers() {
     try {
         const search = document.getElementById('supplier-search')?.value || '';
         const page = currentSupplierPage || 1;
-        const response = await fetch(`/api/admin/suppliers/enhanced?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+        const response = await fetch(`http://localhost:9000/api/admin/suppliers/enhanced?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
         const data = await response.json();
         
         if (data.success) {

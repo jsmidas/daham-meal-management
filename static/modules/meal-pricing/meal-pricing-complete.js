@@ -30,7 +30,7 @@ window.MealPricingModule = {
     // 식단가 통계 로드
     async loadMealPricingStatistics() {
         try {
-            const response = await fetch('/api/admin/meal-pricing/statistics');
+            const response = await fetch('http://localhost:9000/api/admin/meal-pricing/statistics');
             const data = await response.json();
             
             if (data.success) {
@@ -95,7 +95,7 @@ window.MealPricingModule = {
 async function loadBusinessLocationsForMealPricing() {
     try {
         console.log('사업장 목록 로드 시작');
-        const response = await fetch('/api/admin/sites/tree');
+        const response = await fetch('http://localhost:9000/api/admin/sites/tree');
         const result = await response.json();
         console.log('API 응답:', result);
         
@@ -377,7 +377,7 @@ async function saveMealPricing() {
         });
         
         // 실제로는 API 호출이 필요함
-        // const response = await fetch('/api/admin/meal-pricing/save', {
+        // const response = await fetch('http://localhost:9000/api/admin/meal-pricing/save', {
         //     method: 'POST',
         //     headers: { 'Content-Type': 'application/json' },
         //     body: JSON.stringify({

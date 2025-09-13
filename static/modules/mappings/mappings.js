@@ -12,18 +12,17 @@ let customersCache = [];
 // 매핑 목록 로드
 async function loadMappingData() {
     try {
-        const response = await fetch('/api/admin/customer-supplier-mappings');
+        const response = await fetch('http://localhost:9000/api/admin/customer-supplier-mappings');
         const data = await response.json();
         
         if (data.success) {
             const mappings = data.mappings || [];
-            // 고객과 공급업체 데이터를 별도로 로드
-            await Promise.all([
-                loadCustomersAndSuppliers()
-            ]);
-            displayMappings(mappings, customersCache || [], suppliersCache || []);
+            console.log('로드된 매핑 수:', mappings.length);
+            displayMappings(mappings, [], []);
             // 간단한 페이지네이션 (클라이언트 사이드)
             updateMappingPagination(1, Math.ceil(mappings.length / 20));
+        } else {
+            console.error('API 응답 실패:', data);
         }
     } catch (error) {
         console.error('매핑 목록 로드 실패:', error);
@@ -45,13 +44,10 @@ function displayMappings(mappings, customers, suppliers) {
     }
     
     tbody.innerHTML = mappings.map(mapping => {
-        const customer = customers.find(c => c.id === mapping.customer_id);
-        const supplier = suppliers.find(s => s.id === mapping.supplier_id);
-        
         return `
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="font-weight: 500;">${customer ? customer.name : '⚠️ 삭제된 사업장'}</td>
-                <td>${supplier ? supplier.name : '⚠️ 삭제된 업체'}</td>
+                <td style="font-weight: 500;">${mapping.customer_name || '⚠️ 삭제된 사업장'}</td>
+                <td>${mapping.supplier_name || '⚠️ 삭제된 업체'}</td>
                 <td><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px;">${mapping.delivery_code || '미설정'}</code></td>
                 <td>
                     <span style="color: ${mapping.is_active ? '#28a745' : '#dc3545'}; font-weight: bold;">
@@ -116,8 +112,8 @@ async function showAddMappingModal() {
 async function loadCustomersAndSuppliers() {
     try {
         const [customersResponse, suppliersResponse] = await Promise.all([
-            fetch('/api/admin/sites/tree'),
-            fetch('/api/admin/suppliers/enhanced')
+            fetch('http://localhost:9000/api/admin/sites'),
+            fetch('http://localhost:9000/api/admin/suppliers/enhanced')
         ]);
         
         const customersData = await customersResponse.json();
@@ -156,7 +152,7 @@ async function loadCustomersAndSuppliers() {
 async function editMapping(mappingId) {
     try {
         console.log('매핑 수정 요청:', mappingId);
-        const response = await fetch(`/api/admin/customer-supplier-mappings/${mappingId}`);
+        const response = await fetch(`http://localhost:9000/api/admin/customer-supplier-mappings/${mappingId}`);
         const result = await response.json();
         
         console.log('매핑 API 응답:', result);
@@ -226,11 +222,32 @@ async function editMapping(mappingId) {
 
 // 매핑 저장
 async function saveMapping() {
+    const customerSelect = document.getElementById('mapping-customer');
+    if (!customerSelect || !customerSelect.value) {
+        alert('사업장을 선택해주세요.');
+        return;
+    }
+    
+    // 첫 번째 공급업체 행에서 데이터 가져오기 (간소화된 버전)
+    const firstSupplierRow = document.querySelector('#supplier-rows-container .supplier-row');
+    if (!firstSupplierRow) {
+        alert('최소 하나의 협력업체를 추가해주세요.');
+        return;
+    }
+    
+    const supplierSelect = firstSupplierRow.querySelector('.supplier-select');
+    const deliveryCodeInput = firstSupplierRow.querySelector('.delivery-code-input');
+    
+    if (!supplierSelect || !supplierSelect.value) {
+        alert('협력업체를 선택해주세요.');
+        return;
+    }
+    
     const mappingData = {
-        customer_id: parseInt(document.getElementById('mapping-customer-id').value),
-        supplier_id: parseInt(document.getElementById('mapping-supplier-id').value),
-        delivery_code: document.getElementById('mapping-delivery-code').value,
-        is_active: document.getElementById('mapping-is-active').checked
+        customer_id: parseInt(customerSelect.value),
+        supplier_id: parseInt(supplierSelect.value),
+        delivery_code: deliveryCodeInput ? deliveryCodeInput.value : '',
+        is_active: true
     };
     
     if (!mappingData.customer_id || !mappingData.supplier_id) {
@@ -240,8 +257,8 @@ async function saveMapping() {
 
     try {
         const url = currentEditMappingId ? 
-            `/api/admin/customer-supplier-mappings/${currentEditMappingId}` : 
-            '/api/admin/customer-supplier-mappings/create';
+            `http://localhost:9000/api/admin/customer-supplier-mappings/${currentEditMappingId}` : 
+            'http://localhost:9000/api/admin/customer-supplier-mappings/create';
         
         const method = currentEditMappingId ? 'PUT' : 'POST';
         
@@ -276,7 +293,7 @@ async function toggleMappingStatus(mappingId, newStatus) {
     }
     
     try {
-        const response = await fetch(`/api/admin/customer-supplier-mappings/${mappingId}`, {
+        const response = await fetch(`http://localhost:9000/api/admin/customer-supplier-mappings/${mappingId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_active: newStatus })
@@ -303,7 +320,7 @@ async function deleteMapping(mappingId) {
     }
 
     try {
-        const response = await fetch(`/api/admin/customer-supplier-mappings/${mappingId}`, {
+        const response = await fetch(`http://localhost:9000/api/admin/customer-supplier-mappings/${mappingId}`, {
             method: 'DELETE'
         });
 

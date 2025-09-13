@@ -1,10 +1,12 @@
-// 🔧 식자재 관리 시스템 - 중앙 설정 파일
+// 🔧 다함 식자재 관리 시스템 - 중앙 설정 파일
 // ⚠️  이 파일을 수정하면 모든 API 연결이 자동으로 업데이트됩니다
 
 const CONFIG = {
     // API 서버 설정
     API: {
-        BASE_URL: 'http://127.0.0.1:8006',
+        BASE_URL: typeof process !== 'undefined' && process.env && process.env.API_BASE_URL
+            ? process.env.API_BASE_URL
+            : 'http://127.0.0.1:8006',
         ENDPOINTS: {
             // 대시보드 관련
             DASHBOARD_STATS: '/api/admin/dashboard-stats',

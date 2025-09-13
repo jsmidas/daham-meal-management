@@ -284,7 +284,7 @@ class IngredientsExcelManager {
             // 업로드 진행 상태 표시
             this.showUploadProgress();
 
-            const response = await fetch('/api/admin/ingredients-excel-upload', {
+            const response = await fetch('http://localhost:9000/api/admin/ingredients-excel-upload', {
                 method: 'POST',
                 body: formData
             });

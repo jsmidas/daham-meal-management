@@ -3057,7 +3057,7 @@
         // 사업장 트리 로드
         async function loadSitesTree() {
             try {
-                const response = await fetch('/api/admin/sites/tree');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/sites');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -3282,7 +3282,7 @@
         // 사업장 상세정보 표시
         async function showSiteDetails(siteId) {
             try {
-                const response = await fetch(`/api/admin/sites/${siteId}`);
+                const response = await fetch(`http://127.0.0.1:8006/api/admin/sites/${siteId}`);
                 const site = await response.json();
                 
                 const panel = document.getElementById('site-details-panel');
@@ -4959,7 +4959,7 @@
         async function loadBusinessLocationsForMealPricingDirect() {
             try {
                 console.log('사업장 목록 로드 시작 (Direct)');
-                const response = await fetch('/api/admin/sites/tree');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/sites');
                 const result = await response.json();
                 console.log('API 응답:', result);
                 
@@ -5412,7 +5412,7 @@
             console.log('[TEST] 사업장 생성 테스트 시작:', siteData);
             
             try {
-                const response = await fetch('http://127.0.0.1:8001/api/admin/sites', {
+                const response = await fetch('http://127.0.0.1:8006/api/admin/sites', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -5448,7 +5448,7 @@
             console.log('[TEST] 사업장 목록 로드 시작');
             
             try {
-                const response = await fetch('http://127.0.0.1:8001/api/admin/sites');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/sites');
                 const result = await response.json();
                 
                 console.log('[TEST] 사업장 목록:', result);

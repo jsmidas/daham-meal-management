@@ -396,7 +396,7 @@ async function uploadFileToServer(file) {
     formData.append('file', file);
     
     try {
-        const response = await fetch('/api/admin/upload-ingredients', {
+        const response = await fetch('http://localhost:9000/api/admin/upload-ingredients', {
             method: 'POST',
             body: formData,
             credentials: 'include'

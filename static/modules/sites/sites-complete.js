@@ -21,7 +21,7 @@ window.SitesModule = {
     async loadSitesTree() {
         console.log('🏢 사업장 목록 로드 시작...');
         try {
-            const response = await fetch('/api/admin/sites/tree');
+            const response = await fetch('http://localhost:9000/api/admin/sites/tree');
             console.log('📡 API 응답 상태:', response.status);
             const data = await response.json();
             console.log('📊 API 응답 데이터:', data);
@@ -50,7 +50,7 @@ window.SitesModule = {
     // 사업장 통계 로드
     async loadSitesStatistics() {
         try {
-            const response = await fetch('/api/admin/list-sites-simple');
+            const response = await fetch('http://localhost:9000/api/admin/list-sites-simple');
             const data = await response.json();
             
             if (data.success && data.sites) {
@@ -664,7 +664,7 @@ window.SitesModule = {
                 });
             } else {
                 // 추가
-                response = await fetch('/api/admin/sites', {
+                response = await fetch('http://localhost:9000/api/admin/sites', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -695,7 +695,7 @@ window.SitesModule = {
     // 사이트 테이블 로드
     async loadSitesTable() {
         try {
-            const response = await fetch('/api/admin/sites');
+            const response = await fetch('http://localhost:9000/api/admin/sites');
             const data = await response.json();
             
             if (data.success && data.sites) {

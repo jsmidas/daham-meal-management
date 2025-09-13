@@ -67,7 +67,7 @@ window.IngredientsModule = {
     async loadIngredientsList() {
         try {
             console.log('[Ingredients] 식자재 목록 로드 시작...');
-            const response = await fetch('/api/admin/ingredients-new');
+            const response = await fetch('http://localhost:9000/api/admin/ingredients-new');
             const result = await response.json();
             const ingredients = result.ingredients || result.data || [];
             
@@ -426,7 +426,7 @@ window.IngredientsModule = {
         
         try {
             console.log('[Ingredients] 🌐 서버 요청 시작 - /api/admin/ingredients-new/upload');
-            const response = await fetch('/api/admin/ingredients-new/upload', {
+            const response = await fetch('http://localhost:9000/api/admin/ingredients-new/upload', {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
@@ -691,7 +691,7 @@ window.IngredientsModule = {
     // 업로드 히스토리 로드
     async loadUploadHistory() {
         try {
-            const response = await fetch('/api/admin/ingredients-upload-history');
+            const response = await fetch('http://localhost:9000/api/admin/ingredients-upload-history');
             const result = await response.json();
             
             this.uploadHistory = result.history || [];

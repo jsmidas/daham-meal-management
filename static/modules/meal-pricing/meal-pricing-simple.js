@@ -23,7 +23,7 @@ window.MealPricingModule = {
         
         try {
             console.log('[MealPricing] API 호출 시작: /api/admin/customers');
-            const response = await fetch('/api/admin/customers');
+            const response = await fetch('http://localhost:9000/api/admin/customers');
             console.log('[MealPricing] API 응답 상태:', response.status, response.statusText);
             
             const result = await response.json();

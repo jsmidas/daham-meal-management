@@ -40,7 +40,7 @@ window.IngredientsModule = {
             const category = document.getElementById('ingredient-category-filter')?.value || '';
             const page = this.currentPage || 1;
             
-            let url = `/api/admin/ingredients-new?page=${page}&limit=20`;
+            let url = `${CONFIG.API.BASE_URL}/api/admin/ingredients-new?page=${page}&limit=20`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (category) url += `&category=${encodeURIComponent(category)}`;
             
@@ -63,7 +63,7 @@ window.IngredientsModule = {
     // 식자재 통계 로드
     async loadIngredientStatistics() {
         try {
-            const response = await fetch(`/api/admin/ingredients-new?page=1&limit=100`);
+            const response = await fetch(`${CONFIG.API.BASE_URL}/api/admin/ingredients-new?page=1&limit=100`);
             const data = await response.json();
             
             if (data.success && data.ingredients) {
@@ -584,7 +584,7 @@ async function uploadFileToServer(file) {
     
     try {
         console.log('🌐 서버 요청 시작 - /api/admin/upload-ingredients');
-        const response = await fetch('/api/admin/upload-ingredients', {
+        const response = await fetch('http://localhost:9000/api/admin/upload-ingredients', {
             method: 'POST',
             body: formData,
             credentials: 'include'
