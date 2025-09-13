@@ -2820,7 +2820,7 @@
         async function loadUsers() {
             try {
                 console.log('[LoadUsers] 사용자 목록 로드 시작...');
-                const response = await fetch('http://127.0.0.1:8001/api/admin/users');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/users');
                 const data = await response.json();
                 
                 if (data.success) {
@@ -2897,7 +2897,7 @@
         // 담당 사업장 목록 로드
         async function loadManagedSites() {
             try {
-                const response = await fetch('/api/admin/sites');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/sites');
                 const result = await response.json();
                 const sites = result.sites || result.data || [];
                 
@@ -5362,7 +5362,7 @@
             console.log('[TEST] 사용자 목록 로드 시작');
             
             try {
-                const response = await fetch('http://127.0.0.1:8001/api/admin/users');
+                const response = await fetch('http://127.0.0.1:8006/api/admin/users');
                 const result = await response.json();
                 
                 console.log('[TEST] 사용자 목록:', result);
