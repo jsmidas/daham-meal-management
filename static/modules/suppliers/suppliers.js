@@ -46,6 +46,16 @@ window.SupplierManagement = window.SuppliersModule = {
             searchInput.addEventListener('input', this.debounce(() => this.loadSuppliers(), 500));
         }
 
+        // 모달 외부 클릭 시 닫기
+        const modal = document.getElementById('supplierModal');
+        if (modal) {
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeSupplierModal();
+                }
+            });
+        }
+
         // 활성 상태 필터 변경 시
         const statusFilter = document.getElementById('supplierStatusFilter');
         if (statusFilter) {
@@ -91,8 +101,8 @@ window.SupplierManagement = window.SuppliersModule = {
             const totalSuppliersElement = document.getElementById('totalSuppliers');
             const activeSuppliersElement = document.getElementById('activeSuppliers');
 
-            if (totalSuppliersElement) totalSuppliersElement.textContent = data.stats?.total_suppliers || '0';
-            if (activeSuppliersElement) activeSuppliersElement.textContent = data.stats?.active_suppliers || '0';
+            if (totalSuppliersElement) totalSuppliersElement.textContent = data.total || data.stats?.total_suppliers || '0';
+            if (activeSuppliersElement) activeSuppliersElement.textContent = data.active || data.stats?.active_suppliers || '0';
         } catch (error) {
             console.error('협력업체 통계 로드 오류:', error);
             const totalSuppliersElement = document.getElementById('totalSuppliers');
@@ -143,7 +153,10 @@ window.SupplierManagement = window.SuppliersModule = {
 
         if (!tbody) return;
 
-        if (!suppliers || suppliers.length === 0) {
+        // API에서 받은 실제 데이터 사용
+        const displaySuppliers = suppliers;
+
+        if (!displaySuppliers || displaySuppliers.length === 0) {
             if (table) table.style.display = 'none';
             if (emptyState) emptyState.style.display = 'block';
             return;
@@ -152,20 +165,20 @@ window.SupplierManagement = window.SuppliersModule = {
         if (table) table.style.display = 'table';
         if (emptyState) emptyState.style.display = 'none';
 
-        tbody.innerHTML = suppliers.map(supplier => `
+        tbody.innerHTML = displaySuppliers.map(supplier => `
             <tr>
                 <td>${this.escapeHtml(supplier.name || '')}</td>
-                <td>${this.escapeHtml(supplier.code || '')}</td>
-                <td>${this.escapeHtml(supplier.businessNumber || '-')}</td>
+                <td>${this.escapeHtml(supplier.parent_code || supplier.code || '')}</td>
+                <td>${this.escapeHtml(supplier.business_number || supplier.businessNumber || '-')}</td>
                 <td>${this.escapeHtml(supplier.representative || '-')}</td>
-                <td>${this.escapeHtml(supplier.phone || '-')}</td>
+                <td>${this.escapeHtml(supplier.headquarters_phone || supplier.phone || '-')}</td>
                 <td>${this.escapeHtml(supplier.email || '-')}</td>
-                <td><span class="status-badge status-${supplier.isActive ? 'active' : 'inactive'}">${supplier.isActive ? '활성' : '비활성'}</span></td>
-                <td>${this.formatDate(supplier.createdAt)}</td>
+                <td><span class="status-badge status-${supplier.is_active !== false ? 'active' : 'inactive'}">${supplier.is_active !== false ? '활성' : '비활성'}</span></td>
+                <td>${this.formatDate(supplier.created_at || supplier.createdAt)}</td>
                 <td>
                     <div class="actions">
-                        <button class="btn btn-sm btn-primary" onclick="window.supplierManagement.editSupplier(${supplier.id})">수정</button>
-                        ${supplier.isActive ?
+                        <button class="btn btn-sm btn-primary" onclick="editSupplier(${supplier.id})">수정</button>
+                        ${supplier.is_active !== false ?
                             `<button class="btn btn-sm btn-danger" onclick="window.supplierManagement.deactivateSupplier(${supplier.id})">비활성화</button>` :
                             `<button class="btn btn-sm btn-success" onclick="window.supplierManagement.activateSupplier(${supplier.id})">활성화</button>`
                         }
@@ -331,7 +344,17 @@ window.SupplierManagement = window.SuppliersModule = {
 
         } catch (error) {
             console.error('협력업체 저장 오류:', error);
-            this.showError(`협력업체 ${this.isEditMode ? '수정' : '추가'}에 실패했습니다: ${error.message}`);
+
+            // 사용자 친화적인 오류 메시지 처리
+            let errorMessage = error.message;
+
+            if (errorMessage.includes('사업자번호')) {
+                errorMessage = '사업자번호가 중복됩니다. 다른 번호를 입력하거나 비워두세요.';
+            } else if (errorMessage.includes('협력업체 이름')) {
+                errorMessage = '협력업체명이 중복됩니다. 다른 이름을 사용해 주세요.';
+            }
+
+            this.showError(`협력업체 ${this.isEditMode ? '수정' : '추가'} 실패: ${errorMessage}`);
         }
     },
 
@@ -521,8 +544,60 @@ window.SupplierManagement = window.SuppliersModule = {
             </div>
 
             <!-- 협력업체 추가/수정 모달 -->
-            <div id="supplierModal" class="modal">
-                <div class="modal-content">
+            <style>
+                #supplierModal .modal-content {
+                    max-height: 70vh !important;
+                    margin: 3% auto !important;
+                    width: 450px !important;
+                }
+                #supplierModal .modal-header {
+                    padding: 6px 10px !important;
+                }
+                #supplierModal .modal-header h3 {
+                    font-size: 15px !important;
+                    margin: 0;
+                }
+                #supplierModal .modal-body {
+                    padding: 8px 10px !important;
+                    max-height: calc(70vh - 80px) !important;
+                    overflow-y: auto !important;
+                }
+                #supplierModal .modal-footer {
+                    padding: 6px 10px !important;
+                    text-align: right;
+                }
+                #supplierModal .form-group {
+                    margin-bottom: 4px !important;
+                }
+                #supplierModal .form-group label {
+                    margin-bottom: 1px !important;
+                    font-size: 11px !important;
+                    display: block;
+                }
+                #supplierModal input,
+                #supplierModal textarea {
+                    padding: 3px 6px !important;
+                    font-size: 11px !important;
+                    height: 24px !important;
+                    width: 100%;
+                    border: 1px solid #ddd;
+                    border-radius: 3px;
+                }
+                #supplierModal textarea {
+                    height: 40px !important;
+                    resize: vertical;
+                }
+                #supplierModal .btn {
+                    padding: 4px 10px !important;
+                    font-size: 12px !important;
+                }
+                #supplierModal .close {
+                    font-size: 18px !important;
+                    line-height: 14px !important;
+                }
+            </style>
+            <div id="supplierModal" class="modal" onclick="if(event.target === this) return false;">
+                <div class="modal-content" onmousedown="event.stopPropagation();">
                     <div class="modal-header">
                         <h3 id="supplierModalTitle">협력업체 추가</h3>
                         <span class="close" onclick="closeSupplierModal()">&times;</span>
@@ -567,14 +642,14 @@ window.SupplierManagement = window.SuppliersModule = {
 
                             <div class="form-group">
                                 <label for="supplierNotes">비고</label>
-                                <textarea id="supplierNotes" name="notes" rows="3"></textarea>
+                                <textarea id="supplierNotes" name="notes"></textarea>
                             </div>
                         </form>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">취소</button>
-                        <button type="submit" form="supplierForm" class="btn btn-primary" id="supplierSubmitBtn">추가</button>
+                        <button type="button" class="btn btn-primary" onclick="saveSupplierWithoutAlert()">저장</button>
                     </div>
                 </div>
             </div>
@@ -595,14 +670,117 @@ window.openCreateSupplierModal = function() {
 };
 
 window.closeSupplierModal = function() {
-    if (window.SupplierManagement) {
-        window.SupplierManagement.closeModal();
+    const modal = document.getElementById('supplierModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // 폼 초기화
+        const form = document.getElementById('supplierForm');
+        if (form) form.reset();
+        // 상태 초기화
+        if (window.SupplierManagement) {
+            window.SupplierManagement.isEditMode = false;
+            window.SupplierManagement.currentSupplierId = null;
+        }
     }
 };
 
 window.loadSuppliers = function() {
     if (window.SupplierManagement) {
         window.SupplierManagement.loadSuppliers();
+    }
+};
+
+window.saveSupplierWithoutAlert = function() {
+    console.log('Save supplier without alert');
+    if (window.SupplierManagement) {
+        const form = document.getElementById('supplierForm');
+        if (!form) return;
+
+        // 필드명 매핑 수정
+        const supplierData = {
+            name: document.getElementById('supplierName').value,
+            parent_code: document.getElementById('supplierCode').value,
+            business_number: document.getElementById('supplierBusinessNumber').value,
+            representative: document.getElementById('supplierRepresentative').value,
+            headquarters_address: document.getElementById('supplierAddress').value,
+            headquarters_phone: document.getElementById('supplierPhone').value,
+            email: document.getElementById('supplierEmail').value,
+            notes: document.getElementById('supplierNotes').value
+        };
+
+        console.log('Supplier data to save:', supplierData);
+        console.log('Edit mode:', window.SupplierManagement.isEditMode);
+        console.log('Current supplier ID:', window.SupplierManagement.currentSupplierId);
+
+        const url = window.SupplierManagement.isEditMode
+            ? `${window.SupplierManagement.API_BASE_URL}/api/suppliers/${window.SupplierManagement.currentSupplierId}`
+            : `${window.SupplierManagement.API_BASE_URL}/api/suppliers`;
+
+        const method = window.SupplierManagement.isEditMode ? 'PUT' : 'POST';
+
+        console.log('Request URL:', url);
+        console.log('Request method:', method);
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(supplierData)
+        })
+        .then(res => {
+            console.log('Response status:', res.status);
+            if (!res.ok) {
+                return res.json().then(data => {
+                    throw new Error(data.detail || data.error || '알 수 없는 오류');
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            // API 응답 성공 시 모달 닫고 목록 새로고침
+            closeSupplierModal();
+            window.SupplierManagement.loadSuppliers();
+            window.SupplierManagement.loadSupplierStats();
+        })
+        .catch(err => {
+            console.error('Save error:', err);
+
+            // 사용자 친화적인 오류 메시지
+            let errorMessage = err.message || '저장 중 오류가 발생했습니다.';
+
+            // 사업자번호 중복 오류 처리
+            if (errorMessage.includes('사업자번호')) {
+                errorMessage = '📝 사업자번호 중복 오류\n\n' +
+                    '동일한 사업자번호가 이미 등록되어 있습니다.\n' +
+                    '해결 방법:\n' +
+                    '1. 다른 사업자번호를 입력하거나\n' +
+                    '2. 사업자번호를 비워두세요';
+            }
+            // 협력업체명 중복 오류 처리
+            else if (errorMessage.includes('협력업체 이름')) {
+                errorMessage = '🏪 협력업체명 중복 오류\n\n' +
+                    '동일한 협력업체명이 이미 등록되어 있습니다.\n' +
+                    '다른 이름을 사용해 주세요.';
+            }
+            // UNIQUE constraint 오류 처리
+            else if (errorMessage.includes('UNIQUE constraint')) {
+                errorMessage = '⚠️ 중복 데이터 오류\n\n' +
+                    '입력하신 정보 중 중복된 값이 있습니다.\n' +
+                    '사업자번호나 협력업체명을 확인해 주세요.';
+            }
+
+            alert(errorMessage);
+        });
+    }
+};
+
+window.editSupplier = function(supplierId) {
+    console.log('Edit supplier called:', supplierId);
+    if (window.SupplierManagement) {
+        // API를 통해 협력업체 정보 가져오기
+        window.SupplierManagement.editSupplier(supplierId);
     }
 };
 

@@ -42,19 +42,9 @@ class UserPermissionsManager {
     }
 
     generateSimulatedSites() {
-        // 실제 운영에 가까운 10개 사업장 생성
-        this.allSites = [
-            { id: 1, site_code: 'SITE001', site_name: '서울 강남 도시락센터', site_type: '도시락배송', region: '서울', is_active: true },
-            { id: 2, site_code: 'SITE002', site_name: '서울 강북 운반급식소', site_type: '운반급식', region: '서울', is_active: true },
-            { id: 3, site_code: 'SITE003', site_name: '경기 수원 학교급식센터', site_type: '학교급식', region: '경기', is_active: true },
-            { id: 4, site_code: 'SITE004', site_name: '경기 성남 요양원', site_type: '요양원', region: '경기', is_active: true },
-            { id: 5, site_code: 'SITE005', site_name: '인천 남구 도시락배송', site_type: '도시락배송', region: '인천', is_active: true },
-            { id: 6, site_code: 'SITE006', site_name: '부산 해운대 운반급식', site_type: '운반급식', region: '부산', is_active: true },
-            { id: 7, site_code: 'SITE007', site_name: '대구 중구 학교급식', site_type: '학교급식', region: '대구', is_active: true },
-            { id: 8, site_code: 'SITE008', site_name: '광주 서구 요양원', site_type: '요양원', region: '광주', is_active: true },
-            { id: 9, site_code: 'SITE009', site_name: '대전 유성구 도시락센터', site_type: '도시락배송', region: '대전', is_active: true },
-            { id: 10, site_code: 'SITE010', site_name: '울산 남구 운반급식소', site_type: '운반급식', region: '울산', is_active: true }
-        ];
+        // API 호출 실패 시 빈 배열 사용
+        this.allSites = [];
+        console.warn('사업장 데이터를 불러올 수 없습니다. API 연결을 확인하세요.');
     }
 
     setupEventListeners() {

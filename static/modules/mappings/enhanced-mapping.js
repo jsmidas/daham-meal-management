@@ -51,17 +51,17 @@
                 </div>
 
                 <!-- 테이블 영역 -->
-                <div style="background: white; border-radius: 6px; overflow: hidden; border: 1px solid #e0e0e0;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">사업장</th>
-                                <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">협력업체</th>
-                                <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">협력업체코드</th>
-                                <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600;">배송코드</th>
-                                <th style="padding: 6px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600;">상태</th>
-                                <th style="padding: 6px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600;">등록일</th>
-                                <th style="padding: 6px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600;">작업</th>
+                            <tr style="background: linear-gradient(180deg, #f8f9fa, #e9ecef);">
+                                <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">🏭 사업장</th>
+                                <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">🚚 협력업체</th>
+                                <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">🆔 협력업체코드</th>
+                                <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">📦 배송코드</th>
+                                <th style="padding: 10px 12px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">✅ 상태</th>
+                                <th style="padding: 10px 12px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">📅 등록일</th>
+                                <th style="padding: 10px 12px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">⚙️ 작업</th>
                             </tr>
                         </thead>
                         <tbody id="enhanced-mapping-tbody">
@@ -145,8 +145,6 @@
                 mappingsData = data.mappings;
                 displayMappings(data.mappings);
                 updateStatistics(data.mappings);
-                await loadSuppliers();
-                await loadCustomers();
             }
         } catch (error) {
             console.error('❌ 데이터 로드 실패:', error);
@@ -159,28 +157,55 @@
             const data = await response.json();
 
             const select = document.getElementById('modal-supplier');
-            if (select && data.suppliers) {
-                select.innerHTML = '<option value="">선택하세요</option>' +
-                    data.suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            if (select) {
+                if (data.success && data.suppliers) {
+                    select.innerHTML = '<option value="">선택하세요</option>' +
+                        data.suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                } else {
+                    // API 실패 시 빈 목록
+                    select.innerHTML = '<option value="">협력업체 로드 실패</option>';
+                }
             }
         } catch (error) {
             console.error('협력업체 로드 실패:', error);
+            // 에러 시 빈 목록
+            const select = document.getElementById('modal-supplier');
+            if (select) {
+                select.innerHTML = '<option value="">협력업체 로드 실패</option>';
+            }
         }
     }
 
     async function loadCustomers() {
         try {
+            // API에서 실제 사업장 목록 가져오기
             const response = await fetch('http://127.0.0.1:8010/api/admin/business-locations');
             const data = await response.json();
 
             const select = document.getElementById('modal-customer');
-            if (select && data.locations) {
-                select.innerHTML = '<option value="">선택하세요</option>' +
-                    data.locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+            if (select) {
+                if (data.success && data.locations) {
+                    select.innerHTML = '<option value="">선택하세요</option>' +
+                        data.locations.map(l => `<option value="${l.id}">${l.site_name || l.name}</option>`).join('');
+                } else {
+                    select.innerHTML = '<option value="">사업장 로드 실패</option>';
+                }
             }
         } catch (error) {
             console.error('사업장 로드 실패:', error);
+            const select = document.getElementById('modal-customer');
+            if (select) {
+                select.innerHTML = '<option value="">사업장 로드 실패</option>';
+            }
         }
+    }
+
+    async function loadModalOptions() {
+        // 모달 옵션을 병렬로 로드
+        await Promise.all([
+            loadSuppliers(),
+            loadCustomers()
+        ]);
     }
 
     function displayMappings(mappings) {
@@ -207,40 +232,66 @@
 
         tbody.innerHTML = sortedMappings.map(mapping => {
             const createdDate = mapping.created_at ?
-                new Date(mapping.created_at).toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', '') : '-';
+                new Date(mapping.created_at).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric'
+                }).replace(/\. /g, '.').slice(0, -1) : '-';
+
+            // 사업장 타입에 따른 아이콘 및 색상
+            let locationIcon = '🏭';
+            let locationColor = '#6c757d';
+            if (mapping.customer_name) {
+                if (mapping.customer_name.includes('학교')) {
+                    locationIcon = '🏫';
+                    locationColor = '#007bff';
+                } else if (mapping.customer_name.includes('도시락')) {
+                    locationIcon = '🍱';
+                    locationColor = '#28a745';
+                } else if (mapping.customer_name.includes('운반')) {
+                    locationIcon = '🚚';
+                    locationColor = '#ffc107';
+                } else if (mapping.customer_name.includes('요양원')) {
+                    locationIcon = '🏥';
+                    locationColor = '#dc3545';
+                }
+            }
 
             return `
-                <tr style="cursor: pointer; transition: background 0.2s;"
-                    onmouseover="this.style.background='#f8f9fa'"
-                    onmouseout="this.style.background='white'"
+                <tr style="cursor: pointer; transition: all 0.2s; background: white;"
+                    onmouseover="this.style.background='#f0f8ff'; this.style.transform='scale(1.01)'"
+                    onmouseout="this.style.background='white'; this.style.transform='scale(1)'"
                     onclick="editMapping(${mapping.id})">
-                    <td style="padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 11px;">
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px; font-weight: 500;">
+                        <span style="color: ${locationColor};">${locationIcon}</span>
                         ${mapping.customer_name || '-'}
                     </td>
-                    <td style="padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 11px;">
-                        ${mapping.supplier_name || '-'}
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
+                        <strong>${mapping.supplier_name || '-'}</strong>
                     </td>
-                    <td style="padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 11px;">
-                        <code style="background: #f5f5f5; padding: 2px 4px; border-radius: 2px; font-size: 10px;">
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
+                        <code style="background: #e7f3ff; padding: 3px 6px; border-radius: 3px; font-size: 11px; color: #0066cc; font-weight: 600;">
                             ${mapping.delivery_code || '-'}
                         </code>
                     </td>
-                    <td style="padding: 5px 8px; border-bottom: 1px solid #f0f0f0; font-size: 11px;">
-                        <code style="background: #fff3cd; padding: 2px 4px; border-radius: 2px; font-size: 10px;">
-                            -
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
+                        <code style="background: #fff3cd; padding: 3px 6px; border-radius: 3px; font-size: 11px; color: #856404; font-weight: 600;">
+                            ${mapping.supplier_code || '-'}
                         </code>
                     </td>
-                    <td style="padding: 5px 8px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 11px;">
+                    <td style="padding: 8px 12px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
                         ${mapping.is_active ?
-                            '<span style="color: #28a745;">●</span>' :
-                            '<span style="color: #dc3545;">●</span>'}
+                            '<span style="background: #d4edda; color: #155724; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">활성</span>' :
+                            '<span style="background: #f8d7da; color: #721c24; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">비활성</span>'}
                     </td>
-                    <td style="padding: 5px 8px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 10px; color: #999;">
+                    <td style="padding: 8px 12px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 11px; color: #6c757d;">
                         ${createdDate}
                     </td>
-                    <td style="padding: 5px 8px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 8px 12px; text-align: center; border-bottom: 1px solid #f0f0f0;">
                         <button onclick="event.stopPropagation(); deleteMapping(${mapping.id})"
-                                style="padding: 2px 6px; background: #dc3545; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 10px;">
+                                style="padding: 4px 10px; background: linear-gradient(180deg, #f56565, #dc3545); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all 0.2s;"
+                                onmouseover="this.style.transform='scale(1.05)'"
+                                onmouseout="this.style.transform='scale(1)'">
                             삭제
                         </button>
                     </td>
@@ -261,7 +312,7 @@
         document.getElementById('stat-suppliers').textContent = suppliers;
     }
 
-    window.openModal = function(mappingId = null) {
+    window.openModal = async function(mappingId = null) {
         currentEditId = mappingId;
         const modal = document.getElementById('edit-modal');
         const title = document.getElementById('modal-title');
@@ -269,17 +320,27 @@
         if (mappingId) {
             title.textContent = '매핑 편집';
             const mapping = mappingsData.find(m => m.id === mappingId);
+
+            // 먼저 드롭다운 옵션을 로드
+            await loadModalOptions();
+
+            // 옵션 로드 완료 후 바로 값 설정 (setTimeout 제거)
             if (mapping) {
-                document.getElementById('modal-supplier').value = mapping.supplier_id || '';
                 document.getElementById('modal-customer').value = mapping.customer_id || '';
-                document.getElementById('modal-supplier-code').value = mapping.delivery_code || '';
-                document.getElementById('modal-delivery-code').value = '';
-                document.getElementById('modal-active').checked = mapping.is_active;
+                document.getElementById('modal-supplier').value = mapping.supplier_id || '';
+                document.getElementById('modal-supplier-code').value = mapping.supplier_code || '';
+                document.getElementById('modal-delivery-code').value = mapping.delivery_code || '';
+                document.getElementById('modal-active').checked = mapping.is_active !== false;
             }
         } else {
             title.textContent = '새 매핑 추가';
-            document.getElementById('modal-supplier').value = '';
+
+            // 새 매핑 추가 시에도 옵션 먼저 로드
+            await loadModalOptions();
+
+            // 그 다음 빈 값으로 초기화
             document.getElementById('modal-customer').value = '';
+            document.getElementById('modal-supplier').value = '';
             document.getElementById('modal-supplier-code').value = '';
             document.getElementById('modal-delivery-code').value = '';
             document.getElementById('modal-active').checked = true;
@@ -301,7 +362,8 @@
         const data = {
             supplier_id: document.getElementById('modal-supplier').value,
             customer_id: document.getElementById('modal-customer').value,
-            delivery_code: document.getElementById('modal-supplier-code').value,  // 협력업체 코드를 delivery_code에 저장
+            supplier_code: document.getElementById('modal-supplier-code').value,  // 협력업체 코드
+            delivery_code: document.getElementById('modal-delivery-code').value,  // 배송 코드
             is_active: document.getElementById('modal-active').checked
         };
 

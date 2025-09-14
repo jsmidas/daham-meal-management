@@ -26,53 +26,89 @@ window.BusinessLocationsModule = {
         }
     },
 
-    loadSiteStats() {
-        // 실제 데이터베이스의 데이터
-        const elements = {
-            'totalSites': 4,
-            'lunchboxSites': 1,
-            'transportSites': 1,
-            'schoolSites': 1,
-            'nursingHomeSites': 1
-        };
+    async loadSiteStats() {
+        console.log('📊 loadSiteStats 함수 실행됨');
+        try {
+            // API에서 실제 통계 가져오기
+            const response = await fetch(`${window.CONFIG.API_BASE_URL || 'http://127.0.0.1:8010'}/api/admin/business-locations`);
+            const data = await response.json();
+            console.log('📊 API 응답 데이터:', data);
 
-        for (const [id, value] of Object.entries(elements)) {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
-            } else {
-                console.warn(`Element with id '${id}' not found`);
+            if (data.success) {
+                const locations = data.locations || [];
+
+                // 통계 계산
+                const totalSites = locations.length;
+                const activeSites = locations.filter(l => l.is_active).length;
+                const regions = new Set(locations.map(l => l.region).filter(r => r && r !== '미지정')).size;
+
+                console.log(`📊 통계: 전체=${totalSites}, 활성=${activeSites}, 지역=${regions}`);
+
+                // UI 업데이트
+                const totalElement = document.getElementById('totalSites');
+                if (totalElement) {
+                    totalElement.textContent = totalSites;
+                    console.log('✅ totalSites 업데이트:', totalSites);
+                } else {
+                    console.error('❌ totalSites 엘리먼트를 찾을 수 없음');
+                }
+
+                const activeElement = document.getElementById('activeSites');
+                if (activeElement) {
+                    activeElement.textContent = activeSites;
+                    console.log('✅ activeSites 업데이트:', activeSites);
+                } else {
+                    console.error('❌ activeSites 엘리먼트를 찾을 수 없음');
+                }
+
+                const regionElement = document.getElementById('regionCount');
+                if (regionElement) {
+                    regionElement.textContent = regions;
+                    console.log('✅ regionCount 업데이트:', regions);
+                } else {
+                    console.error('❌ regionCount 엘리먼트를 찾을 수 없음');
+                }
             }
+        } catch (error) {
+            console.error('❌ 통계 데이터 로드 오류:', error);
+            // 오류 시 0으로 표시
+            ['totalSites', 'activeSites', 'regionCount'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '0';
+            });
         }
     },
 
-    loadSites() {
+    async loadSites() {
         const tbody = document.getElementById('sitesTableBody');
         if (!tbody) return;
 
-        // 실제 데이터베이스의 데이터 (business_locations 테이블)
-        const siteData = [
-            { id: 1, site_code: 'BIZ001', site_name: '학교', site_type: '급식업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-            { id: 2, site_code: 'BIZ002', site_name: '도시락', site_type: '도시락업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-            { id: 3, site_code: 'BIZ003', site_name: '운반', site_type: '운송업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-            { id: 4, site_code: 'BIZ004', site_name: '요양원', site_type: '의료업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true }
-        ];
+        try {
+            // API에서 데이터 가져오기
+            const response = await fetch(`${window.CONFIG.API_BASE_URL || 'http://127.0.0.1:8010'}/api/admin/business-locations`);
+            const data = await response.json();
+
+            if (data.success) {
+                window.currentSiteData = data.locations || [];
+            }
+        } catch (error) {
+            console.error('사업장 데이터 로드 오류:', error);
+        }
+
+        const siteData = window.currentSiteData;
 
         tbody.innerHTML = siteData.map(site => `
             <tr>
-                <td><input type="checkbox" data-site-id="${site.id}"></td>
-                <td>${site.id}</td>
+                <td>${site.site_code}</td>
                 <td>
                     <div class="site-info">
                         <strong>${site.site_name}</strong>
-                        <small>${site.site_code}</small>
                     </div>
                 </td>
                 <td>${site.site_type}</td>
                 <td>${site.region || '-'}</td>
                 <td>${site.manager_name || '-'}</td>
                 <td>${site.manager_phone || '-'}</td>
-                <td>${site.meal_capacity || '-'}</td>
                 <td>
                     <span class="status-badge ${site.is_active ? 'active' : 'inactive'}">
                         ${site.is_active ? '활성' : '비활성'}
@@ -80,14 +116,126 @@ window.BusinessLocationsModule = {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-icon" title="수정">✏️</button>
-                        <button class="btn-icon" title="상태 변경">${site.is_active ? '⏸️' : '▶️'}</button>
-                        <button class="btn-icon btn-danger" title="삭제">🗑️</button>
+                        <button class="btn-icon" onclick="editSite(${site.id})" title="수정">✏️</button>
+                        <button class="btn-icon btn-danger" onclick="deleteSite(${site.id})" title="삭제">🗑️</button>
                     </div>
                 </td>
             </tr>
         `).join('');
     }
+};
+
+// API에서 데이터를 가져오도록 수정
+window.currentSiteData = [];
+
+// 사업장 수정 함수 - 모달 띄우기
+window.editSite = function(siteId) {
+    const site = window.currentSiteData.find(s => s.id === siteId);
+    if (!site) {
+        alert('사업장을 찾을 수 없습니다.');
+        return;
+    }
+
+    // 모달에 데이터 채우기
+    document.getElementById('editSiteId').value = site.id;
+    document.getElementById('editSiteCode').value = site.site_code;
+    document.getElementById('editSiteName').value = site.site_name;
+    document.getElementById('editSiteType').value = site.site_type;
+    document.getElementById('editSiteRegion').value = site.region || '서울';
+    document.getElementById('editSiteManager').value = site.manager_name || '';
+    document.getElementById('editSitePhone').value = site.manager_phone || '';
+    document.getElementById('editSiteStatus').value = site.is_active ? 'true' : 'false';
+
+    // 모달 표시 및 스타일 강제 적용
+    const modal = document.getElementById('siteEditModal');
+    modal.style.display = 'block';
+
+    // 모달 콘텐츠 스타일 강제 적용
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.maxHeight = '70vh';
+        modalContent.style.margin = '3% auto';
+        modalContent.style.width = '450px';
+    }
+};
+
+// 사업장 삭제 함수
+window.deleteSite = function(siteId) {
+    if (confirm('정말로 이 사업장을 삭제하시겠습니까?')) {
+        // API 호출
+        fetch(`${window.CONFIG.API_BASE_URL}/api/admin/sites/${siteId}`, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // alert 제거 - 바로 새로고침
+                window.BusinessLocationsModule.loadSites();
+            } else {
+                alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+            }
+        })
+        .catch(err => {
+            console.error('삭제 오류:', err);
+            alert('삭제 중 오류가 발생했습니다.');
+        });
+    }
+};
+
+// 모달 닫기 함수
+window.closeSiteModal = function() {
+    document.getElementById('siteEditModal').style.display = 'none';
+};
+
+window.closeAddSiteModal = function() {
+    document.getElementById('siteAddModal').style.display = 'none';
+};
+
+// 사업장 변경사항 저장
+window.saveSiteChanges = function() {
+    const siteId = document.getElementById('editSiteId').value;
+    const data = {
+        name: document.getElementById('editSiteName').value,
+        type: document.getElementById('editSiteType').value,
+        parent_id: document.getElementById('editSiteRegion').value,
+        address: document.getElementById('editSiteRegion').value,
+        manager_name: document.getElementById('editSiteManager').value || null,
+        contact_info: document.getElementById('editSitePhone').value || null,
+        is_active: document.getElementById('editSiteStatus').value === 'true'
+    };
+
+    // API 호출
+    fetch(`${window.CONFIG.API_BASE_URL}/api/admin/sites/${siteId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            // alert 제거 - 바로 모달 닫기
+            closeSiteModal();
+            // 로컬 데이터도 업데이트
+            const site = window.currentSiteData.find(s => s.id == siteId);
+            if (site) {
+                site.site_name = document.getElementById('editSiteName').value;
+                site.site_type = document.getElementById('editSiteType').value;
+                site.region = document.getElementById('editSiteRegion').value;
+                site.manager_name = document.getElementById('editSiteManager').value || null;
+                site.manager_phone = document.getElementById('editSitePhone').value || null;
+                site.is_active = document.getElementById('editSiteStatus').value === 'true';
+            }
+            window.BusinessLocationsModule.loadSites();
+        } else {
+            alert('수정 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(err => {
+        console.error('저장 오류:', err);
+        alert('저장 중 오류가 발생했습니다.');
+    });
 };
 
 // HTML에서 호출하는 전역 함수들
@@ -96,12 +244,8 @@ window.filterSitesByType = function() {
     const tbody = document.getElementById('sitesTableBody');
     if (!tbody) return;
 
-    const siteData = [
-        { id: 1, site_code: 'BIZ001', site_name: '학교', site_type: '급식업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 2, site_code: 'BIZ002', site_name: '도시락', site_type: '도시락업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 3, site_code: 'BIZ003', site_name: '운반', site_type: '운송업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 4, site_code: 'BIZ004', site_name: '요양원', site_type: '의료업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true }
-    ];
+    // 하드코딩 대신 전역 변수 사용
+    const siteData = window.currentSiteData;
 
     let filteredData = siteData;
     if (filter) {
@@ -109,25 +253,18 @@ window.filterSitesByType = function() {
     }
 
     if (filteredData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
         return;
     }
 
     tbody.innerHTML = filteredData.map(site => `
         <tr>
-            <td><input type="checkbox" data-site-id="${site.id}"></td>
-            <td>${site.id}</td>
-            <td>
-                <div class="site-info">
-                    <strong>${site.site_name}</strong>
-                    <small>${site.site_code}</small>
-                </div>
-            </td>
+            <td>${site.site_code}</td>
+            <td>${site.site_name}</td>
             <td>${site.site_type}</td>
             <td>${site.region || '-'}</td>
             <td>${site.manager_name || '-'}</td>
             <td>${site.manager_phone || '-'}</td>
-            <td>${site.meal_capacity || '-'}</td>
             <td>
                 <span class="status-badge ${site.is_active ? 'active' : 'inactive'}">
                     ${site.is_active ? '활성' : '비활성'}
@@ -135,9 +272,8 @@ window.filterSitesByType = function() {
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-icon" title="수정">✏️</button>
-                    <button class="btn-icon" title="상태 변경">${site.is_active ? '⏸️' : '▶️'}</button>
-                    <button class="btn-icon btn-danger" title="삭제">🗑️</button>
+                    <button class="btn-icon" onclick="editSite(${site.id})" title="수정">✏️</button>
+                    <button class="btn-icon btn-danger" onclick="deleteSite(${site.id})" title="삭제">🗑️</button>
                 </div>
             </td>
         </tr>
@@ -149,12 +285,8 @@ window.searchSites = function() {
     const tbody = document.getElementById('sitesTableBody');
     if (!tbody) return;
 
-    const siteData = [
-        { id: 1, site_code: 'BIZ001', site_name: '학교', site_type: '급식업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 2, site_code: 'BIZ002', site_name: '도시락', site_type: '도시락업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 3, site_code: 'BIZ003', site_name: '운반', site_type: '운송업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true },
-        { id: 4, site_code: 'BIZ004', site_name: '요양원', site_type: '의료업체', region: '서울', manager_name: null, manager_phone: null, meal_capacity: null, is_active: true }
-    ];
+    // 하드코딩 대신 전역 변수 사용
+    const siteData = window.currentSiteData;
 
     if (!searchTerm) {
         BusinessLocationsModule.loadSites();
@@ -168,25 +300,18 @@ window.searchSites = function() {
     );
 
     if (filteredData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
         return;
     }
 
     tbody.innerHTML = filteredData.map(site => `
         <tr>
-            <td><input type="checkbox" data-site-id="${site.id}"></td>
-            <td>${site.id}</td>
-            <td>
-                <div class="site-info">
-                    <strong>${site.site_name}</strong>
-                    <small>${site.site_code}</small>
-                </div>
-            </td>
+            <td>${site.site_code}</td>
+            <td>${site.site_name}</td>
             <td>${site.site_type}</td>
             <td>${site.region || '-'}</td>
             <td>${site.manager_name || '-'}</td>
             <td>${site.manager_phone || '-'}</td>
-            <td>${site.meal_capacity || '-'}</td>
             <td>
                 <span class="status-badge ${site.is_active ? 'active' : 'inactive'}">
                     ${site.is_active ? '활성' : '비활성'}
@@ -194,17 +319,80 @@ window.searchSites = function() {
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-icon" title="수정">✏️</button>
-                    <button class="btn-icon" title="상태 변경">${site.is_active ? '⏸️' : '▶️'}</button>
-                    <button class="btn-icon btn-danger" title="삭제">🗑️</button>
+                    <button class="btn-icon" onclick="editSite(${site.id})" title="수정">✏️</button>
+                    <button class="btn-icon btn-danger" onclick="deleteSite(${site.id})" title="삭제">🗑️</button>
                 </div>
             </td>
         </tr>
     `).join('');
 };
 
+// 새 사업장 추가 모달 표시
 window.showAddSiteModal = function() {
-    alert('새 사업장 추가 기능 준비 중입니다.');
+    // site_code는 서버에서 자동 생성하므로 프론트엔드에서 생성하지 않음
+    // 폼 초기화 - 모든 필드를 빈 값으로
+    document.getElementById('newSiteCode').value = '자동 생성됩니다';
+    document.getElementById('newSiteName').value = '';
+    document.getElementById('newSiteType').value = '';  // 빈 값으로 변경
+    document.getElementById('newSiteRegion').value = '';  // 빈 값으로 변경
+    document.getElementById('newSiteManager').value = '';
+    document.getElementById('newSitePhone').value = '';
+
+    // 모달 표시 및 스타일 강제 적용
+    const modal = document.getElementById('siteAddModal');
+    modal.style.display = 'block';
+
+    // 모달 콘텐츠 스타일 강제 적용
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.maxHeight = '70vh';
+        modalContent.style.margin = '3% auto';
+        modalContent.style.width = '450px';
+    }
+};
+
+// 새 사업장 추가
+window.addNewSite = function() {
+    // site_code는 서버에서 자동 생성하므로 전송하지 않음
+    const data = {
+        // site_code 제거 - 서버에서 자동 생성
+        name: document.getElementById('newSiteName').value,
+        type: document.getElementById('newSiteType').value,
+        parent_id: document.getElementById('newSiteRegion').value,
+        address: document.getElementById('newSiteRegion').value,
+        contact_info: document.getElementById('newSitePhone').value || null,
+        manager_name: document.getElementById('newSiteManager').value || null,  // 관리자 필드 추가
+        is_active: true
+    };
+
+    // 필수 필드 검증 (사업장명만 검증, 코드는 자동생성)
+    if (!data.name) {
+        alert('사업장명은 필수입니다.');
+        return;
+    }
+
+    // API 호출
+    fetch(`${window.CONFIG.API_BASE_URL}/api/admin/sites`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            // alert 제거 - 바로 모달 닫기
+            closeAddSiteModal();
+            window.BusinessLocationsModule.loadSites();
+        } else {
+            alert('추가 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(err => {
+        console.error('추가 오류:', err);
+        alert('추가 중 오류가 발생했습니다.');
+    });
 };
 
 window.SitesModule = {

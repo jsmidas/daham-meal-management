@@ -75,7 +75,12 @@
       "Bash(pip install:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
       "Bash(del check_business_locations.py)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(del test_fixes.py)",
+      "Bash(del fix_encoding.py)",
+      "Bash(del check_db_fields.py)",
+      "Bash(del clear_business_locations.py)",
+      "Bash(del staticmodulesmappingshardcoded-data.js)"
     ],
     "deny": [],
     "ask": []

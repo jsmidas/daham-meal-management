@@ -67,8 +67,9 @@
                 const data = await response.json();
 
                 if (data.success || data.total !== undefined) {
-                    const totalEl = document.getElementById('totalUsers');
-                    const activeEl = document.getElementById('activeUsers');
+                    // ID 수정: totalUsersCount, activeUsersCount
+                    const totalEl = document.getElementById('totalUsersCount');
+                    const activeEl = document.getElementById('activeUsersCount');
                     const inactiveEl = document.getElementById('inactiveUsers');
                     const adminEl = document.getElementById('adminUsers');
 
@@ -130,7 +131,6 @@
             tbody.innerHTML = users.map(user => `
                 <tr>
                     <td><input type="checkbox" class="user-checkbox" data-user-id="${user.id}"></td>
-                    <td>${user.id}</td>
                     <td>
                         <div class="user-info">
                             <strong>${user.name}</strong>
@@ -138,9 +138,9 @@
                             <small>${user.username}</small>
                         </div>
                     </td>
-                    <td><span class="role-badge ${this.getRoleBadgeClass(user.role)}">${this.getRoleText(user.role)}</span></td>
-                    <td>${user.department || '-'}</td>
                     <td>${user.contact || '-'}</td>
+                    <td>${user.department || '-'}</td>
+                    <td><span class="role-badge ${this.getRoleBadgeClass(user.role)}">${this.getRoleText(user.role)}</span></td>
                     <td>${this.formatDate(user.createdAt)}</td>
                     <td>
                         <span class="status-badge ${user.isActive ? 'active' : 'inactive'}">

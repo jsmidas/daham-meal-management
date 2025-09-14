@@ -149,7 +149,8 @@ async function loadBusinessLocationsForMealPricing() {
             select.innerHTML = '<option value="all" selected>전체</option>';
             businessLocations.forEach(location => {
                 console.log('사업장 추가:', location);
-                select.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+                const locationName = location.site_name || location.name || '이름없음';
+                select.innerHTML += `<option value="${location.id}">${locationName}</option>`;
             });
             console.log('select 옵션 최종 개수:', select.options.length);
 
@@ -176,7 +177,7 @@ async function loadMealPlansForLocation() {
 
     if (!businessLocationSelect || !mealPlansContainer) {
         console.error('필수 요소를 찾을 수 없음');
-        return;
+        return Promise.resolve();
     }
 
     const selectedLocationId = businessLocationSelect.value;
@@ -241,14 +242,14 @@ async function loadMealPlansForLocation() {
 
         if (addMealPlanBtn) addMealPlanBtn.style.display = 'inline-block';
         if (saveMealPricingBtn) saveMealPricingBtn.style.display = 'inline-block';
-        return;
+        return Promise.resolve();
     }
 
     if (!selectedLocationId) {
         mealPlansContainer.innerHTML = '<p style="color: #888; text-align: center; padding: 40px;">사업장을 선택하면 세부식단표 목록이 표시됩니다.</p>';
         if (addMealPlanBtn) addMealPlanBtn.style.display = 'none';
         if (saveMealPricingBtn) saveMealPricingBtn.style.display = 'none';
-        return;
+        return Promise.resolve();
     }
 
     console.log('선택된 사업장 ID:', selectedLocationId, 'Name:', selectedLocationName);
@@ -325,6 +326,8 @@ async function loadMealPlansForLocation() {
 
     if (addMealPlanBtn) addMealPlanBtn.style.display = 'inline-block';
     if (saveMealPricingBtn) saveMealPricingBtn.style.display = 'inline-block';
+
+    return Promise.resolve();
 }
 
 // 식단표 목록 표시
@@ -444,8 +447,9 @@ async function updateMealPlanField(planId, field, value) {
             updateCostRatio(planId);
         }
 
-        // meal_time(운영타입) 변경시 즉시 저장
-        if (field === 'meal_time' && plan.id && typeof plan.id === 'number' && plan.id < 1000000) {
+        // meal_time(운영타입) 변경시 즉시 저장 (임시 ID가 아닌 경우에만)
+        const isTemporaryId = plan.id > 1000000000; // Date.now()는 13자리 이상
+        if (field === 'meal_time' && plan.id && !isTemporaryId) {
             try {
                 const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
                 const mealData = {
@@ -587,29 +591,49 @@ function addNewMealPlan() {
             }
 
             // 선택한 사업장으로 변경
-            document.getElementById('businessLocationSelect').value = selectedLocationId;
+            const selectElement = document.getElementById('businessLocationSelect');
+            selectElement.value = selectedLocationId;
             window.currentLocationId = parseInt(selectedLocationId);
 
-            // 새 식단표 추가
-            const newPlan = {
-                id: Date.now(), // 임시 ID
-                name: planName.trim(),
-                meal_time: mealTime,
-                selling_price: 0,
-                target_material_cost: 0,
-                location_id: window.currentLocationId
-            };
-
-            window.mealPlans.push(newPlan);
-            displayMealPlans();
+            // 선택한 사업장명 가져오기
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            window.currentLocationName = selectedOption ? selectedOption.text : '';
 
             // 모달 닫기
             document.getElementById('locationSelectModal').remove();
 
-            console.log('새 식단표 추가:', newPlan);
+            // 먼저 기존 데이터 로드 후 새 식단표 추가
+            loadMealPlansForLocation().then(() => {
+                // 새 식단표 추가
+                const newPlan = {
+                    id: Date.now(), // 임시 ID
+                    name: planName.trim(),
+                    meal_time: mealTime,
+                    selling_price: 0,
+                    target_material_cost: 0,
+                    location_id: window.currentLocationId,
+                    location_name: window.currentLocationName
+                };
 
-            // 사업장 데이터 로드
-            loadMealPlansForLocation();
+                // 배열이 비어있거나 기본값만 있는 경우 초기화
+                if (!window.mealPlans || window.mealPlans.length === 0 ||
+                    (window.mealPlans.length === 1 && window.mealPlans[0].name === '기본 식단표')) {
+                    window.mealPlans = [];
+                }
+
+                window.mealPlans.push(newPlan);
+                console.log('새 식단표 추가:', newPlan);
+                console.log('현재 식단표 목록:', window.mealPlans);
+
+                // 화면 갱신
+                displayMealPlans();
+
+                // 버튼 표시
+                const addMealPlanBtn = document.getElementById('addMealPlanBtn');
+                const saveMealPricingBtn = document.getElementById('saveMealPricingBtn');
+                if (addMealPlanBtn) addMealPlanBtn.style.display = 'inline-block';
+                if (saveMealPricingBtn) saveMealPricingBtn.style.display = 'inline-block';
+            });
         };
 
         return;
@@ -665,8 +689,9 @@ async function deleteMealPlan(planId) {
     if (!confirm('이 식단표를 삭제하시겠습니까?')) return;
 
     try {
-        // 실제 ID인 경우 DB에서 삭제
-        if (planId && typeof planId === 'number' && planId < 1000000) {
+        // 실제 ID인 경우 DB에서 삭제 (임시 ID가 아닌 경우)
+        const isTemporaryId = planId > 1000000000; // Date.now()는 13자리 이상
+        if (planId && !isTemporaryId) {
             const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
             const response = await fetch(`${apiBase}/api/admin/meal-pricing/${planId}`, {
                 method: 'DELETE'
@@ -728,8 +753,12 @@ async function saveMealPricing() {
                 is_active: 1
             };
 
-            if (plan.id && typeof plan.id === 'number' && plan.id < 1000000) {
-                // 기존 데이터 업데이트
+            // Date.now()로 생성된 임시 ID는 매우 큰 숫자이므로 이를 체크
+            const isTemporaryId = plan.id > 1000000000; // Date.now()는 13자리 이상
+
+            if (plan.id && !isTemporaryId) {
+                // 기존 데이터 업데이트 (실제 DB ID를 가진 경우)
+                console.log(`기존 식단표 업데이트: ID=${plan.id}`);
                 const response = await fetch(`${apiBase}/api/admin/meal-pricing/${plan.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -740,7 +769,8 @@ async function saveMealPricing() {
                     console.error('업데이트 실패:', result.error);
                 }
             } else {
-                // 새 데이터 추가
+                // 새 데이터 추가 (임시 ID를 가진 경우)
+                console.log(`새 식단표 추가: 임시ID=${plan.id}`);
                 const response = await fetch(`${apiBase}/api/admin/meal-pricing`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -749,6 +779,7 @@ async function saveMealPricing() {
                 const result = await response.json();
                 if (result.success && result.id) {
                     plan.id = result.id; // 새로 생성된 ID 할당
+                    console.log(`새 식단표 저장 완료: 새ID=${result.id}`);
                 } else {
                     console.error('추가 실패:', result.error);
                 }

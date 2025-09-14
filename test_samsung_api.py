@@ -61,7 +61,7 @@ class SupplierUpdate(BaseModel):
     notes: Optional[str] = None
 
 # 데이터베이스 경로를 환경 변수 또는 기본값으로 설정
-DATABASE_PATH = os.getenv("DAHAM_DB_PATH", "backups/working_state_20250912/daham_meal.db")
+DATABASE_PATH = os.getenv("DAHAM_DB_PATH", "daham_meal.db")
 
 # CORS 설정 추가
 app.add_middleware(
@@ -329,27 +329,29 @@ async def get_admin_business_locations():
     """관리자용 사업장 목록 조회"""
     try:
         conn = sqlite3.connect('daham_meal.db')
-        conn.text_factory = str
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, site_name, site_type, address, manager_name, manager_phone, is_active
+            SELECT id, site_code, site_name, site_type, region, address, manager_name, manager_phone, is_active
             FROM business_locations
-            ORDER BY site_name ASC
+            ORDER BY site_code ASC
         """)
-        
+
         locations_data = cursor.fetchall()
         locations = []
-        
+
         for location in locations_data:
             locations.append({
                 "id": location[0],
-                "name": location[1],
-                "type": location[2],
-                "address": location[3],
-                "contact_person": location[4],
-                "contact_phone": location[5],
-                "active": bool(location[6])
+                "site_code": location[1] or f"BIZ{location[0]:03d}",
+                "site_name": location[2],
+                "site_type": location[3] or "미지정",
+                "region": location[4] or "미지정",
+                "address": location[5] or "",
+                "manager_name": location[6] or "",
+                "manager_phone": location[7] or "",
+                "is_active": bool(location[8])
             })
         
         conn.close()
@@ -367,30 +369,31 @@ async def get_admin_business_locations():
 async def get_admin_suppliers():
     """관리자용 협력업체 목록 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
-        
+
         # suppliers 테이블이 있는지 확인
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='suppliers'")
         suppliers_table_exists = cursor.fetchone()
-        
+
         if suppliers_table_exists:
             cursor.execute("""
-                SELECT id, name, contact_person, contact_phone, email, active
+                SELECT id, name, representative, headquarters_phone, email, is_active
                 FROM suppliers
                 ORDER BY name ASC
             """)
-            
+
             suppliers_data = cursor.fetchall()
             suppliers = []
-            
+
             for supplier in suppliers_data:
                 suppliers.append({
                     "id": supplier[0],
                     "name": supplier[1],
-                    "contact_person": supplier[2],
-                    "contact_phone": supplier[3],
-                    "email": supplier[4],
+                    "contact_person": supplier[2] or "미지정",
+                    "contact_phone": supplier[3] or "미지정",
+                    "email": supplier[4] or "미지정",
                     "active": bool(supplier[5])
                 })
         else:
@@ -805,57 +808,106 @@ async def get_site(site_id: int):
 async def create_site(site_data: dict):
     """사업장 추가"""
     try:
+        print(f"[CREATE SITE] Received data: {site_data}")
+
         conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8') if isinstance(x, bytes) else x
         cursor = conn.cursor()
-        
+
+        # site_code 자동 생성
+        site_code = site_data.get('site_code', '')
+        if not site_code:
+            # 기존 최대 번호 찾기
+            cursor.execute("""
+                SELECT MAX(CAST(SUBSTR(site_code, 4) AS INTEGER))
+                FROM business_locations
+                WHERE site_code LIKE 'BIZ%'
+            """)
+            max_num = cursor.fetchone()[0]
+            next_num = (max_num or 0) + 1
+            site_code = f'BIZ{next_num:03d}'
+            print(f"[CREATE SITE] Generated site_code: {site_code}")
+
+        # site_code 중복 체크
+        cursor.execute("SELECT id FROM business_locations WHERE site_code = ?", (site_code,))
+        if cursor.fetchone():
+            print(f"[CREATE SITE] Duplicate site_code: {site_code}")
+            conn.close()
+            return {"success": False, "error": f"사업장 코드 '{site_code}'가 이미 존재합니다."}
+
+        # 삽입 쿼리
+        print(f"[CREATE SITE] Inserting with site_code={site_code}, name={site_data.get('name', '')}")
         cursor.execute("""
-            INSERT INTO business_locations (site_name, site_type, region, address, phone, is_active)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO business_locations (site_code, site_name, site_type, region, address, phone, manager_name, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
+            site_code,
             site_data.get('name', ''),
             site_data.get('type', ''),
             site_data.get('parent_id', '전국'),
             site_data.get('address', ''),
             site_data.get('contact_info', ''),
+            site_data.get('manager_name', ''),
             True
         ))
-        
+
         conn.commit()
+
+        # 삽입 확인
+        cursor.execute("SELECT COUNT(*) FROM business_locations WHERE site_code = ?", (site_code,))
+        count = cursor.fetchone()[0]
+        print(f"[CREATE SITE] After insert, found {count} records with site_code={site_code}")
+
         conn.close()
-        
-        return {"success": True, "message": "사업장이 추가되었습니다"}
-        
+
+        return {"success": True, "message": "사업장이 추가되었습니다", "site_code": site_code}
+
     except Exception as e:
+        print(f"[CREATE SITE] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"success": False, "error": str(e)}
 
 @app.put("/api/admin/sites/{site_id}")
 async def update_site(site_id: int, site_data: dict):
     """사업장 수정"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        # 디버깅을 위해 받은 데이터 출력
+        print(f"[UPDATE SITE {site_id}] Received data:", site_data)
+
+        conn = sqlite3.connect(DATABASE_PATH)  # 올바른 데이터베이스 경로 사용
         conn.text_factory = lambda x: x.decode('utf-8') if isinstance(x, bytes) else x
         cursor = conn.cursor()
-        
+
+        # 필드명이 일치하도록 수정
         cursor.execute("""
-            UPDATE business_locations 
-            SET site_name = ?, site_type = ?, region = ?, address = ?, phone = ?
+            UPDATE business_locations
+            SET site_name = ?, site_type = ?, region = ?, manager_name = ?, manager_phone = ?, is_active = ?
             WHERE id = ?
         """, (
             site_data.get('name', ''),
             site_data.get('type', ''),
-            site_data.get('parent_id', '전국'),
-            site_data.get('address', ''),
+            site_data.get('parent_id', '서울'),  # region 필드에 parent_id 값 사용
+            site_data.get('manager_name', ''),  # manager_name 추가
             site_data.get('contact_info', ''),
+            1 if site_data.get('is_active', True) else 0,
             site_id
         ))
-        
+
+        affected_rows = cursor.rowcount
         conn.commit()
+
+        # 업데이트된 데이터 확인
+        cursor.execute("SELECT site_name, site_type, region FROM business_locations WHERE id = ?", (site_id,))
+        updated = cursor.fetchone()
+        print(f"[UPDATE SITE {site_id}] Updated data: {updated}, Affected rows: {affected_rows}")
+
         conn.close()
-        
-        return {"success": True, "message": "사업장이 수정되었습니다"}
-        
+
+        return {"success": True, "message": f"사업장이 수정되었습니다 (ID: {site_id})"}
+
     except Exception as e:
+        print(f"[UPDATE SITE ERROR] {str(e)}")
         return {"success": False, "error": str(e)}
 
 @app.delete("/api/admin/sites/{site_id}")
@@ -988,17 +1040,19 @@ async def get_suppliers_enhanced(page: int = 1, limit: int = 20, search: str = "
 async def get_customer_supplier_mappings():
     """고객-협력업체 매핑 목록 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect('daham_meal.db')
+        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
         
-        # 매핑 데이터를 고객 및 협력업체 정보와 함께 조회
+        # 매핑 데이터를 사업장 및 협력업체 정보와 함께 조회
         cursor.execute("""
-            SELECT 
+            SELECT
                 csm.id,
                 csm.customer_id,
                 csm.supplier_id,
-                c.name as customer_name,
+                b.site_name as customer_name,
                 s.name as supplier_name,
+                s.parent_code as supplier_code,
                 csm.delivery_code,
                 csm.priority_order,
                 csm.is_primary_supplier,
@@ -1008,9 +1062,9 @@ async def get_customer_supplier_mappings():
                 csm.notes,
                 csm.created_at
             FROM customer_supplier_mappings csm
-            LEFT JOIN customers c ON csm.customer_id = c.id
+            LEFT JOIN business_locations b ON csm.customer_id = b.id
             LEFT JOIN suppliers s ON csm.supplier_id = s.id
-            ORDER BY csm.priority_order, c.name, s.name
+            ORDER BY csm.priority_order, b.site_name, s.name
         """)
         mappings_data = cursor.fetchall()
         
@@ -1024,14 +1078,15 @@ async def get_customer_supplier_mappings():
                 "supplier_id": mapping[2],
                 "customer_name": mapping[3],
                 "supplier_name": mapping[4],
-                "delivery_code": mapping[5],
-                "priority_order": mapping[6] or 0,
-                "is_primary_supplier": bool(mapping[7]),
-                "contract_start_date": mapping[8],
-                "contract_end_date": mapping[9],
-                "is_active": bool(mapping[10]),
-                "notes": mapping[11] or "",
-                "created_at": mapping[12]
+                "supplier_code": mapping[5] or "",
+                "delivery_code": mapping[6],
+                "priority_order": mapping[7] or 0,
+                "is_primary_supplier": bool(mapping[8]),
+                "contract_start_date": mapping[9],
+                "contract_end_date": mapping[10],
+                "is_active": bool(mapping[11]),
+                "notes": mapping[12] or "",
+                "created_at": mapping[13]
             })
         
         return {
@@ -1046,15 +1101,15 @@ async def get_customer_supplier_mappings():
 async def get_customer_supplier_mapping(mapping_id: int):
     """특정 고객-협력업체 매핑 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect('daham_meal.db')
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT 
+            SELECT
                 csm.id,
                 csm.customer_id,
                 csm.supplier_id,
-                c.name as customer_name,
+                b.site_name as customer_name,
                 s.name as supplier_name,
                 csm.delivery_code,
                 csm.priority_order,
@@ -1065,7 +1120,7 @@ async def get_customer_supplier_mapping(mapping_id: int):
                 csm.notes,
                 csm.created_at
             FROM customer_supplier_mappings csm
-            LEFT JOIN customers c ON csm.customer_id = c.id
+            LEFT JOIN business_locations b ON csm.customer_id = b.id
             LEFT JOIN suppliers s ON csm.supplier_id = s.id
             WHERE csm.id = ?
         """, (mapping_id,))
@@ -1097,6 +1152,84 @@ async def get_customer_supplier_mapping(mapping_id: int):
             "mapping": mapping
         }
         
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/customer-supplier-mappings")
+async def create_customer_supplier_mapping(mapping_data: dict):
+    """고객-협력업체 매핑 생성"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO customer_supplier_mappings
+            (customer_id, supplier_id, delivery_code, is_active)
+            VALUES (?, ?, ?, ?)
+        """, (
+            mapping_data.get('customer_id'),
+            mapping_data.get('supplier_id'),
+            mapping_data.get('delivery_code', ''),
+            mapping_data.get('is_active', True)
+        ))
+
+        mapping_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "매핑이 생성되었습니다",
+            "id": mapping_id
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/admin/customer-supplier-mappings/{mapping_id}")
+async def update_customer_supplier_mapping(mapping_id: int, mapping_data: dict):
+    """고객-협력업체 매핑 수정"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE customer_supplier_mappings
+            SET customer_id = ?, supplier_id = ?, delivery_code = ?, is_active = ?
+            WHERE id = ?
+        """, (
+            mapping_data.get('customer_id'),
+            mapping_data.get('supplier_id'),
+            mapping_data.get('delivery_code', ''),
+            mapping_data.get('is_active', True),
+            mapping_id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "매핑이 수정되었습니다"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.delete("/api/admin/customer-supplier-mappings/{mapping_id}")
+async def delete_customer_supplier_mapping(mapping_id: int):
+    """고객-협력업체 매핑 삭제"""
+    try:
+        conn = sqlite3.connect('daham_meal.db')
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM customer_supplier_mappings WHERE id = ?", (mapping_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "매핑이 삭제되었습니다"
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -2071,6 +2204,12 @@ async def create_supplier(supplier: SupplierCreate):
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="이미 존재하는 협력업체 이름입니다.")
 
+        # 사업자번호 중복 확인
+        if supplier.business_number:
+            cursor.execute("SELECT id FROM suppliers WHERE business_number = ?", (supplier.business_number,))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="이미 존재하는 사업자번호입니다.")
+
         # 협력업체 추가
         cursor.execute("""
             INSERT INTO suppliers (
@@ -2080,13 +2219,13 @@ async def create_supplier(supplier: SupplierCreate):
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
         """, (
             supplier.name,
-            supplier.parent_code,
-            supplier.business_number,
-            supplier.representative,
-            supplier.headquarters_address,
-            supplier.headquarters_phone,
-            supplier.email,
-            supplier.notes
+            supplier.parent_code if supplier.parent_code else None,
+            supplier.business_number if supplier.business_number else None,
+            supplier.representative if supplier.representative else None,
+            supplier.headquarters_address if supplier.headquarters_address else None,
+            supplier.headquarters_phone if supplier.headquarters_phone else None,
+            supplier.email if supplier.email else None,
+            supplier.notes if supplier.notes else None
         ))
 
         supplier_id = cursor.lastrowid
@@ -2148,6 +2287,8 @@ async def get_supplier_detail(supplier_id: int):
 async def update_supplier(supplier_id: int, supplier: SupplierUpdate):
     """협력업체 수정"""
     try:
+        print(f"[UPDATE SUPPLIER {supplier_id}] Received data:", supplier.dict())
+
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -2162,11 +2303,20 @@ async def update_supplier(supplier_id: int, supplier: SupplierUpdate):
             if cursor.fetchone():
                 raise HTTPException(status_code=400, detail="이미 존재하는 협력업체 이름입니다.")
 
+        # 사업자번호 중복 확인 (본인 제외)
+        if supplier.business_number:
+            cursor.execute("SELECT id FROM suppliers WHERE business_number = ? AND id != ?", (supplier.business_number, supplier_id))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="이미 존재하는 사업자번호입니다.")
+
         # 수정할 필드들 수집
         update_fields = []
         params = []
 
         for field_name, field_value in supplier.dict(exclude_unset=True).items():
+            # 빈 문자열을 None으로 변환
+            if field_value == "":
+                field_value = None
             update_fields.append(f"{field_name} = ?")
             params.append(field_value)
 
@@ -2181,13 +2331,24 @@ async def update_supplier(supplier_id: int, supplier: SupplierUpdate):
             WHERE id = ?
         """
 
+        print(f"[UPDATE SUPPLIER {supplier_id}] Query:", update_query)
+        print(f"[UPDATE SUPPLIER {supplier_id}] Params:", params)
+
         cursor.execute(update_query, params)
+        affected = cursor.rowcount
         conn.commit()
+
+        # 업데이트 확인
+        cursor.execute("SELECT name, parent_code FROM suppliers WHERE id = ?", (supplier_id,))
+        updated_data = cursor.fetchone()
+        print(f"[UPDATE SUPPLIER {supplier_id}] Affected rows: {affected}")
+        print(f"[UPDATE SUPPLIER {supplier_id}] Updated data: {updated_data}")
+
         conn.close()
 
         return {
             "success": True,
-            "message": "협력업체가 수정되었습니다."
+            "message": f"협력업체가 수정되었습니다. (영향받은 행: {affected})"
         }
 
     except HTTPException:
