@@ -28,11 +28,22 @@ window.BusinessLocationsModule = {
 
     loadSiteStats() {
         // 실제 데이터베이스의 데이터
-        document.getElementById('totalSites').textContent = 4;
-        document.getElementById('lunchboxSites').textContent = 1;
-        document.getElementById('transportSites').textContent = 1;
-        document.getElementById('schoolSites').textContent = 1;
-        document.getElementById('nursingHomeSites').textContent = 1;
+        const elements = {
+            'totalSites': 4,
+            'lunchboxSites': 1,
+            'transportSites': 1,
+            'schoolSites': 1,
+            'nursingHomeSites': 1
+        };
+
+        for (const [id, value] of Object.entries(elements)) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            } else {
+                console.warn(`Element with id '${id}' not found`);
+            }
+        }
     },
 
     loadSites() {

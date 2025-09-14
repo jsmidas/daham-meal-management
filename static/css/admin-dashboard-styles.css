@@ -1,0 +1,405 @@
+/* ========================================
+   Admin Dashboard Custom Styles
+   ======================================== */
+
+/* User Management Styles
+   ======================================== */
+
+.user-info {
+    line-height: 1.4;
+}
+
+/* Role Badges */
+.role-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.role-badge.admin {
+    background: #ff4444;
+    color: white;
+}
+
+.role-badge.nutritionist {
+    background: #44b8ff;
+    color: white;
+}
+
+.role-badge.operator {
+    background: #ffaa44;
+    color: white;
+}
+
+.role-badge.viewer {
+    background: #aaaaaa;
+    color: white;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.status-badge.active {
+    background: #44ff44;
+    color: #006600;
+}
+
+.status-badge.inactive {
+    background: #ffcccc;
+    color: #cc0000;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px;
+}
+
+.btn-icon:hover {
+    transform: scale(1.2);
+}
+
+.btn-danger {
+    color: #ff0000;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+
+.pagination button {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.pagination button.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled):not(.active) {
+    background: #f5f5f5;
+}
+
+/* Alert Messages */
+.alert {
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Modal Styles
+   ======================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 20px;
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group label.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102,126,234,.25);
+}
+
+/* Table Styles
+   ======================================== */
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.data-table thead {
+    background: #f8f9fa;
+}
+
+.data-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Loading States */
+.loading-indicator {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading-indicator i {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Search and Filter Controls
+   ======================================== */
+
+.search-filter-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 35px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Stats Grid
+   ======================================== */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    background: #f0f0f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #667eea;
+}
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.stat-content p {
+    margin: 5px 0 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Bulk Actions Bar
+   ======================================== */
+
+.bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.bulk-actions span {
+    color: #666;
+}
+
+.bulk-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .search-filter-container {
+        flex-direction: column;
+    }
+
+    .data-table {
+        font-size: 14px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+}

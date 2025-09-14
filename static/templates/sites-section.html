@@ -1,0 +1,78 @@
+<!-- 사업장 관리 컨텐츠 -->
+<div class="content-header">
+        <h1>사업장 관리</h1>
+        <button class="btn btn-primary" onclick="showAddSiteModal()">
+            <span>+ 새 사업장 추가</span>
+        </button>
+    </div>
+
+    <!-- 사업장 통계 카드 -->
+    <div class="dashboard-grid" id="siteStatsGrid">
+        <div class="dashboard-card site-stat-card">
+            <div class="card-header">
+                <span class="icon">🏢</span>
+                <span class="card-title">전체 사업장</span>
+            </div>
+            <div class="stat-number" id="totalSites">4</div>
+            <div class="stat-label">Total Sites</div>
+        </div>
+
+        <div class="dashboard-card site-stat-card">
+            <div class="card-header">
+                <span class="icon">🍱</span>
+                <span class="card-title">도시락</span>
+            </div>
+            <div class="stat-number" id="lunchboxSites">1</div>
+            <div class="stat-label">Lunchbox Delivery</div>
+        </div>
+
+        <div class="dashboard-card site-stat-card">
+            <div class="card-header">
+                <span class="icon">🚚</span>
+                <span class="card-title">운반</span>
+            </div>
+            <div class="stat-number" id="transportSites">1</div>
+            <div class="stat-label">Transport Service</div>
+        </div>
+
+        <div class="dashboard-card site-stat-card">
+            <div class="card-header">
+                <span class="icon">🏫</span>
+                <span class="card-title">학교</span>
+            </div>
+            <div class="stat-number" id="schoolSites">1</div>
+            <div class="stat-label">School Cafeteria</div>
+        </div>
+
+        <div class="dashboard-card site-stat-card">
+            <div class="card-header">
+                <span class="icon">🏥</span>
+                <span class="card-title">요양원</span>
+            </div>
+            <div class="stat-number" id="careSites">1</div>
+            <div class="stat-label">Care Facility</div>
+        </div>
+    </div>
+
+    <!-- 사업장 리스트 테이블 -->
+    <div class="table-container" style="margin-top: 30px;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>코드</th>
+                    <th>사업장명</th>
+                    <th>유형</th>
+                    <th>지역</th>
+                    <th>담당자</th>
+                    <th>연락처</th>
+                    <th>상태</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody id="sitesTableBody">
+                <tr>
+                    <td colspan="8" class="loading">데이터 로딩 중...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>

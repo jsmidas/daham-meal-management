@@ -6,7 +6,7 @@
 (function() {
     'use strict';
 
-    const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8013';
+    const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
     let currentPage = 1;
     let currentSort = { field: 'created_at', order: 'desc' };
     let selectedUsers = new Set();
@@ -63,12 +63,19 @@
         // 사용자 통계 로드
         async loadUserStats() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/users/stats`);
+                const response = await fetch(`${API_BASE_URL}/api/admin/users/stats`);
                 const data = await response.json();
 
-                if (data.success) {
-                    document.getElementById('totalUsers').textContent = data.stats.total_users;
-                    document.getElementById('activeUsers').textContent = data.stats.active_users;
+                if (data.success || data.total !== undefined) {
+                    const totalEl = document.getElementById('totalUsers');
+                    const activeEl = document.getElementById('activeUsers');
+                    const inactiveEl = document.getElementById('inactiveUsers');
+                    const adminEl = document.getElementById('adminUsers');
+
+                    if (totalEl) totalEl.textContent = data.total || data.stats?.total_users || '0';
+                    if (activeEl) activeEl.textContent = data.active || data.stats?.active_users || '0';
+                    if (inactiveEl) inactiveEl.textContent = data.inactive || data.stats?.inactive_users || '0';
+                    if (adminEl) adminEl.textContent = data.admins || data.stats?.admin_users || '0';
                 }
             } catch (error) {
                 console.error('통계 로드 실패:', error);

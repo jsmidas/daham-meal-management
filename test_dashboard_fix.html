@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 테스트</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .check-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        <h1>🔍 대시보드 상태 체크</h1>
+
+        <div class="check-item">
+            <h3>CSS 파일 체크:</h3>
+            <ul id="css-check"></ul>
+        </div>
+
+        <div class="check-item">
+            <h3>JS 파일 체크:</h3>
+            <ul id="js-check"></ul>
+        </div>
+
+        <div class="check-item">
+            <h3>모듈 체크:</h3>
+            <ul id="module-check"></ul>
+        </div>
+    </div>
+
+    <h2>대시보드 미리보기:</h2>
+    <iframe src="admin_dashboard.html" id="dashboard-frame"></iframe>
+
+    <script>
+        // CSS 파일 체크
+        const cssFiles = [
+            'static/css/admin-dashboard-main.css',
+            'static/css/admin-dashboard-styles.css'
+        ];
+
+        const jsFiles = [
+            'config.js',
+            'static/js/dashboard-init.js',
+            'static/modules/users/users-complete.js',
+            'static/modules/sites/sites-complete.js',
+            'static/modules/suppliers/suppliers.js'
+        ];
+
+        async function checkFile(url) {
+            try {
+                const response = await fetch(url);
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        async function runChecks() {
+            const cssCheck = document.getElementById('css-check');
+            for (const file of cssFiles) {
+                const exists = await checkFile(file);
+                cssCheck.innerHTML += `<li class="${exists ? 'pass' : 'fail'}">${file}: ${exists ? '✅ OK' : '❌ Missing'}</li>`;
+            }
+
+            const jsCheck = document.getElementById('js-check');
+            for (const file of jsFiles) {
+                const exists = await checkFile(file);
+                jsCheck.innerHTML += `<li class="${exists ? 'pass' : 'fail'}">${file}: ${exists ? '✅ OK' : '❌ Missing'}</li>`;
+            }
+
+            // iframe 내부 체크
+            setTimeout(() => {
+                const iframe = document.getElementById('dashboard-frame');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+                const moduleCheck = document.getElementById('module-check');
+
+                // 사이드바 체크
+                const sidebar = iframeDoc.querySelector('.sidebar');
+                moduleCheck.innerHTML += `<li class="${sidebar ? 'pass' : 'fail'}">사이드바: ${sidebar ? '✅ OK' : '❌ Missing'}</li>`;
+
+                // 메인 컨텐츠 체크
+                const mainContent = iframeDoc.querySelector('.main-content');
+                moduleCheck.innerHTML += `<li class="${mainContent ? 'pass' : 'fail'}">메인 컨텐츠: ${mainContent ? '✅ OK' : '❌ Missing'}</li>`;
+
+                // 대시보드 카드 체크
+                const cards = iframeDoc.querySelectorAll('.dashboard-card');
+                moduleCheck.innerHTML += `<li class="${cards.length > 0 ? 'pass' : 'fail'}">대시보드 카드: ${cards.length}개</li>`;
+            }, 2000);
+        }
+
+        runChecks();
+    </script>
+</body>
+</html>

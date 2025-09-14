@@ -1,0 +1,62 @@
+<!-- 협력업체 관리 컨텐츠 -->
+<div class="content-header">
+        <h2>협력업체 관리</h2>
+        <button class="btn btn-primary" onclick="SuppliersManagementFull.showAddSupplierModal()">
+            <span>➕</span> 새 협력업체 추가
+        </button>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="totalSuppliers">0</div>
+            <div class="stat-label">전체 협력업체</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="activeSuppliers">0</div>
+            <div class="stat-label">활성 협력업체</div>
+        </div>
+    </div>
+
+    <!-- 검색 및 필터 -->
+    <div class="search-filter-container">
+        <div class="search-box">
+            <input type="text" id="supplierSearchInput" placeholder="협력업체명 또는 코드로 검색...">
+            <button onclick="SuppliersManagementFull.loadSuppliers(1)">검색</button>
+        </div>
+    </div>
+
+    <!-- 벌크 액션 -->
+    <div id="supplierBulkActions" class="bulk-actions" style="display: none;">
+        <span>선택된 항목: <strong id="supplierSelectedCount">0</strong>개</span>
+        <button class="btn btn-danger" onclick="SuppliersManagementFull.bulkDelete()">
+            일괄 삭제
+        </button>
+    </div>
+
+    <!-- 협력업체 테이블 -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAllSuppliers"></th>
+                    <th>ID</th>
+                    <th>업체명</th>
+                    <th>업종</th>
+                    <th>대표자</th>
+                    <th>연락처</th>
+                    <th>이메일</th>
+                    <th>상태</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody id="suppliersTableBody">
+                <tr>
+                    <td colspan="9" class="loading">데이터 로딩 중...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div id="suppliersPagination" class="pagination"></div>

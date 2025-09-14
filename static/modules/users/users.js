@@ -5,10 +5,11 @@
 
 class UserManagement {
     constructor() {
-        this.API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8015';
+        this.API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
         this.currentUserId = null;
         this.isEditMode = false;
         this.isLoaded = false;
+        this.modalLoaded = false;
     }
 
     async load() {
@@ -17,6 +18,12 @@ class UserManagement {
 
         // 페이지 컨텐츠 영역에 사용자 관리 HTML 구조 생성
         await this.renderUserManagementHTML();
+
+        // 모달 HTML 동적 로드
+        await this.loadModalHTML();
+
+        // 권한 관리 모듈 로드
+        await this.loadPermissionsModule();
 
         this.setupEventListeners();
         await this.loadUserStats();
@@ -39,7 +46,7 @@ class UserManagement {
                     <!-- 헤더 섹션 -->
                     <div class="page-header">
                         <h1>사용자 관리</h1>
-                        <button class="btn btn-primary" onclick="openCreateModal()">
+                        <button class="btn btn-primary" onclick="window.userManagement.openCreateModal()">
                             <i class="fas fa-plus"></i> 사용자 추가
                         </button>
                     </div>
@@ -170,6 +177,21 @@ class UserManagement {
                                 <textarea id="notes" name="notes" placeholder="추가 정보나 메모"></textarea>
                             </div>
 
+                            <!-- 비밀번호 초기화 버튼 (수정 모드에서만 표시) -->
+                            <div class="form-group" id="passwordResetGroup" style="display: none;">
+                                <button type="button" class="btn btn-warning" onclick="window.userManagement.resetPassword()">
+                                    <i class="fas fa-key"></i> 비밀번호 초기화
+                                </button>
+                            </div>
+
+                            <!-- 사업장 권한 체크박스 섹션 -->
+                            <div class="form-group">
+                                <label>사업장 접근 권한</label>
+                                <div id="sitePermissions" class="site-permissions-grid">
+                                    <!-- 동적으로 생성될 체크박스들 -->
+                                </div>
+                            </div>
+
                             <div class="modal-actions">
                                 <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
                                 <button type="submit" id="submitBtn" class="btn btn-primary">추가</button>
@@ -186,6 +208,51 @@ class UserManagement {
         contentArea.innerHTML = userHTML;
     }
 
+    async loadModalHTML() {
+        try {
+            const container = document.getElementById('userModalContainer');
+            if (!container) {
+                console.error('Modal container not found');
+                return;
+            }
+
+            const response = await fetch('/static/modules/users/user-modal.html');
+            if (!response.ok) throw new Error('Failed to load modal HTML');
+
+            const html = await response.text();
+            container.innerHTML = html;
+            this.modalLoaded = true;
+
+            console.log('✅ [UserManagement] 모달 HTML 로드 완료');
+        } catch (error) {
+            console.error('Modal HTML 로드 실패:', error);
+        }
+    }
+
+    async loadPermissionsModule() {
+        try {
+            // 권한 관리 스크립트 동적 로드
+            if (!window.userPermissionsManager) {
+                const script = document.createElement('script');
+                script.src = '/static/modules/users/user-permissions.js';
+                document.head.appendChild(script);
+
+                // 스크립트 로드 대기
+                await new Promise((resolve) => {
+                    script.onload = resolve;
+                });
+            }
+
+            // 권한 관리자 초기화
+            if (window.userPermissionsManager) {
+                await window.userPermissionsManager.init();
+                console.log('✅ [UserManagement] 권한 관리 모듈 초기화 완료');
+            }
+        } catch (error) {
+            console.error('권한 모듈 로드 실패:', error);
+        }
+    }
+
     setupEventListeners() {
         // 검색 입력 시 실시간 검색
         const searchInput = document.getElementById('searchInput');
@@ -199,19 +266,21 @@ class UserManagement {
             roleFilter.addEventListener('change', () => this.loadUsers());
         }
 
-        // 사용자 폼 제출
-        const userForm = document.getElementById('userForm');
-        if (userForm) {
-            userForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        }
-
-        // 모달 외부 클릭 시 닫기
-        window.addEventListener('click', (event) => {
-            const modal = document.getElementById('userModal');
-            if (event.target === modal) {
-                this.closeModal();
+        // 사용자 폼 제출 (모달 로드 후)
+        setTimeout(() => {
+            const userForm = document.getElementById('userForm');
+            if (userForm) {
+                userForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
             }
-        });
+
+            // 모달 외부 클릭 시 닫기
+            window.addEventListener('click', (event) => {
+                const modal = document.getElementById('userModal');
+                if (event.target === modal) {
+                    this.closeModal();
+                }
+            });
+        }, 1000);
     }
 
     // 디바운스 함수
@@ -375,7 +444,7 @@ class UserManagement {
     }
 
     // 사용자 추가 모달 열기
-    openCreateModal() {
+    async openCreateModal() {
         this.currentUserId = null;
         this.isEditMode = false;
 
@@ -383,6 +452,7 @@ class UserManagement {
         const submitBtn = document.getElementById('submitBtn');
         const passwordGroup = document.getElementById('passwordGroup');
         const passwordField = document.getElementById('password');
+        const passwordResetGroup = document.getElementById('passwordResetGroup');
         const userForm = document.getElementById('userForm');
         const userModal = document.getElementById('userModal');
 
@@ -390,8 +460,12 @@ class UserManagement {
         if (submitBtn) submitBtn.textContent = '추가';
         if (passwordGroup) passwordGroup.style.display = 'block';
         if (passwordField) passwordField.required = true;
+        if (passwordResetGroup) passwordResetGroup.style.display = 'none';
         if (userForm) userForm.reset();
         if (userModal) userModal.style.display = 'block';
+
+        // 사업장 체크박스 로드
+        await this.loadSitePermissions();
     }
 
     // 사용자 수정 모달 열기
@@ -400,7 +474,8 @@ class UserManagement {
             const response = await fetch(`${this.API_BASE_URL}/api/users/${userId}`);
             if (!response.ok) throw new Error('사용자 정보 로드 실패');
 
-            const user = await response.json();
+            const data = await response.json();
+            const user = data.user || data;  // API 응답 형식 호환성
 
             this.currentUserId = userId;
             this.isEditMode = true;
@@ -409,12 +484,14 @@ class UserManagement {
             const submitBtn = document.getElementById('submitBtn');
             const passwordGroup = document.getElementById('passwordGroup');
             const passwordField = document.getElementById('password');
+            const passwordResetGroup = document.getElementById('passwordResetGroup');
             const userModal = document.getElementById('userModal');
 
             if (modalTitle) modalTitle.textContent = '사용자 수정';
             if (submitBtn) submitBtn.textContent = '수정';
             if (passwordGroup) passwordGroup.style.display = 'none';
             if (passwordField) passwordField.required = false;
+            if (passwordResetGroup) passwordResetGroup.style.display = 'block';
 
             // 폼에 데이터 채우기
             const usernameField = document.getElementById('username');
@@ -427,9 +504,12 @@ class UserManagement {
             if (contactField) contactField.value = user.contact_info || '';
             if (departmentField) departmentField.value = user.department || '';
             if (roleField) roleField.value = user.role || '';
-            if (notesField) notesField.value = user.notes || '';
+            if (notesField) notesField.value = user.notes || user.position || '';  // notes가 없으면 position 사용
 
-            if (userModal) userModal.style.display = 'block';
+            if (userModal) userModal.style.display = 'flex';
+
+            // 사업장 권한 로드
+            await this.loadUserSitePermissions(userId);
 
         } catch (error) {
             console.error('사용자 정보 로드 오류:', error);
@@ -444,6 +524,50 @@ class UserManagement {
 
         if (userModal) userModal.style.display = 'none';
         if (userForm) userForm.reset();
+        this.currentUserId = null;
+        this.isEditMode = false;
+
+        // 권한 관리자 리셋
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.reset();
+        }
+    }
+
+    // 듀얼 리스트 선택기 관련 함수들 추가
+    moveSelectedSites() {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.moveSelectedSites();
+        }
+    }
+
+    removeSelectedSites() {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.removeSelectedSites();
+        }
+    }
+
+    moveAllSites() {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.moveAllSites();
+        }
+    }
+
+    removeAllSites() {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.removeAllSites();
+        }
+    }
+
+    selectByType(type) {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.selectByType(type);
+        }
+    }
+
+    selectByRegion(region) {
+        if (window.userPermissionsManager) {
+            window.userPermissionsManager.selectByRegion(region);
+        }
     }
 
     // 사용자 폼 제출
@@ -462,6 +586,14 @@ class UserManagement {
         if (!this.isEditMode) {
             userData.password = formData.get('password');
         }
+
+        // 선택된 사업장 권한 수집
+        const selectedSites = [];
+        const checkboxes = document.querySelectorAll('#sitePermissions input[type="checkbox"]:checked');
+        checkboxes.forEach(checkbox => {
+            selectedSites.push(parseInt(checkbox.value));
+        });
+        userData.site_permissions = selectedSites;
 
         try {
             const url = this.isEditMode
@@ -575,6 +707,75 @@ class UserManagement {
                 alert.parentNode.removeChild(alert);
             }
         }, 5000);
+    }
+
+    // 사업장 권한 체크박스 로드
+    async loadSitePermissions(userId = null) {
+        try {
+            // 사업장 목록 가져오기
+            const sitesResponse = await fetch(`${this.API_BASE_URL}/api/admin/business-locations`);
+            if (!sitesResponse.ok) throw new Error('사업장 목록 로드 실패');
+            const sites = await sitesResponse.json();
+
+            // 사용자 권한 가져오기 (수정 모드인 경우)
+            let userPermissions = [];
+            if (userId) {
+                const permResponse = await fetch(`${this.API_BASE_URL}/api/users/${userId}/permissions`);
+                if (permResponse.ok) {
+                    userPermissions = await permResponse.json();
+                }
+            }
+
+            // 체크박스 HTML 생성
+            const container = document.getElementById('sitePermissions');
+            if (!container) return;
+
+            const html = sites.map(site => {
+                const hasPermission = userPermissions.some(p => p.site_id === site.id);
+                return `
+                    <div class="site-checkbox">
+                        <input type="checkbox"
+                            id="site_${site.id}"
+                            name="sites"
+                            value="${site.id}"
+                            ${hasPermission ? 'checked' : ''}>
+                        <label for="site_${site.id}">${site.name}</label>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('사업장 권한 로드 오류:', error);
+        }
+    }
+
+    // 비밀번호 초기화
+    async resetPassword() {
+        if (!this.currentUserId) return;
+
+        if (!confirm('정말로 비밀번호를 초기화하시겠습니까? 초기 비밀번호는 "1234"로 설정됩니다.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/users/${this.currentUserId}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ new_password: '1234' })
+            });
+
+            if (!response.ok) throw new Error('비밀번호 초기화 실패');
+
+            this.showSuccess('비밀번호가 "1234"로 초기화되었습니다.');
+
+        } catch (error) {
+            console.error('비밀번호 초기화 오류:', error);
+            this.showError('비밀번호 초기화에 실패했습니다.');
+        }
     }
 }
 

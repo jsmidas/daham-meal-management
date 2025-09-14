@@ -8,7 +8,7 @@
 
 // 관리자 대시보드와 호환성을 위해 두 이름 모두 지원
 window.SupplierManagement = window.SuppliersModule = {
-    API_BASE_URL: 'http://127.0.0.1:8015',
+    API_BASE_URL: 'http://127.0.0.1:8010',
     currentSupplierId: null,
     isEditMode: false,
     isLoaded: false,
@@ -83,7 +83,7 @@ window.SupplierManagement = window.SuppliersModule = {
     // 협력업체 통계 로드
     async loadSupplierStats() {
         try {
-            const response = await fetch(`${this.API_BASE_URL}/api/suppliers/stats`);
+            const response = await fetch(`${this.API_BASE_URL}/api/admin/suppliers/stats`);
             if (!response.ok) throw new Error('통계 로드 실패');
 
             const data = await response.json();

@@ -74,7 +74,8 @@
       "Bash(clean_restart.bat)",
       "Bash(pip install:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
-      "Bash(del check_business_locations.py)"
+      "Bash(del check_business_locations.py)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

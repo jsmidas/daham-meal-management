@@ -5,8 +5,9 @@
 """
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
 import json
@@ -16,6 +17,9 @@ import datetime
 from typing import Optional
 
 app = FastAPI()
+
+# 정적 파일 서빙 설정
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Pydantic 모델 정의
 class UserCreate(BaseModel):
@@ -1706,6 +1710,19 @@ async def create_user(user_data: dict):
         ))
 
         conn.commit()
+
+        # 새로 생성된 사용자 ID 가져오기
+        new_user_id = cursor.lastrowid
+
+        # 사업장 권한 추가
+        if "site_permissions" in user_data:
+            for site_id in user_data["site_permissions"]:
+                cursor.execute("""
+                    INSERT INTO user_site_permissions (user_id, site_id, can_view, can_edit)
+                    VALUES (?, ?, 1, 0)
+                """, (new_user_id, site_id))
+            conn.commit()
+
         conn.close()
 
         return {"success": True, "message": "사용자가 생성되었습니다."}
@@ -1796,9 +1813,73 @@ async def update_user(user_id: int, user_data: dict):
         ))
 
         conn.commit()
+
+        # 사업장 권한 업데이트
+        if "site_permissions" in user_data:
+            # 기존 권한 삭제
+            cursor.execute("DELETE FROM user_site_permissions WHERE user_id = ?", (user_id,))
+
+            # 새로운 권한 추가
+            for site_id in user_data["site_permissions"]:
+                cursor.execute("""
+                    INSERT INTO user_site_permissions (user_id, site_id, can_view, can_edit)
+                    VALUES (?, ?, 1, 0)
+                """, (user_id, site_id))
+
+            conn.commit()
+
         conn.close()
 
         return {"success": True, "message": "사용자 정보가 수정되었습니다."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/users/{user_id}/permissions")
+async def get_user_permissions(user_id: int):
+    """사용자의 사업장 권한 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT site_id, can_view, can_edit
+            FROM user_site_permissions
+            WHERE user_id = ?
+        """, (user_id,))
+
+        permissions = []
+        for row in cursor.fetchall():
+            permissions.append({
+                "site_id": row[0],
+                "can_view": bool(row[1]),
+                "can_edit": bool(row[2])
+            })
+
+        conn.close()
+        return permissions
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/users/{user_id}/reset-password")
+async def reset_user_password(user_id: int, data: dict):
+    """사용자 비밀번호 초기화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        new_password = data.get("new_password", "1234")
+        hashed_password = f"hashed_{new_password}"  # 실제로는 bcrypt 등을 사용해야 함
+
+        cursor.execute("""
+            UPDATE users
+            SET password = ?
+            WHERE id = ?
+        """, (hashed_password, user_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "비밀번호가 초기화되었습니다."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -2174,10 +2255,43 @@ async def deactivate_supplier(supplier_id: int):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# HTML 파일 서빙
+@app.get("/admin_dashboard.html")
+async def get_admin_dashboard():
+    """관리자 대시보드 HTML 반환"""
+    try:
+        with open("admin_dashboard.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="admin_dashboard.html not found")
+
+@app.get("/config.js")
+async def get_config():
+    """config.js 파일 반환"""
+    try:
+        return FileResponse("config.js", media_type="application/javascript")
+    except:
+        raise HTTPException(status_code=404, detail="config.js not found")
+
+@app.get("/")
+async def root():
+    """루트 경로에서 admin_dashboard.html로 리다이렉트"""
+    return HTMLResponse(content="""
+        <html>
+        <head>
+            <meta http-equiv="refresh" content="0; url=/admin_dashboard.html">
+        </head>
+        <body>
+            <p>Redirecting to <a href="/admin_dashboard.html">Admin Dashboard</a>...</p>
+        </body>
+        </html>
+    """)
+
 if __name__ == "__main__":
     import uvicorn
     import os
-    
+
     # 환경 변수에서 포트 읽기, 기본값은 8015
     port = int(os.getenv("API_PORT", "8010"))
     host = os.getenv("API_HOST", "127.0.0.1")
