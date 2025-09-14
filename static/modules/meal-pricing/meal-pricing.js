@@ -35,14 +35,54 @@ window.MealPricingModule = {
     // 식단가 통계 로드
     async loadMealPricingStatistics() {
         try {
-            // 통계 API가 없으므로 기본값 표시
-            this.updateStatistics({
-                totalMealPlans: 0,
-                activeMealPlans: 0,
-                locationsWithPricing: 0,
-                averageSellingPrice: 0,
-                averageCostRatio: 0
-            });
+            const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
+            const response = await fetch(`${apiBase}/api/admin/meal-pricing`);
+            const result = await response.json();
+
+            if (result.success && result.meal_pricing) {
+                const mealPlans = result.meal_pricing;
+
+                // 통계 계산
+                const totalMealPlans = mealPlans.length;
+                const activeMealPlans = mealPlans.filter(p => p.is_active).length;
+
+                // 사업장별로 그룹화
+                const locationMap = new Map();
+                mealPlans.forEach(plan => {
+                    if (!locationMap.has(plan.location_id)) {
+                        locationMap.set(plan.location_id, []);
+                    }
+                    locationMap.get(plan.location_id).push(plan);
+                });
+                const locationsWithPricing = locationMap.size;
+
+                // 평균 판매가 및 원가율 계산
+                const validPlans = mealPlans.filter(p => p.selling_price > 0);
+                const averageSellingPrice = validPlans.length > 0
+                    ? validPlans.reduce((sum, p) => sum + p.selling_price, 0) / validPlans.length
+                    : 0;
+
+                const averageCostRatio = validPlans.length > 0
+                    ? validPlans.reduce((sum, p) => sum + (p.material_cost_guideline / p.selling_price * 100), 0) / validPlans.length
+                    : 0;
+
+                this.updateStatistics({
+                    totalMealPlans,
+                    activeMealPlans,
+                    locationsWithPricing,
+                    averageSellingPrice: Math.round(averageSellingPrice),
+                    averageCostRatio
+                });
+            } else {
+                // 데이터가 없을 때 기본값
+                this.updateStatistics({
+                    totalMealPlans: 0,
+                    activeMealPlans: 0,
+                    locationsWithPricing: 0,
+                    averageSellingPrice: 0,
+                    averageCostRatio: 0
+                });
+            }
         } catch (error) {
             console.error('식단가 통계 로드 실패:', error);
             // 에러 시 기본값 표시
@@ -389,7 +429,7 @@ function displayMealPlans() {
 }
 
 // 식단표 필드 업데이트
-function updateMealPlanField(planId, field, value) {
+async function updateMealPlanField(planId, field, value) {
     const plan = window.mealPlans.find(p => p.id === planId);
     if (plan) {
         if (field === 'name' || field === 'meal_time') {
@@ -402,6 +442,43 @@ function updateMealPlanField(planId, field, value) {
         // 가격이나 재료비가 변경되면 비율 업데이트
         if (field === 'selling_price' || field === 'target_material_cost') {
             updateCostRatio(planId);
+        }
+
+        // meal_time(운영타입) 변경시 즉시 저장
+        if (field === 'meal_time' && plan.id && typeof plan.id === 'number' && plan.id < 1000000) {
+            try {
+                const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
+                const mealData = {
+                    location_id: plan.location_id,
+                    location_name: plan.location_name || window.currentLocationName,
+                    meal_plan_type: value, // 변경된 운영타입
+                    meal_type: '급식',
+                    plan_name: plan.name,
+                    apply_date_start: '2025-01-01',
+                    apply_date_end: '2025-12-31',
+                    selling_price: plan.selling_price,
+                    material_cost_guideline: plan.target_material_cost,
+                    cost_ratio: plan.selling_price > 0 ?
+                        ((plan.target_material_cost / plan.selling_price) * 100).toFixed(1) : 0,
+                    is_active: 1
+                };
+
+                const response = await fetch(`${apiBase}/api/admin/meal-pricing/${plan.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mealData)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('운영타입 변경 저장 완료');
+                } else {
+                    console.error('운영타입 변경 저장 실패:', result.error);
+                    alert('운영타입 변경 저장에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('운영타입 변경 저장 중 오류:', error);
+            }
         }
     }
 }
@@ -450,6 +527,95 @@ function updateCostRatio(planId) {
 
 // 새 식단표 추가
 function addNewMealPlan() {
+    // 먼저 사업장이 선택되었는지 확인
+    if (!window.currentLocationId || window.currentLocationId === 'all') {
+        // 사업장 선택 드롭다운 생성
+        let locationOptions = '<select id="tempLocationSelect" style="padding: 5px; margin: 5px;">';
+        locationOptions += '<option value="">사업장을 선택하세요</option>';
+
+        window.businessLocations.forEach(loc => {
+            locationOptions += `<option value="${loc.id}">${loc.name} - ${loc.type}</option>`;
+        });
+        locationOptions += '</select>';
+
+        // 모달 형태로 사업장 선택
+        const modalHtml = `
+            <div id="locationSelectModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 20px; border-radius: 8px; min-width: 400px;">
+                    <h3>새 식단표 추가</h3>
+                    <div style="margin: 15px 0;">
+                        <label>사업장 선택:</label><br>
+                        ${locationOptions}
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <label>식단표 이름:</label><br>
+                        <input type="text" id="tempPlanName" value="새 식단표" style="width: 100%; padding: 5px;">
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <label>끼니 구분:</label><br>
+                        <select id="tempMealTime" style="width: 100%; padding: 5px;">
+                            <option value="조식">조식</option>
+                            <option value="중식" selected>중식</option>
+                            <option value="석식">석식</option>
+                            <option value="간식">간식</option>
+                        </select>
+                    </div>
+                    <div style="text-align: right;">
+                        <button onclick="document.getElementById('locationSelectModal').remove()" style="padding: 8px 16px; margin: 0 5px;">취소</button>
+                        <button onclick="window.confirmNewMealPlan()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">추가</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 확인 함수 정의
+        window.confirmNewMealPlan = function() {
+            const selectedLocationId = document.getElementById('tempLocationSelect').value;
+            const planName = document.getElementById('tempPlanName').value;
+            const mealTime = document.getElementById('tempMealTime').value;
+
+            if (!selectedLocationId) {
+                alert('사업장을 선택해주세요.');
+                return;
+            }
+
+            if (!planName || planName.trim() === '') {
+                alert('식단표 이름을 입력해주세요.');
+                return;
+            }
+
+            // 선택한 사업장으로 변경
+            document.getElementById('businessLocationSelect').value = selectedLocationId;
+            window.currentLocationId = parseInt(selectedLocationId);
+
+            // 새 식단표 추가
+            const newPlan = {
+                id: Date.now(), // 임시 ID
+                name: planName.trim(),
+                meal_time: mealTime,
+                selling_price: 0,
+                target_material_cost: 0,
+                location_id: window.currentLocationId
+            };
+
+            window.mealPlans.push(newPlan);
+            displayMealPlans();
+
+            // 모달 닫기
+            document.getElementById('locationSelectModal').remove();
+
+            console.log('새 식단표 추가:', newPlan);
+
+            // 사업장 데이터 로드
+            loadMealPlansForLocation();
+        };
+
+        return;
+    }
+
+    // 이미 사업장이 선택된 경우 기존 방식으로 처리
     const name = prompt('새 식단표 이름을 입력하세요:', '새 식단표');
     if (!name || name.trim() === '') return;
 
@@ -459,7 +625,7 @@ function addNewMealPlan() {
         meal_time: '중식', // 기본값: 중식
         selling_price: 0,
         target_material_cost: 0,
-        location_id: currentLocationId
+        location_id: window.currentLocationId
     };
 
     window.mealPlans.push(newPlan);
