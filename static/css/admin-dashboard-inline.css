@@ -1,3 +1,92 @@
+/* 관리자 대시보드 인라인 스타일 - admin_dashboard.html에서 분리 */
+
+/* 활동 로그 스타일 */
+.activity-log {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.log-item {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.log-time {
+    font-size: 11px;
+    color: #999;
+}
+
+.log-message {
+    font-size: 13px;
+    color: #333;
+    margin-top: 5px;
+}
+
+/* 사이드바 푸터 */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+}
+
+.sidebar-footer > div {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 20px;
+}
+
+/* 헤더 정보 */
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info {
+    font-size: 13px;
+    color: #666;
+}
+
+.logout-btn {
+    padding: 6px 12px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.logout-btn:hover {
+    background: #c82333;
+}
+
+/* 추가 유틸리티 클래스 */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.search-container input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 300px;
+}
+
+.filter-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-container select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
 /* 사용자 관리 테이블 스타일 */
 .user-info {
     line-height: 1.4;
