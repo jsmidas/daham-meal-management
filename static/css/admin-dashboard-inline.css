@@ -1,37 +1,46 @@
 /* 관리자 대시보드 인라인 스타일 - admin_dashboard.html에서 분리 */
 
-/* 활동 로그 스타일 */
+/* 활동 로그 스타일 - 실버 테마 */
 .activity-log {
-    background: white;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 3px 15px rgba(142, 154, 175, 0.1);
+    border: 1px solid var(--border-light, #e5e7eb);
 }
 
 .log-item {
-    padding: 10px;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.2s ease;
+}
+
+.log-item:hover {
+    background: rgba(142, 154, 175, 0.05);
 }
 
 .log-time {
     font-size: 11px;
-    color: #999;
+    color: #95a5a6;
+    font-weight: 500;
 }
 
 .log-message {
     font-size: 13px;
-    color: #333;
+    color: #2d3436;
     margin-top: 5px;
+    line-height: 1.5;
 }
 
-/* 사이드바 푸터 */
+/* 사이드바 푸터 - 실버 테마 */
 .sidebar-footer {
     margin-top: auto;
     padding: 20px;
+    background: linear-gradient(180deg, transparent 0%, #f8f9fa 100%);
 }
 
 .sidebar-footer > div {
-    border-top: 1px solid rgba(255,255,255,0.2);
+    border-top: 2px solid #dee2e6;
     padding-top: 20px;
 }
 
@@ -44,35 +53,50 @@
 
 .user-info {
     font-size: 13px;
-    color: #666;
+    color: #636e72;
+    font-weight: 500;
 }
 
 .logout-btn {
-    padding: 6px 12px;
-    background: #dc3545;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8e9aaf 0%, #5c677d 100%);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(142, 154, 175, 0.2);
 }
 
 .logout-btn:hover {
-    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(142, 154, 175, 0.3);
 }
 
 /* 추가 유틸리티 클래스 */
 .loading {
     text-align: center;
     padding: 40px;
-    color: #999;
+    color: #95a5a6;
+    font-weight: 500;
 }
 
 .search-container input {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 10px 14px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
     width: 300px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.search-container input:focus {
+    border-color: #8e9aaf;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(142, 154, 175, 0.1);
 }
 
 .filter-container {
@@ -82,9 +106,19 @@
 }
 
 .filter-container select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 10px 14px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.filter-container select:focus {
+    border-color: #8e9aaf;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(142, 154, 175, 0.1);
 }
 
 /* 사용자 관리 테이블 스타일 */
@@ -93,10 +127,13 @@
 }
 
 .role-badge {
-    padding: 3px 8px;
-    border-radius: 3px;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 12px;
-    font-weight: bold;
+    font-weight: 600;
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    color: #495057;
+    border: 1px solid #ced4da;
 }
 
 .role-badge.admin {

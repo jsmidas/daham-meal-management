@@ -16,6 +16,7 @@ import hashlib
 import datetime
 import re
 from typing import Optional
+from improved_unit_price_calculator import calculate_unit_price_improved, parse_specification_improved
 
 app = FastAPI()
 
@@ -68,7 +69,7 @@ class SupplierUpdate(BaseModel):
 DATABASE_PATH = os.getenv("DAHAM_DB_PATH", "daham_meal.db")
 
 # 단위당 단가 계산 함수
-def calculate_unit_price(price, specification):
+def calculate_unit_price_old(price, specification):
     """규격을 파싱하여 단위당 단가 계산"""
     if not price or price == 0 or not specification:
         return None
@@ -252,7 +253,7 @@ async def get_all_ingredients_for_suppliers(page: int = 1, limit: int = 100, sup
                 supplier_name,
                 notes,
                 created_date,
-                price_per_gram
+                price_per_unit
             FROM ingredients 
             WHERE {' AND '.join(where_conditions)}
             ORDER BY supplier_name, ingredient_name
@@ -267,25 +268,8 @@ async def get_all_ingredients_for_suppliers(page: int = 1, limit: int = 100, sup
         ingredients = []
         
         for row in ingredients_data:
-            # g당 단가 계산
-            price_per_gram = row[15] if row[15] is not None else 0.0
-            if price_per_gram == 0.0 and row[11] is not None:  # selling_price가 있는 경우
-                # 간단한 g당 단가 계산 (판매가를 기준으로)
-                try:
-                    selling_price = float(row[11])
-                    # 단위가 g인 경우는 그대로, kg인 경우는 1000으로 나누기, EA인 경우는 대략 100g 추정
-                    unit = row[7] or 'EA'
-                    if 'g' in unit.lower() and 'kg' not in unit.lower():
-                        # 이미 g 단위
-                        price_per_gram = selling_price / 100  # 100g 기준으로 대략 계산
-                    elif 'kg' in unit.lower():
-                        # kg 단위면 1000으로 나누기
-                        price_per_gram = selling_price / 1000
-                    else:
-                        # EA 단위는 대략 100g으로 추정
-                        price_per_gram = selling_price / 100
-                except Exception:
-                    price_per_gram = 0.0
+            # 데이터베이스에서 계산된 단위당 단가를 직접 사용
+            price_per_unit = row[15] if row[15] is not None else 0.0
             
             ingredient_dict = {
                 '분류(대분류)': row[0] or '',
@@ -688,9 +672,9 @@ async def recalculate_all_unit_prices():
         if 'price_per_unit' not in columns:
             cursor.execute("ALTER TABLE ingredients ADD COLUMN price_per_unit REAL")
 
-        # 모든 식자재 조회
+        # 모든 식자재 조회 - unit 정보도 함께 조회
         cursor.execute("""
-            SELECT id, specification, purchase_price
+            SELECT id, specification, unit, purchase_price
             FROM ingredients
             WHERE purchase_price > 0 AND specification IS NOT NULL AND specification != ''
         """)
@@ -698,8 +682,9 @@ async def recalculate_all_unit_prices():
         ingredients = cursor.fetchall()
         updated_count = 0
 
-        for ing_id, spec, price in ingredients:
-            unit_price = calculate_unit_price(price, spec)
+        for ing_id, spec, unit, price in ingredients:
+            # 개선된 계산 로직 사용 - unit 정보도 함께 전달
+            unit_price = calculate_unit_price_improved(price, spec, unit)
             if unit_price is not None:
                 cursor.execute("""
                     UPDATE ingredients

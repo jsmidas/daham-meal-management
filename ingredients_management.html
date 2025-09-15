@@ -980,7 +980,7 @@
                     ];
                 }
                 
-                // 전체 데이터 저장
+                // 전체 데이터 저장 (초기에는 정렬하지 않음)
                 allIngredients = ingredients;
                 totalItems = ingredients.length;
                 
@@ -1582,16 +1582,19 @@
             console.log('검색 결과 개수:', filteredIngredients.length);
             console.log('검색 결과 샘플 (처음 3개):', filteredIngredients.slice(0, 3));
 
-            // 검색 결과를 점수 및 이름순으로 정렬
+            // 검색 결과를 단위당 단가로 정렬 (0원과 null 제외, 낮은 값이 위로)
             filteredIngredients.sort((a, b) => {
-                // 먼저 점수로 정렬 (높은 점수가 먼저)
-                if (a._searchScore !== b._searchScore) {
-                    return b._searchScore - a._searchScore;
-                }
-                // 점수가 같으면 식자재명으로 정렬
-                const nameA = a['식자재명'] || '';
-                const nameB = b['식자재명'] || '';
-                return nameA.localeCompare(nameB, 'ko');
+                const priceA = a.price_per_unit || a['g당단가'] || null;
+                const priceB = b.price_per_unit || b['g당단가'] || null;
+
+                // 둘 다 null이거나 0이면 동일
+                if ((!priceA || priceA === 0) && (!priceB || priceB === 0)) return 0;
+                // A만 null이거나 0이면 뒤로
+                if (!priceA || priceA === 0) return 1;
+                // B만 null이거나 0이면 앞으로
+                if (!priceB || priceB === 0) return -1;
+                // 둘 다 유효한 값이 있으면 오름차순 정렬
+                return priceA - priceB;
             });
             
             // 검색 모드 활성화

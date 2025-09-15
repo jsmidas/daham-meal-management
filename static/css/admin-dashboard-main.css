@@ -2,43 +2,44 @@
 /* 현대적인 실버/그레이 색상 테마 */
 
 :root {
-    /* 메인 색상 팔레트 - 실버/그레이 기반 */
-    --primary-color: #6c7b7f;          /* 메인 실버 그레이 */
-    --primary-light: #9ba5aa;          /* 밝은 실버 */
-    --primary-dark: #4a5456;           /* 어두운 실버 */
+    /* 메인 색상 팔레트 - 모던 실버/그레이 */
+    --primary-color: #b8bec5;          /* 메인 실버 */
+    --primary-light: #d4d8dc;          /* 밝은 실버 */
+    --primary-dark: #8b9299;           /* 어두운 실버 */
 
-    /* 배경 색상 */
-    --bg-main: #f8f9fa;                /* 메인 배경 - 매우 밝은 그레이 */
-    --bg-card: #ffffff;                /* 카드 배경 - 화이트 */
-    --bg-sidebar: #343a40;             /* 사이드바 - 다크 그레이 */
+    /* 배경 색상 - 실버 톤 */
+    --bg-main: #f5f6f7;                /* 메인 배경 - 밝은 실버 */
+    --bg-card: #ffffff;                /* 카드 배경 - 순백색 */
+    --bg-sidebar: #c8cfd6;             /* 사이드바 - 실버 */
     --bg-header: #ffffff;              /* 헤더 배경 - 화이트 */
 
-    /* 텍스트 색상 */
-    --text-primary: #2c3e50;           /* 메인 텍스트 - 다크 그레이 */
-    --text-secondary: #6c757d;         /* 보조 텍스트 - 미드 그레이 */
-    --text-light: #adb5bd;             /* 밝은 텍스트 */
+    /* 텍스트 색상 - 명확한 대비 */
+    --text-primary: #2c3e50;           /* 메인 텍스트 - 진한 색상 */
+    --text-secondary: #546e7a;         /* 보조 텍스트 - 중간 */
+    --text-light: #90a4ae;             /* 밝은 텍스트 */
     --text-white: #ffffff;             /* 화이트 텍스트 */
+    --text-sidebar: #1a1f25;           /* 사이드바 텍스트 - 매우 진한 색상 */
 
-    /* 액센트 색상 */
-    --accent-blue: #5a6c7d;            /* 실버 블루 */
-    --accent-green: #6c8471;           /* 실버 그린 */
-    --accent-orange: #8d7a6c;          /* 실버 오렌지 */
-    --accent-red: #8d6c70;             /* 실버 레드 */
+    /* 액센트 색상 - 은은한 톤 */
+    --accent-blue: #6c7c89;            /* 실버 블루 */
+    --accent-green: #7d9d9c;           /* 실버 그린 */
+    --accent-orange: #9b8f78;          /* 실버 골드 */
+    --accent-red: #9b7982;             /* 실버 로즈 */
 
     /* 상태 색상 */
-    --success: #6c8471;                /* 성공 - 실버 그린 */
-    --warning: #8d7a6c;                /* 경고 - 실버 오렌지 */
-    --danger: #8d6c70;                 /* 위험 - 실버 레드 */
-    --info: #5a6c7d;                   /* 정보 - 실버 블루 */
+    --success: #52b788;                /* 성공 - 민트 그린 */
+    --warning: #f4a261;                /* 경고 - 소프트 오렌지 */
+    --danger: #e76f51;                 /* 위험 - 코랄 */
+    --info: #6c7c89;                   /* 정보 - 실버 블루 */
 
     /* 경계선 */
-    --border-color: #dee2e6;           /* 기본 경계선 */
-    --border-light: #f1f3f4;           /* 밝은 경계선 */
+    --border-color: #d1d5db;           /* 기본 경계선 */
+    --border-light: #e5e7eb;           /* 밝은 경계선 */
 
-    /* 그림자 */
-    --shadow-light: 0 2px 8px rgba(108, 123, 127, 0.08);
-    --shadow-medium: 0 4px 12px rgba(108, 123, 127, 0.12);
-    --shadow-heavy: 0 8px 24px rgba(108, 123, 127, 0.15);
+    /* 그림자 - 부드러운 효과 */
+    --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-heavy: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -60,33 +61,38 @@ body {
     min-height: 100vh;
 }
 
-/* 사이드바 스타일 */
+/* 사이드바 스타일 - 모던 실버 테마 */
 .sidebar {
     width: 280px;
-    background: linear-gradient(180deg, var(--bg-sidebar) 0%, #2c3439 100%);
-    color: var(--text-white);
+    background: linear-gradient(180deg, #d8dee4 0%, #b8c1ca 100%);
+    color: var(--text-sidebar);
     display: flex;
     flex-direction: column;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 3px 0 20px rgba(0, 0, 0, 0.15);
     position: relative;
     z-index: 1000;
+    border-right: 1px solid #a8b2bc;
 }
 
 .sidebar-header {
     padding: 2rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-bottom: 2px solid #a8b2bc;
+    background: linear-gradient(135deg, #e8ecf0 0%, #c8cfd6 100%);
 }
 
 .sidebar-header h2 {
     font-size: 1.4rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
+    color: #1a1f25;
+    letter-spacing: -0.5px;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
 }
 
 .sidebar-header p {
-    opacity: 0.8;
+    color: #3a424a;
     font-size: 0.9rem;
+    font-weight: 500;
 }
 
 /* 네비게이션 메뉴 */
@@ -98,35 +104,50 @@ body {
 .nav-item {
     display: flex;
     align-items: center;
-    padding: 1rem 1.5rem;
-    color: var(--text-white);
+    padding: 0.9rem 1.5rem;
+    color: #1a1f25;
     text-decoration: none;
-    transition: all 0.3s ease;
-    margin: 0.2rem 0.5rem;
-    border-radius: 8px;
+    transition: all 0.2s ease;
+    margin: 0.2rem 0.8rem;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
+    background: linear-gradient(90deg, #e8ecf0 0%, #d8dee4 100%);
+    transform: translateX(3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    color: #1a1f25;
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-    box-shadow: var(--shadow-medium);
+    background: linear-gradient(135deg, #95a0ab 0%, #7d8894 100%);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    font-weight: 600;
 }
 
 .nav-item .icon {
-    margin-right: 0.75rem;
-    font-size: 1.2rem;
+    margin-right: 0.85rem;
+    font-size: 1.1rem;
     width: 24px;
     text-align: center;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.nav-item:hover .icon,
+.nav-item.active .icon {
+    opacity: 1;
 }
 
 .sidebar-footer {
     margin-top: auto;
     padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 2px solid #a8b2bc;
+    background: linear-gradient(180deg, transparent 0%, #c8cfd6 100%);
 }
 
 /* 메인 컨텐츠 */
@@ -139,17 +160,17 @@ body {
 
 /* 헤더 */
 .header {
-    background: var(--bg-header);
+    background: linear-gradient(90deg, #f8f9fa 0%, #e8ecf0 100%);
     padding: 1.5rem 2rem;
-    box-shadow: var(--shadow-light);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 2px solid #d8dee4;
 }
 
 .header h1 {
-    color: var(--primary-color);
+    color: #3a424a;
     font-size: 1.8rem;
     font-weight: 600;
 }
