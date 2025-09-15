@@ -173,11 +173,19 @@ async function loadPageModule(pageName) {
 
     switch(pageName) {
         case 'users':
-            if (window.userManagement && typeof window.userManagement.load === 'function') {
-                await window.userManagement.load();
+            // 개선된 사용자 관리 모듈 사용
+            if (!window.enhancedUserMgmt) {
+                const script = document.createElement('script');
+                script.src = '/static/modules/users/users-enhanced.js?v=' + Date.now();
+                script.onload = () => {
+                    console.log('✅ Enhanced User Management 모듈 로드 완료');
+                    if (window.enhancedUserMgmt) {
+                        window.enhancedUserMgmt.init();
+                    }
+                };
+                document.head.appendChild(script);
             } else {
-                console.log('⏳ 사용자 관리 모듈 로딩 중...');
-                setTimeout(() => loadPageModule(pageName), 500);
+                window.enhancedUserMgmt.init();
             }
             break;
 
@@ -213,6 +221,92 @@ async function loadPageModule(pageName) {
 }
 
 /**
+ * 최근 활동 로그 로드
+ */
+async function loadActivityLogs() {
+    console.log('📝 최근 활동 로그 로딩...');
+
+    try {
+        const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
+        const response = await fetch(`${API_BASE_URL}/api/admin/activity-logs?limit=15`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const activityList = document.getElementById('activity-list');
+
+        if (!activityList) return;
+
+        if (data.logs && data.logs.length > 0) {
+            activityList.innerHTML = data.logs.map(log => {
+                const time = new Date(log.timestamp).toLocaleString('ko-KR', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // 아이콘 선택
+                let icon = '📝';
+                if (log.action_type.includes('추가')) icon = '➕';
+                else if (log.action_type.includes('수정')) icon = '✏️';
+                else if (log.action_type.includes('삭제')) icon = '🗑️';
+                else if (log.action_type.includes('로그인')) icon = '🔐';
+
+                return `
+                    <div class="log-item">
+                        <div class="log-time">${time}</div>
+                        <div class="log-message">
+                            <span style="margin-right: 5px;">${icon}</span>
+                            <strong>${log.user}</strong> - ${log.action_detail}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            activityList.innerHTML = `
+                <div class="log-item">
+                    <div class="log-message" style="color: #999; text-align: center;">
+                        아직 기록된 활동이 없습니다.
+                    </div>
+                </div>
+            `;
+        }
+
+        console.log('✅ 최근 활동 로그 로드 완료');
+    } catch (error) {
+        console.error('❌ 최근 활동 로그 로드 실패:', error);
+        const activityList = document.getElementById('activity-list');
+        if (activityList) {
+            activityList.innerHTML = `
+                <div class="log-item">
+                    <div class="log-message" style="color: #dc3545;">
+                        활동 로그를 불러올 수 없습니다.
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// 정기적으로 활동 로그 새로고침 (30초마다)
+let activityRefreshInterval = null;
+
+function startActivityRefresh() {
+    if (activityRefreshInterval) {
+        clearInterval(activityRefreshInterval);
+    }
+
+    activityRefreshInterval = setInterval(() => {
+        if (document.getElementById('dashboard-content').style.display !== 'none') {
+            loadActivityLogs();
+        }
+    }, 30000); // 30초마다 새로고침
+}
+
+/**
  * 대시보드 통계 로드
  */
 async function loadDashboardStats() {
@@ -235,6 +329,9 @@ async function loadDashboardStats() {
         updateDashboardCard('active-sites', data.activeSites || 0);
 
         console.log('✅ 대시보드 통계 로드 완료');
+
+        // 최근 활동 로그 로드
+        await loadActivityLogs();
     } catch (error) {
         console.error('❌ 대시보드 통계 로드 실패:', error);
     }
@@ -253,12 +350,44 @@ function updateDashboardCard(elementId, value) {
 /**
  * 협력업체 매핑 로드
  */
-function loadSupplierMappings() {
+async function loadSupplierMappings() {
     console.log('🔗 협력업체 매핑 로딩...');
     const content = document.getElementById('supplier-mappings-content');
     if (content) {
         content.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> 로딩 중...</div>';
-        // 실제 모듈 로드 로직
+
+        // supplier-mapping.js 모듈 로드
+        try {
+            // 이미 로드된 경우 정리
+            if (window.supplierMapping) {
+                if (typeof window.supplierMapping.destroy === 'function') {
+                    window.supplierMapping.destroy();
+                }
+                window.supplierMapping = null;
+            }
+
+            // 스크립트 동적 로드 (캐시 무효화 포함)
+            const script = document.createElement('script');
+            script.src = '/static/modules/mappings/supplier-mapping.js?v=' + Date.now();
+            script.onload = async () => {
+                console.log('✅ supplier-mapping.js 로드 완료 (캐시 무효화)');
+
+                // 모듈 초기화
+                if (window.SupplierMappingModule) {
+                    window.supplierMapping = new window.SupplierMappingModule();
+                    await window.supplierMapping.init();
+                    console.log('✅ 협력업체 매핑 모듈 초기화 완료');
+                }
+            };
+            script.onerror = (error) => {
+                console.error('❌ supplier-mapping.js 로드 실패:', error);
+                content.innerHTML = '<div class="error-message">모듈 로드 실패</div>';
+            };
+            document.head.appendChild(script);
+        } catch (error) {
+            console.error('❌ 협력업체 매핑 로드 실패:', error);
+            content.innerHTML = '<div class="error-message">오류가 발생했습니다</div>';
+        }
     }
 }
 
@@ -334,6 +463,9 @@ if (document.readyState === 'loading') {
         } else {
             showPage('dashboard');
         }
+
+        // 활동 로그 자동 새로고침 시작
+        startActivityRefresh();
     });
 } else {
     // 이미 로드된 경우 바로 실행

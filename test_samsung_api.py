@@ -14,12 +14,16 @@ import json
 import os
 import hashlib
 import datetime
+import re
 from typing import Optional
 
 app = FastAPI()
 
 # 정적 파일 서빙 설정
 app.mount("/static", StaticFiles(directory="static"), name="static")
+# sample data 디렉토리 서빙 (띄어쓰기 포함된 경로)
+if os.path.exists("sample data"):
+    app.mount("/sample-data", StaticFiles(directory="sample data"), name="sample_data")
 
 # Pydantic 모델 정의
 class UserCreate(BaseModel):
@@ -62,6 +66,58 @@ class SupplierUpdate(BaseModel):
 
 # 데이터베이스 경로를 환경 변수 또는 기본값으로 설정
 DATABASE_PATH = os.getenv("DAHAM_DB_PATH", "daham_meal.db")
+
+# 단위당 단가 계산 함수
+def calculate_unit_price(price, specification):
+    """규격을 파싱하여 단위당 단가 계산"""
+    if not price or price == 0 or not specification:
+        return None
+
+    patterns = [
+        # 무게 * 수량 패턴 (예: 1kg*10ea, 500g*20pac)
+        r'(\d+(?:\.\d+)?)\s*(kg|g|mg)\s*[*×xX]\s*(\d+)',
+        # 부피 * 수량 패턴 (예: 18L*1ea, 500ml*24개)
+        r'(\d+(?:\.\d+)?)\s*(L|l|ml|ML)\s*[*×xX]\s*(\d+)',
+        # 무게만 있는 패턴 (예: 1kg, 500g)
+        r'(\d+(?:\.\d+)?)\s*(kg|g|mg)(?:\s|$)',
+        # 부피만 있는 패턴 (예: 1L, 500ml)
+        r'(\d+(?:\.\d+)?)\s*(L|l|ml|ML)(?:\s|$)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, specification, re.IGNORECASE)
+        if match:
+            groups = match.groups()
+
+            if len(groups) >= 3:  # 무게/부피 * 수량
+                value = float(groups[0])
+                unit = groups[1].lower()
+                quantity = float(groups[2])
+            elif len(groups) == 2:  # 무게/부피만
+                value = float(groups[0])
+                unit = groups[1].lower()
+                quantity = 1
+            else:
+                continue
+
+            # 단위를 그램/ml로 통일
+            if unit in ['kg']:
+                total_value = value * 1000 * quantity
+            elif unit in ['g']:
+                total_value = value * quantity
+            elif unit in ['mg']:
+                total_value = value / 1000 * quantity
+            elif unit in ['l']:
+                total_value = value * 1000 * quantity
+            elif unit in ['ml']:
+                total_value = value * quantity
+            else:
+                continue
+
+            if total_value > 0:
+                return float(price) / total_value
+
+    return None
 
 # CORS 설정 추가
 app.add_middleware(
@@ -157,7 +213,7 @@ async def test_samsung_welstory():
 async def get_all_ingredients_for_suppliers(page: int = 1, limit: int = 100, supplier_filter: str = None):
     """모든 식자재를 업체별로 그룹화해서 반환 (업체별 식자재 현황 박스용)"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         # 기본 WHERE 조건
@@ -291,7 +347,7 @@ async def get_all_ingredients_for_suppliers(page: int = 1, limit: int = 100, sup
 async def get_admin_users():
     """관리자용 사용자 목록 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -328,10 +384,9 @@ async def get_admin_users():
 async def get_admin_business_locations():
     """관리자용 사업장 목록 조회"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
-        conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT id, site_code, site_name, site_type, region, address, manager_name, manager_phone, is_active
             FROM business_locations
@@ -345,7 +400,7 @@ async def get_admin_business_locations():
             locations.append({
                 "id": location[0],
                 "site_code": location[1] or f"BIZ{location[0]:03d}",
-                "site_name": location[2],
+                "site_name": location[2] or "",
                 "site_type": location[3] or "미지정",
                 "region": location[4] or "미지정",
                 "address": location[5] or "",
@@ -353,15 +408,15 @@ async def get_admin_business_locations():
                 "manager_phone": location[7] or "",
                 "is_active": bool(location[8])
             })
-        
+
         conn.close()
-        
+
         return {
             "success": True,
             "locations": locations,
             "total": len(locations)
         }
-        
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -369,7 +424,7 @@ async def get_admin_business_locations():
 async def get_admin_suppliers():
     """관리자용 협력업체 목록 조회"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
 
@@ -435,7 +490,7 @@ async def get_admin_suppliers():
 async def get_admin_ingredients_new(page: int = 1, limit: int = 20, search: str = None, category: str = None):
     """관리자용 식자재 목록 (페이징, 검색, 필터링)"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         # WHERE 조건 구성
@@ -463,38 +518,51 @@ async def get_admin_ingredients_new(page: int = 1, limit: int = 20, search: str 
         
         # 데이터 조회
         data_query = f"""
-            SELECT 
+            SELECT
                 id,
-                ingredient_name,
                 category,
-                supplier_name,
+                sub_category,
+                ingredient_code,
+                ingredient_name,
+                origin,
+                posting_status,
+                specification,
+                unit,
+                tax_type,
+                delivery_days,
                 purchase_price,
                 selling_price,
-                unit,
-                origin,
-                specification,
+                supplier_name,
+                notes,
                 created_at
-            FROM ingredients 
+            FROM ingredients
             {where_clause}
             ORDER BY id DESC
             LIMIT ? OFFSET ?
         """
-        
+
         cursor.execute(data_query, params + [limit, offset])
         ingredients = []
-        
+
         for row in cursor.fetchall():
             ingredients.append({
                 "id": row[0],
-                "name": row[1] or "이름 없음",
-                "category": row[2] or "미분류",
-                "supplier": row[3] or "미지정",
-                "purchase_price": row[4] or 0,
-                "selling_price": row[5] or 0,
-                "unit": row[6] or "개",
-                "origin": row[7] or "미표기",
-                "specification": row[8] or "",
-                "created_at": row[9] or ""
+                "category": row[1] or "-",
+                "sub_category": row[2] or "-",
+                "ingredient_code": row[3] or "-",
+                "ingredient_name": row[4] or "-",
+                "origin": row[5] or "-",
+                "posting_status": row[6] or "미지정",
+                "specification": row[7] or "-",
+                "unit": row[8] or "-",
+                "tax_type": row[9] or "-",
+                "delivery_days": row[10] or "-",
+                "purchase_price": row[11] or 0,
+                "selling_price": row[12] or 0,
+                "supplier_name": row[13] or "-",
+                "notes": row[14] or "-",
+                "created_at": row[15] or "",
+                "price_per_unit": None  # 백업 DB에는 이 컬럼이 없음
             })
         
         conn.close()
@@ -519,30 +587,53 @@ async def get_admin_ingredients_new(page: int = 1, limit: int = 20, search: str 
 async def create_ingredient(ingredient_data: dict):
     """관리자용 식자재 추가"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
-        
+
+        # 단위당 단가 자동 계산
+        purchase_price = ingredient_data.get('purchase_price', 0)
+        specification = ingredient_data.get('specification', '')
+        unit_price = calculate_unit_price(purchase_price, specification)
+
+        # price_per_unit 컬럼 확인 및 추가
+        cursor.execute("PRAGMA table_info(ingredients)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'price_per_unit' not in columns:
+            cursor.execute("ALTER TABLE ingredients ADD COLUMN price_per_unit REAL")
+
         cursor.execute("""
             INSERT INTO ingredients (
-                ingredient_name, category, supplier_name, 
-                purchase_price, selling_price, unit, origin, specification, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                ingredient_name, category, supplier_name,
+                purchase_price, selling_price, unit, origin, specification,
+                price_per_unit, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         """, (
             ingredient_data.get('name'),
             ingredient_data.get('category'),
             ingredient_data.get('supplier'),
-            ingredient_data.get('purchase_price', 0),
+            purchase_price,
             ingredient_data.get('selling_price', 0),
             ingredient_data.get('unit'),
             ingredient_data.get('origin'),
-            ingredient_data.get('specification')
+            specification,
+            unit_price
         ))
-        
+
+        ingredient_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        
-        return {"success": True, "message": "식자재가 추가되었습니다."}
-        
+
+        # 활동 로그 기록
+        log_activity(
+            action_type="식자재 추가",
+            action_detail=f"새 식자재 '{ingredient_data.get('name')}' (공급업체: {ingredient_data.get('supplier', '미지정')}) 추가",
+            user="관리자",
+            entity_type="ingredient",
+            entity_id=ingredient_id
+        )
+
+        return {"success": True, "message": "식자재가 추가되었습니다.", "unit_price": unit_price}
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -550,7 +641,7 @@ async def create_ingredient(ingredient_data: dict):
 async def update_ingredient(ingredient_id: int, ingredient_data: dict):
     """관리자용 식자재 수정"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -584,11 +675,56 @@ async def update_ingredient(ingredient_id: int, ingredient_data: dict):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.post("/api/admin/ingredients/recalculate-unit-prices")
+async def recalculate_all_unit_prices():
+    """모든 식자재의 단위당 단가 재계산"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # price_per_unit 컬럼 확인 및 추가
+        cursor.execute("PRAGMA table_info(ingredients)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'price_per_unit' not in columns:
+            cursor.execute("ALTER TABLE ingredients ADD COLUMN price_per_unit REAL")
+
+        # 모든 식자재 조회
+        cursor.execute("""
+            SELECT id, specification, purchase_price
+            FROM ingredients
+            WHERE purchase_price > 0 AND specification IS NOT NULL AND specification != ''
+        """)
+
+        ingredients = cursor.fetchall()
+        updated_count = 0
+
+        for ing_id, spec, price in ingredients:
+            unit_price = calculate_unit_price(price, spec)
+            if unit_price is not None:
+                cursor.execute("""
+                    UPDATE ingredients
+                    SET price_per_unit = ?
+                    WHERE id = ?
+                """, (unit_price, ing_id))
+                updated_count += 1
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"{updated_count}개 식자재의 단위당 단가가 재계산되었습니다.",
+            "updated_count": updated_count
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @app.delete("/api/admin/ingredients/{ingredient_id}")
 async def delete_ingredient(ingredient_id: int):
     """관리자용 식자재 삭제"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         cursor.execute("DELETE FROM ingredients WHERE id = ?", (ingredient_id,))
@@ -605,7 +741,7 @@ async def delete_ingredient(ingredient_id: int):
 async def get_admin_ingredients_summary():
     """관리자용 식자재 요약 통계"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         # 총 식자재 수
@@ -676,7 +812,7 @@ async def get_admin_ingredients_summary():
 async def get_dashboard_stats():
     """관리자 대시보드 통계 데이터"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         # 사용자 수
@@ -769,7 +905,7 @@ async def get_sites():
 async def get_site(site_id: int):
     """개별 사업장 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         # UTF-8 텍스트 처리 설정 추가
         conn.text_factory = lambda x: x.decode('utf-8') if isinstance(x, bytes) else x
         cursor = conn.cursor()
@@ -914,7 +1050,7 @@ async def update_site(site_id: int, site_data: dict):
 async def delete_site(site_id: int):
     """사업장 삭제"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8') if isinstance(x, bytes) else x
         cursor = conn.cursor()
         
@@ -932,7 +1068,7 @@ async def delete_site(site_id: int):
 async def get_users():
     """사용자 목록 조회"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -968,7 +1104,7 @@ async def get_users():
 async def get_suppliers_enhanced(page: int = 1, limit: int = 20, search: str = ""):
     """협력업체 목록 조회 (향상된 버전)"""
     try:
-        conn = sqlite3.connect('backups/working_state_20250912/daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         # 검색 조건 추가
@@ -1040,7 +1176,7 @@ async def get_suppliers_enhanced(page: int = 1, limit: int = 20, search: str = "
 async def get_customer_supplier_mappings():
     """고객-협력업체 매핑 목록 조회"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
         
@@ -1052,7 +1188,7 @@ async def get_customer_supplier_mappings():
                 csm.supplier_id,
                 b.site_name as customer_name,
                 s.name as supplier_name,
-                s.parent_code as supplier_code,
+                csm.supplier_code,
                 csm.delivery_code,
                 csm.priority_order,
                 csm.is_primary_supplier,
@@ -1079,7 +1215,7 @@ async def get_customer_supplier_mappings():
                 "customer_name": mapping[3],
                 "supplier_name": mapping[4],
                 "supplier_code": mapping[5] or "",
-                "delivery_code": mapping[6],
+                "delivery_code": mapping[6] or "",
                 "priority_order": mapping[7] or 0,
                 "is_primary_supplier": bool(mapping[8]),
                 "contract_start_date": mapping[9],
@@ -1101,7 +1237,7 @@ async def get_customer_supplier_mappings():
 async def get_customer_supplier_mapping(mapping_id: int):
     """특정 고객-협력업체 매핑 조회"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -1111,6 +1247,7 @@ async def get_customer_supplier_mapping(mapping_id: int):
                 csm.supplier_id,
                 b.site_name as customer_name,
                 s.name as supplier_name,
+                csm.supplier_code,
                 csm.delivery_code,
                 csm.priority_order,
                 csm.is_primary_supplier,
@@ -1137,14 +1274,15 @@ async def get_customer_supplier_mapping(mapping_id: int):
             "supplier_id": mapping_data[2],
             "customer_name": mapping_data[3],
             "supplier_name": mapping_data[4],
-            "delivery_code": mapping_data[5],
-            "priority_order": mapping_data[6] or 0,
-            "is_primary_supplier": bool(mapping_data[7]),
-            "contract_start_date": mapping_data[8],
-            "contract_end_date": mapping_data[9],
-            "is_active": bool(mapping_data[10]),
-            "notes": mapping_data[11] or "",
-            "created_at": mapping_data[12]
+            "supplier_code": mapping_data[5] or "",
+            "delivery_code": mapping_data[6] or "",
+            "priority_order": mapping_data[7] or 0,
+            "is_primary_supplier": bool(mapping_data[8]),
+            "contract_start_date": mapping_data[9],
+            "contract_end_date": mapping_data[10],
+            "is_active": bool(mapping_data[11]),
+            "notes": mapping_data[12] or "",
+            "created_at": mapping_data[13]
         }
         
         return {
@@ -1159,18 +1297,22 @@ async def get_customer_supplier_mapping(mapping_id: int):
 async def create_customer_supplier_mapping(mapping_data: dict):
     """고객-협력업체 매핑 생성"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
         cursor.execute("""
             INSERT INTO customer_supplier_mappings
-            (customer_id, supplier_id, delivery_code, is_active)
-            VALUES (?, ?, ?, ?)
+            (customer_id, supplier_id, supplier_code, delivery_code, priority_order, is_primary_supplier, is_active, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             mapping_data.get('customer_id'),
             mapping_data.get('supplier_id'),
+            mapping_data.get('supplier_code', ''),
             mapping_data.get('delivery_code', ''),
-            mapping_data.get('is_active', True)
+            mapping_data.get('priority_order', 1),
+            mapping_data.get('is_primary_supplier', False),
+            mapping_data.get('is_active', True),
+            mapping_data.get('notes', '')
         ))
 
         mapping_id = cursor.lastrowid
@@ -1189,16 +1331,17 @@ async def create_customer_supplier_mapping(mapping_data: dict):
 async def update_customer_supplier_mapping(mapping_id: int, mapping_data: dict):
     """고객-협력업체 매핑 수정"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
         cursor.execute("""
             UPDATE customer_supplier_mappings
-            SET customer_id = ?, supplier_id = ?, delivery_code = ?, is_active = ?
+            SET customer_id = ?, supplier_id = ?, supplier_code = ?, delivery_code = ?, is_active = ?
             WHERE id = ?
         """, (
             mapping_data.get('customer_id'),
             mapping_data.get('supplier_id'),
+            mapping_data.get('supplier_code', ''),
             mapping_data.get('delivery_code', ''),
             mapping_data.get('is_active', True),
             mapping_id
@@ -1218,7 +1361,7 @@ async def update_customer_supplier_mapping(mapping_id: int, mapping_data: dict):
 async def delete_customer_supplier_mapping(mapping_id: int):
     """고객-협력업체 매핑 삭제"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
         cursor.execute("DELETE FROM customer_supplier_mappings WHERE id = ?", (mapping_id,))
@@ -1238,7 +1381,7 @@ async def delete_customer_supplier_mapping(mapping_id: int):
 async def get_meal_pricing():
     """식단가 목록 조회"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         # UTF-8 디코딩을 위한 text_factory 설정
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
@@ -1303,7 +1446,7 @@ async def get_meal_pricing():
 async def create_meal_pricing(data: dict):
     """식단가 추가"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
 
@@ -1340,7 +1483,7 @@ async def create_meal_pricing(data: dict):
 async def update_meal_pricing(pricing_id: int, data: dict):
     """식단가 수정"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
 
@@ -1384,7 +1527,7 @@ async def update_meal_pricing(pricing_id: int, data: dict):
 async def delete_meal_pricing(pricing_id: int):
     """식단가 삭제"""
     try:
-        conn = sqlite3.connect('daham_meal.db')
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.text_factory = lambda x: x.decode('utf-8', errors='replace') if isinstance(x, bytes) else x
         cursor = conn.cursor()
 
@@ -1580,6 +1723,15 @@ async def create_user(user_data: UserCreate):
         user_id = cursor.lastrowid
         conn.commit()
         conn.close()
+
+        # 활동 로그 기록
+        log_activity(
+            action_type="사용자 추가",
+            action_detail=f"새 사용자 '{user_data.username}' (권한: {user_data.role}) 추가",
+            user="관리자",
+            entity_type="user",
+            entity_id=user_id
+        )
 
         return {
             "success": True,
@@ -1990,6 +2142,176 @@ async def get_user_permissions(user_id: int):
 
         conn.close()
         return permissions
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.put("/api/admin/users/{user_id}")
+async def update_admin_user(user_id: int, user_data: dict):
+    """관리자 페이지용 사용자 정보 수정"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 사용자 존재 확인
+        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+        # 업데이트할 필드 동적 구성
+        update_fields = []
+        params = []
+
+        # 각 필드 처리
+        if "username" in user_data:
+            update_fields.append("username = ?")
+            params.append(user_data["username"])
+
+        if "password" in user_data and user_data["password"]:
+            update_fields.append("password_hash = ?")
+            params.append(f"hashed_{user_data['password']}")  # 실제로는 bcrypt 사용
+
+        if "contact_info" in user_data:
+            update_fields.append("contact_info = ?")
+            params.append(user_data["contact_info"])
+
+        # email 필드는 users 테이블에 없으므로 제외
+        # if "email" in user_data:
+        #     update_fields.append("email = ?")
+        #     params.append(user_data["email"])
+
+        if "department" in user_data:
+            update_fields.append("department = ?")
+            params.append(user_data["department"])
+
+        if "position" in user_data:
+            update_fields.append("position = ?")
+            params.append(user_data["position"])
+
+        if "role" in user_data:
+            update_fields.append("role = ?")
+            params.append(user_data["role"])
+
+        if "operator" in user_data:
+            update_fields.append("operator = ?")
+            params.append(1 if user_data["operator"] else 0)
+
+        if "semi_operator" in user_data:
+            update_fields.append("semi_operator = ?")
+            params.append(1 if user_data["semi_operator"] else 0)
+
+        if "managed_site" in user_data:
+            update_fields.append("managed_site = ?")
+            params.append(user_data["managed_site"])
+
+        if "is_active" in user_data:
+            update_fields.append("is_active = ?")
+            params.append(1 if user_data["is_active"] else 0)
+
+        # notes 필드도 users 테이블에 없으므로 제외
+        # if "notes" in user_data:
+        #     update_fields.append("notes = ?")
+        #     params.append(user_data["notes"])
+
+        # 업데이트 실행
+        if update_fields:
+            update_fields.append("updated_at = ?")
+            params.append(datetime.datetime.now().isoformat())
+            params.append(user_id)
+
+            query = f"""
+                UPDATE users
+                SET {', '.join(update_fields)}
+                WHERE id = ?
+            """
+
+            cursor.execute(query, params)
+            conn.commit()
+
+        conn.close()
+        return {"success": True, "message": "사용자 정보가 수정되었습니다."}
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"사용자 수정 오류: {str(e)}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/admin/users")
+async def create_admin_user(user_data: dict):
+    """관리자 페이지용 새 사용자 추가"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 중복 사용자명 확인
+        cursor.execute("SELECT id FROM users WHERE username = ?", (user_data.get("username", ""),))
+        if cursor.fetchone():
+            conn.close()
+            return {"success": False, "message": "이미 존재하는 사용자명입니다."}
+
+        # 필수 필드 확인
+        if not user_data.get("username"):
+            conn.close()
+            return {"success": False, "message": "사용자명은 필수입니다."}
+
+        # 새 사용자 추가
+        cursor.execute("""
+            INSERT INTO users (
+                username, password_hash, contact_info,
+                department, position, role,
+                operator, semi_operator, managed_site,
+                is_active, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_data.get("username"),
+            f"hashed_{user_data.get('password', '1234')}",  # 실제로는 bcrypt 사용
+            user_data.get("contact_info", ""),
+            user_data.get("department", ""),
+            user_data.get("position", ""),
+            user_data.get("role", "viewer"),
+            1 if user_data.get("operator", False) else 0,
+            1 if user_data.get("semi_operator", False) else 0,
+            user_data.get("managed_site", ""),
+            1 if user_data.get("is_active", True) else 0,
+            datetime.datetime.now().isoformat(),
+            datetime.datetime.now().isoformat()
+        ))
+
+        conn.commit()
+        new_user_id = cursor.lastrowid
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "사용자가 추가되었습니다.",
+            "user_id": new_user_id
+        }
+
+    except Exception as e:
+        print(f"사용자 추가 오류: {str(e)}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/api/admin/users/{user_id}/reset-password")
+async def reset_admin_user_password(user_id: int, data: dict):
+    """관리자 페이지용 비밀번호 초기화"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        new_password = data.get("new_password", "1234")
+        hashed_password = f"hashed_{new_password}"  # 실제로는 bcrypt 등을 사용해야 함
+
+        cursor.execute("""
+            UPDATE users
+            SET password = ?
+            WHERE id = ?
+        """, (hashed_password, user_id))
+
+        conn.commit()
+        conn.close()
+
+        return {"success": True, "message": "비밀번호가 초기화되었습니다."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -2427,6 +2749,54 @@ async def get_admin_dashboard():
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="admin_dashboard.html not found")
 
+@app.get("/ingredients_management.html")
+async def get_ingredients_management():
+    """사용자 식자재 관리 HTML 반환"""
+    try:
+        with open("ingredients_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="ingredients_management.html not found")
+
+@app.get("/sample%20data/food_sample.xls")
+async def get_food_sample():
+    """식자재 업로드 템플릿 파일 반환"""
+    try:
+        return FileResponse("sample data/food_sample.xls",
+                           media_type="application/vnd.ms-excel",
+                           filename="식자재_업로드_템플릿.xls")
+    except:
+        raise HTTPException(status_code=404, detail="Template file not found")
+
+@app.get("/sample-data/food-template.xls")
+async def get_food_sample_alt():
+    """식자재 업로드 템플릿 파일 반환 (대체 경로)"""
+    try:
+        return FileResponse("sample data/food_sample.xls",
+                           media_type="application/vnd.ms-excel",
+                           filename="식자재_업로드_템플릿.xls")
+    except:
+        raise HTTPException(status_code=404, detail="Template file not found")
+
+@app.get("/sample%20data/시스템32.JPG")
+async def get_sample_image():
+    """샘플 이미지 반환"""
+    try:
+        return FileResponse("sample data/시스템32.JPG",
+                           media_type="image/jpeg")
+    except:
+        raise HTTPException(status_code=404, detail="Image file not found")
+
+@app.get("/sample-data/system32.jpg")
+async def get_sample_image_alt():
+    """샘플 이미지 반환 (대체 경로)"""
+    try:
+        return FileResponse("sample data/시스템32.JPG",
+                           media_type="image/jpeg")
+    except:
+        raise HTTPException(status_code=404, detail="Image file not found")
+
 @app.get("/config.js")
 async def get_config():
     """config.js 파일 반환"""
@@ -2449,6 +2819,63 @@ async def root():
         </html>
     """)
 
+# ============ 활동 로그 관련 함수 ============
+activity_logs = []  # 메모리에 임시 저장 (실제로는 DB 사용 권장)
+
+def log_activity(action_type: str, action_detail: str, user: str = "관리자", entity_type: str = None, entity_id: int = None):
+    """활동 로그 기록"""
+    global activity_logs
+    activity = {
+        "id": len(activity_logs) + 1,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "user": user,
+        "action_type": action_type,
+        "action_detail": action_detail,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "ip_address": "127.0.0.1"  # 실제로는 request에서 가져와야 함
+    }
+    activity_logs.insert(0, activity)  # 최신 활동을 앞에 추가
+
+    # 최대 1000개까지만 메모리에 유지
+    if len(activity_logs) > 1000:
+        activity_logs = activity_logs[:1000]
+
+    return activity
+
+@app.get("/api/admin/activity-logs")
+async def get_activity_logs(limit: int = 10, offset: int = 0):
+    """최근 활동 로그 조회"""
+    try:
+        # 페이징 처리
+        total_count = len(activity_logs)
+        paginated_logs = activity_logs[offset:offset + limit]
+
+        return {
+            "success": True,
+            "logs": paginated_logs,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/activity-logs")
+async def create_activity_log(log_data: dict):
+    """활동 로그 생성 (다른 작업에서 호출)"""
+    try:
+        activity = log_activity(
+            action_type=log_data.get("action_type", "기타"),
+            action_detail=log_data.get("action_detail", ""),
+            user=log_data.get("user", "관리자"),
+            entity_type=log_data.get("entity_type"),
+            entity_id=log_data.get("entity_id")
+        )
+        return {"success": True, "log": activity}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import os
@@ -2456,6 +2883,6 @@ if __name__ == "__main__":
     # 환경 변수에서 포트 읽기, 기본값은 8015
     port = int(os.getenv("API_PORT", "8010"))
     host = os.getenv("API_HOST", "127.0.0.1")
-    
+
     print(f"API 서버 시작: {host}:{port}")
     uvicorn.run(app, host=host, port=port)
