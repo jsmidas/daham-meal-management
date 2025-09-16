@@ -268,6 +268,41 @@
         .ingredients-table tr:hover .ingredient-spec-full {
             display: block;
         }
+
+        /* 정렬 가능한 헤더 스타일 */
+        .sortable {
+            position: relative;
+            padding-left: 20px;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .sortable:hover {
+            background: #e8e8e8;
+        }
+
+        .sort-icon {
+            display: inline-block;
+            width: 14px;
+            margin-right: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            vertical-align: middle;
+        }
+
+        .sort-icon.active {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .sort-icon.inactive {
+            color: #ccc;
+            font-size: 10px;
+        }
+
+        .sortable:hover .sort-icon.inactive {
+            color: #999;
+        }
         
         /* 가격 표시 스타일 */
         .price {
@@ -687,6 +722,9 @@
                                 <button class="btn btn-secondary" onclick="clearSearch()" style="padding: 8px 20px; background: #6c757d;">
                                     <i class="fas fa-redo"></i> 초기화
                                 </button>
+                                <button class="btn btn-success" onclick="exportToExcel()" style="padding: 8px 20px; background: #4CAF50;">
+                                    <i class="fas fa-file-excel"></i> 엑셀 다운로드
+                                </button>
                             </div>
                         </div>
                         <div id="searchResult" style="margin-top: 10px; font-size: 13px; color: #666; display: none;">
@@ -763,9 +801,15 @@
                                 <th>단위</th>
                                 <th>면세</th>
                                 <th>선발주일</th>
-                                <th>단위당 단가</th>
-                                <th>입고가</th>
-                                <th>판매가</th>
+                                <th class="sortable" data-sort="price_per_unit" title="클릭하여 정렬">
+                                    <span class="sort-icon active" id="sort-price_per_unit">▲</span> 단위당 단가
+                                </th>
+                                <th class="sortable" data-sort="purchase_price" title="클릭하여 정렬">
+                                    <span class="sort-icon inactive" id="sort-purchase_price">⬍</span> 입고가
+                                </th>
+                                <th class="sortable" data-sort="selling_price" title="클릭하여 정렬">
+                                    <span class="sort-icon inactive" id="sort-selling_price">⬍</span> 판매가
+                                </th>
                                 <th>거래처명</th>
                                 <th>비고</th>
                                 <th>등록일</th>
@@ -889,6 +933,8 @@
         let allIngredients = [];
         let filteredIngredients = [];
         let isSearching = false;
+        let currentSort = 'price_per_unit'; // 기본 정렬: 단위당 단가
+        let sortDirection = 'asc'; // 오름차순
         
         // 페이지 로드 시 식자재 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
@@ -909,10 +955,31 @@
             document.getElementById('searchCode').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') searchIngredients();
             });
-            
+
+            // 정렬 핸들러 설정
+            setupSortHandlers();
+
             loadIngredients();
         });
         
+        // 날짜 포맷 함수
+        function formatDate(dateString) {
+            if (!dateString || dateString === '-') return '-';
+
+            // SQLite datetime 문자열 처리
+            // 35:09.0 같은 형식은 시간 부분만 잘못 파싱된 경우
+            try {
+                // ISO 형식으로 변환 시도
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString('ko-KR');
+                }
+            } catch(e) {}
+
+            // 날짜 문자열 그대로 반환 (변환 실패시)
+            return dateString;
+        }
+
         async function loadIngredients() {
             try {
                 // 필터링 파라미터 가져오기 (기본값을 false로 변경하여 모든 데이터 표시)
@@ -923,10 +990,12 @@
                 const response = await fetch('http://127.0.0.1:8010/ingredients?page=1&per_page=120000');
                 const data = await response.json();
                 
-                let ingredients = [];
+                // 전역 변수 allIngredients에 저장
+                allIngredients = [];
                 if (data.success) {
-                    // API 응답의 영어 필드를 한글로 매핑
-                    ingredients = (data.ingredients || []).map(item => ({
+                    // API 응답의 영어 필드를 한글로 매핑 + 원본 필드도 모두 보존
+                    allIngredients = (data.ingredients || []).map(item => ({
+                        // 한글 필드명
                         '분류(대분류)': item.category,
                         '기본식자재(세분류)': item.sub_category,
                         '고유코드': item.ingredient_code,
@@ -942,11 +1011,29 @@
                         '판매가': item.selling_price,
                         '거래처명': item.supplier_name,
                         '비고': item.notes,
-                        '등록일': item.created_at
+                        '등록일': formatDate(item.created_at),
+                        '협력업체명': item.supplier_name,
+                        '단위당 단가': item.price_per_unit,
+                        '게시여부': item.posting_status,
+                        '과/면세': item.tax_type,
+                        '선발주일': item.delivery_days,
+                        '사용유무': item.is_active,
+                        '생성일': formatDate(item.created_date),
+                        '생성자': item.created_by,
+                        '수정일': formatDate(item.updated_at),
+
+                        // 영어 필드명도 보존 (엑셀 다운로드용)
+                        ...item
                     }));
+
+                    // 디버깅: 첫 번째 아이템 확인
+                    if (allIngredients.length > 0) {
+                        console.log('첫 번째 식자재 데이터:', allIngredients[0]);
+                        console.log('전체 데이터 수:', allIngredients.length);
+                    }
                 } else {
                     // 오류시 기본 데이터 사용
-                    ingredients = [
+                    allIngredients = [
                     {
                         category: '가금류',
                         subcategory: '기타가금류',
@@ -998,23 +1085,21 @@
                     ];
                 }
                 
-                // 전체 데이터 저장 (초기에는 정렬하지 않음)
-                allIngredients = ingredients;
-                totalItems = ingredients.length;
+                // 전체 데이터 저장하고 필터링 적용
+                // allIngredients는 이미 위에서 설정됨
+
+                // 초기 정렬 설정 (단위당 단가 오름차순)
+                currentSort = 'price_per_unit';
+                sortDirection = 'asc';
+
+                // 필터링 적용 (필터링 내부에서 정렬도 함께 수행됨)
+                applyFilters();
                 
-                // 업체별 박스 업데이트 (API response의 supplier_stats 사용)  
+                // 업체별 박스 업데이트 (API response의 supplier_stats 사용)
                 updateSuppliersGrid(data.supplier_stats || {});
-                
-                // 통계 정보 간소화 (API 호출 없이 현재 데이터 기준으로 처리)
-                const totalIngredients = ingredients.length;
-                const unpublishedCount = Math.floor(totalIngredients * 0.1); // 대략 10% 가정
-                const noPriceCount = Math.floor(totalIngredients * 0.05);   // 대략 5% 가정
-                
-                // 필터링 카운트 업데이트 (간소화된 통계)
-                updateFilterCounts(ingredients.length, totalIngredients, unpublishedCount, noPriceCount);
-                
-                // 페이지 표시
-                displayPage();
+
+                // 필터링이 완료되면 페이지 표시
+                // applyFilters() 내부에서 displayPage()가 호출됨
                 
             } catch (error) {
                 console.error('Error loading ingredients:', error);
@@ -1631,16 +1716,98 @@
         }
         
         // 검색 초기화
+        // 엑셀 다운로드 함수
+        function exportToExcel() {
+            // 현재 표시된 데이터 사용 (검색된 결과 또는 전체)
+            const dataToExport = isSearching ? filteredIngredients : allIngredients;
+
+            if (dataToExport.length === 0) {
+                alert('다운로드할 데이터가 없습니다.');
+                return;
+            }
+
+            // 모든 필드를 포함한 CSV 데이터 생성
+            const headers = ['ID', '분류(대분류)', '기본식자재(세분류)', '고유코드', '협력업체명', '식자재명',
+                           '게시여부', '원산지', '규격', '단위', '과/면세', '선발주일',
+                           '입고가', '판매가', '단위당 단가', '그램당 가격', '사용유무', '비고',
+                           '생성일', '생성자', '수정일', '업로드배치ID', '추가필드1', '추가필드2', '추가필드3'];
+
+            const csvContent = [
+                headers.join(','),
+                ...dataToExport.map(item => {
+                    const row = [
+                        item['id'] || '',
+                        item['분류(대분류)'] || item['category'] || '',
+                        item['기본식자재(세분류)'] || item['sub_category'] || '',
+                        item['고유코드'] || item['ingredient_code'] || '',
+                        item['협력업체명'] || item['supplier_name'] || '',
+                        item['식자재명'] || item['ingredient_name'] || '',
+                        item['게시여부'] || item['posting_status'] || '',
+                        item['원산지'] || item['origin'] || '',
+                        (item['규격'] || item['specification'] || '').replace(/,/g, ';'),  // 콤마를 세미콜론으로 치환
+                        item['단위'] || item['unit'] || '',
+                        item['과/면세'] || item['tax_type'] || '',
+                        item['선발주일'] || item['delivery_days'] || '',
+                        item['입고가'] || item['purchase_price'] || '',
+                        item['판매가'] || item['selling_price'] || '',
+                        item['단위당 단가'] || item['price_per_unit'] || '',
+                        item['그램당 가격'] || item['price_per_gram'] || '',
+                        item['사용유무'] || item['is_active'] || '',
+                        (item['비고'] || item['notes'] || '').replace(/,/g, ';'),  // 콤마 처리
+                        item['생성일'] || item['created_date'] || '',
+                        item['생성자'] || item['created_by'] || '',
+                        item['수정일'] || item['updated_at'] || '',
+                        item['업로드배치ID'] || item['upload_batch_id'] || '',
+                        item['추가필드1'] || item['extra_field1'] || '',
+                        item['추가필드2'] || item['extra_field2'] || '',
+                        item['추가필드3'] || item['extra_field3'] || ''
+                    ];
+                    return row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');  // 큰따옴표 이스케이프 처리
+                })
+            ].join('\n');
+
+            // BOM 추가 (한글 깨짐 방지)
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            // 다운로드 링크 생성
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            // 파일명 생성 (현재 날짜 포함)
+            const now = new Date();
+            const dateStr = now.getFullYear() +
+                          String(now.getMonth() + 1).padStart(2, '0') +
+                          String(now.getDate()).padStart(2, '0');
+            const timeStr = String(now.getHours()).padStart(2, '0') +
+                          String(now.getMinutes()).padStart(2, '0');
+
+            const fileName = `식자재목록_전체필드_${dateStr}_${timeStr}.csv`;
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 다운로드 알림 제거 - 조용히 다운로드
+            // const count = dataToExport.length;
+            // const searchStatus = isSearching ? '(검색결과)' : '(전체)';
+            // alert(`${count.toLocaleString()}개의 식자재 데이터를 다운로드했습니다 ${searchStatus}\n파일명: ${fileName}\n\n포함된 필드: 총 25개 필드 (모든 데이터베이스 컬럼)`);
+        }
+
         function clearSearch() {
             // 입력 필드 초기화
             document.getElementById('searchSupplier').value = '';
             document.getElementById('searchName').value = '';
             document.getElementById('searchCode').value = '';
-            
+
             // 검색 모드 비활성화
             isSearching = false;
             currentPage = 1;
-            
+
             // 검색 결과 숨기기
             document.getElementById('searchResult').style.display = 'none';
             
@@ -1675,7 +1842,123 @@
         // 필터 적용 함수
         function applyFilters() {
             console.log('필터 적용 중...');
-            loadIngredients(); // 필터링된 데이터로 다시 로드
+
+            const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked || false;
+            const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked || false;
+
+            // 필터링 적용
+            filteredIngredients = allIngredients.filter(ingredient => {
+                // 미게시 필터
+                if (excludeUnpublished && (ingredient['게시유무'] === '무' || ingredient['게시유무'] === '미게시')) {
+                    return false;
+                }
+
+                // 입고가 없는 상품 필터
+                if (excludeNoPrice && (!ingredient['입고가'] || ingredient['입고가'] === 0)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // 정렬 적용
+            sortIngredients();
+
+            // 통계 업데이트
+            const unpublishedCount = allIngredients.filter(ing => ing['게시유무'] === '무' || ing['게시유무'] === '미게시').length;
+            const noPriceCount = allIngredients.filter(ing => !ing['입고가'] || ing['입고가'] === 0).length;
+
+            updateFilterCounts(filteredIngredients.length, allIngredients.length, unpublishedCount, noPriceCount);
+
+            // 검색 모드가 아닐 때만 전체 개수 표시
+            if (!isSearching) {
+                totalItems = filteredIngredients.length;
+                document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
+            }
+
+            currentPage = 1;
+            displayPage();
+        }
+
+        // 정렬 함수
+        function sortIngredients() {
+            const dataToSort = isSearching ? filteredIngredients : (filteredIngredients.length > 0 ? filteredIngredients : allIngredients);
+
+            dataToSort.sort((a, b) => {
+                let aVal, bVal;
+
+                switch(currentSort) {
+                    case 'price_per_unit':
+                        aVal = a['g당단가'] || 0;
+                        bVal = b['g당단가'] || 0;
+                        break;
+                    case 'purchase_price':
+                        aVal = a['입고가'] || 0;
+                        bVal = b['입고가'] || 0;
+                        break;
+                    case 'selling_price':
+                        aVal = a['판매가'] || 0;
+                        bVal = b['판매가'] || 0;
+                        break;
+                    default:
+                        return 0;
+                }
+
+                // null/undefined 값 처리
+                if (!aVal && !bVal) return 0;
+                if (!aVal) return 1;
+                if (!bVal) return -1;
+
+                // 숫자로 변환
+                aVal = parseFloat(aVal);
+                bVal = parseFloat(bVal);
+
+                if (sortDirection === 'asc') {
+                    return aVal - bVal;
+                } else {
+                    return bVal - aVal;
+                }
+            });
+        }
+
+        // 컬럼 헤더 클릭 이벤트 처리
+        function setupSortHandlers() {
+            const sortableHeaders = document.querySelectorAll('.sortable');
+            sortableHeaders.forEach(header => {
+                header.style.cursor = 'pointer';
+                header.style.userSelect = 'none';
+
+                header.addEventListener('click', function() {
+                    const sortField = this.dataset.sort;
+
+                    // 같은 컬럼 클릭시 방향 전환
+                    if (currentSort === sortField) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort = sortField;
+                        sortDirection = 'asc';
+                    }
+
+                    // 모든 정렬 아이콘을 비활성 상태로
+                    document.querySelectorAll('.sort-icon').forEach(icon => {
+                        icon.classList.remove('active');
+                        icon.classList.add('inactive');
+                        icon.textContent = '⬍';
+                    });
+
+                    // 현재 정렬 아이콘을 활성 상태로
+                    const currentIcon = document.getElementById(`sort-${sortField}`);
+                    if (currentIcon) {
+                        currentIcon.classList.remove('inactive');
+                        currentIcon.classList.add('active');
+                        currentIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+                    }
+
+                    // 정렬 적용
+                    sortIngredients();
+                    displayPage();
+                });
+            });
         }
 
         // 모달 외부 클릭시 닫기

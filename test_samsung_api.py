@@ -763,7 +763,7 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
         total_pages = (total_count + per_page - 1) // per_page
         offset = (page - 1) * per_page
 
-        # 데이터 조회
+        # 데이터 조회 - 모든 필드 포함
         data_query = f"""
             SELECT
                 id,
@@ -771,8 +771,8 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
                 sub_category,
                 ingredient_code,
                 ingredient_name,
-                origin,
                 posting_status,
+                origin,
                 specification,
                 unit,
                 tax_type,
@@ -781,7 +781,17 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
                 selling_price,
                 supplier_name,
                 notes,
-                created_at
+                created_date,
+                extra_field1,
+                extra_field2,
+                extra_field3,
+                is_active,
+                created_by,
+                upload_batch_id,
+                created_at,
+                updated_at,
+                price_per_gram,
+                price_per_unit
             FROM ingredients
             {where_clause}
             ORDER BY id DESC
@@ -792,11 +802,17 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
         ingredients = []
 
         for row in cursor.fetchall():
-            # 단위당 단가 계산
+            # 단위당 단가 계산 (이미 DB에 있으면 그 값 사용)
             purchase_price = row[11] or 0
             specification = row[7] or ""
             unit = row[8] or ""
-            price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+            db_price_per_unit = row[25]  # price_per_unit from DB
+
+            # DB에 값이 없으면 계산
+            if db_price_per_unit is None:
+                price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+            else:
+                price_per_unit = db_price_per_unit
 
             ingredients.append({
                 "id": row[0],
@@ -804,8 +820,8 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
                 "sub_category": row[2] or "-",
                 "ingredient_code": row[3] or "-",
                 "ingredient_name": row[4] or "-",
-                "origin": row[5] or "-",
-                "posting_status": row[6] or "미지정",
+                "posting_status": row[5] or "미지정",
+                "origin": row[6] or "-",
                 "specification": row[7] or "-",
                 "unit": row[8] or "-",
                 "tax_type": row[9] or "-",
@@ -814,7 +830,16 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
                 "selling_price": row[12] or 0,
                 "supplier_name": row[13] or "-",
                 "notes": row[14] or "-",
-                "created_at": row[15] or "",
+                "created_date": row[15] or "-",
+                "extra_field1": row[16] or "-",
+                "extra_field2": row[17] or "-",
+                "extra_field3": row[18] or "-",
+                "is_active": row[19] if row[19] is not None else 1,
+                "created_by": row[20] or "-",
+                "upload_batch_id": row[21] or "-",
+                "created_at": row[22] or "-",
+                "updated_at": row[23] or "-",
+                "price_per_gram": row[24] or 0,
                 "price_per_unit": price_per_unit
             })
 
