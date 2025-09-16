@@ -90,7 +90,9 @@
       "Bash(del test_search_scope.html)",
       "Bash(del:*)",
       "Bash(rm:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"Processing $file\")"
     ],
     "deny": [],
     "ask": []

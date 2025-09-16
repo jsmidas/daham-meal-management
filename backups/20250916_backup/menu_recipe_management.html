@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍳 메뉴/레시피 관리 - 급식관리 시스템</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 사이드바 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.1);
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            margin: 0;
+            color: #3498db;
+        }
+
+        .nav-section {
+            padding: 10px 0;
+        }
+
+        .nav-title {
+            padding: 8px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+        }
+
+        .sidebar .nav-item {
+            display: block;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .sidebar .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding-left: 25px;
+        }
+
+        .sidebar .nav-item.active {
+            background: linear-gradient(90deg, rgba(52,152,219,0.3), transparent);
+            border-left: 3px solid #3498db;
+            color: white;
+        }
+
+        .sidebar .nav-item .icon {
+            margin-right: 10px;
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 10px 0;
+        }
+
+        .admin-item {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(231,76,60,0.1);
+        }
+
+        .admin-item:hover {
+            background: rgba(231,76,60,0.2);
+        }
+
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            background: #f5f5f5;
+            overflow-y: auto;
+        }
+        
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        /* 좌측 메뉴 목록 (1/3) */
+        .menu-list-section {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .search-controls {
+            margin-bottom: 20px;
+        }
+        
+        .menu-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .menu-actions .btn {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        
+        .btn-new {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        
+        .btn-copy {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+        
+        .search-input-group input {
+            flex: 1;
+        }
+        
+        .view-all-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+        
+        .view-all-btn:hover {
+            background: #218838;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .menu-count {
+            text-align: center;
+            color: #666;
+            font-weight: 600;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .menu-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .menu-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .menu-item.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .menu-item h4 {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .menu-item p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .menu-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .menu-meta {
+            font-size: 11px;
+            color: #888;
+        }
+        
+        .ingredients-info {
+            font-size: 11px;
+            color: #555;
+            background: #f8f9fa;
+            padding: 4px 6px;
+            border-radius: 3px;
+            border-left: 2px solid #667eea;
+        }
+        
+        .ingredient-count {
+            font-weight: 500;
+            color: #667eea;
+        }
+        
+        .main-ingredients {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.3;
+            margin-top: 2px;
+        }
+        
+        /* 우측 레시피 상세 (2/3) */
+        .recipe-detail-section {
+            flex: 2;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .recipe-header {
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .recipe-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .recipe-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            flex: 1;
+        }
+        
+        .recipe-image-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+        
+        .recipe-image-placeholder {
+            width: 120px;
+            height: 80px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            position: relative;
+        }
+        
+        .image-placeholder-text {
+            color: #999;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .image-upload-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .image-upload-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .remove-image-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .color-input-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        
+        .color-input-section input[type="color"] {
+            width: 50px;
+            height: 35px;
+            border: 2px solid #e1e5e9;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .color-preview {
+            flex: 1;
+            height: 35px;
+            border: 2px solid #e1e5e9;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--preview-color, #667eea);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .color-reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .color-reset-btn:hover {
+            background: #5a6268;
+        }
+        
+        .color-help {
+            color: #6c757d;
+            font-size: 11px;
+            font-style: italic;
+        }
+        
+        /* 식자재 검색 팝업 스타일 */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .popup-overlay.active {
+            display: flex;
+        }
+        
+        .ingredient-search-popup {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            height: 90%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .popup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .popup-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .popup-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .popup-close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .popup-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .search-section {
+            margin-bottom: 20px;
+        }
+        
+        .search-controls-popup {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .search-input-popup {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-input-popup:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .supplier-filter, .category-filter {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-stats {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .ingredients-results {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+        }
+        
+        .ingredients-table-popup {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .ingredients-table-popup th {
+            background: #f1f3f4;
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            border-right: 1px solid #ddd;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .ingredients-table-popup td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+            text-align: center;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        
+        .ingredients-table-popup tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .ingredient-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .ingredient-row:hover {
+            background: #e3f2fd;
+        }
+        
+        .ingredient-row.selected {
+            background: #667eea;
+            color: white;
+        }
+        
+        .supplier-info {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
+        }
+        
+        .delivery-schedule {
+            font-size: 10px;
+            background: #e8f5e8;
+            padding: 2px 4px;
+            border-radius: 2px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        
+        .moq-info {
+            font-size: 10px;
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        
+        .popup-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 20px;
+            border-top: 2px solid #e1e5e9;
+            background: #f8f9fa;
+        }
+        
+        .popup-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .popup-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .popup-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .popup-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .popup-btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .recipe-total-compact {
+            background: #e3f2fd;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .top-action-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e1e5e9;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .recipe-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .meta-item {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .recipe-form {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .ingredients-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .ingredients-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .ingredients-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .ingredients-table-wrapper {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .ingredients-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: fixed;
+        }
+        
+        .ingredients-table th {
+            background: #f1f3f4;
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            border-right: 1px solid #ddd;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .ingredients-table td {
+            padding: 4px 2px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+            text-align: center;
+        }
+        
+        .ingredients-table input {
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .ingredients-table input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .ingredients-table .ingredient-name-input {
+            text-align: left;
+            font-size: 11px;
+        }
+        
+        .ingredients-table .btn-small {
+            padding: 2px 6px;
+            font-size: 10px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        
+        .ingredients-table .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .ingredients-table .btn-delete:hover {
+            background: #c82333;
+        }
+        
+        .ingredient-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .ingredient-item input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-delete:hover {
+            background: #c82333;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e1e5e9;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #999;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* 상단 메뉴 생성/복사 컨트롤 */
+        .menu-controls {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .menu-controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 사이드바 네비게이션 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>🍽️ 급식관리 시스템</h1>
+            </div>
+
+            <!-- 메인 관리 -->
+            <div class="nav-section">
+                <div class="nav-title">메인 관리</div>
+                <a href="dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>대시보드
+                </a>
+                <a href="menu_recipe_management.html" class="nav-item active">
+                    <span class="icon">🍳</span>메뉴/레시피 관리
+                </a>
+                <a href="meal_plans.html" class="nav-item">
+                    <span class="icon">📅</span>식단 관리
+                </a>
+                <a href="meal_count.html" class="nav-item">
+                    <span class="icon">👥</span>식수 관리
+                </a>
+            </div>
+
+            <!-- 식자재 관리 -->
+            <div class="nav-section">
+                <div class="nav-title">식자재 관리</div>
+                <a href="ingredients_management.html" class="nav-item">
+                    <span class="icon">📦</span>식자재 관리
+                </a>
+                <a href="purchase_order.html" class="nav-item">
+                    <span class="icon">📝</span>발주 관리
+                </a>
+                <a href="receipt_statement.html" class="nav-item">
+                    <span class="icon">📋</span>입고 명세서
+                </a>
+            </div>
+
+            <!-- 작업 지시서 -->
+            <div class="nav-section">
+                <div class="nav-title">작업 관리</div>
+                <a href="daily_logs.html" class="nav-item">
+                    <span class="icon">📓</span>각종 일지
+                </a>
+                <a href="preprocessing.html" class="nav-item">
+                    <span class="icon">🔪</span>전처리 지시서
+                </a>
+                <a href="cooking_instruction.html" class="nav-item">
+                    <span class="icon">👨‍🍳</span>조리 지시서
+                </a>
+                <a href="portioning.html" class="nav-item">
+                    <span class="icon">🥘</span>소분 지시서
+                </a>
+            </div>
+
+            <div class="nav-divider"></div>
+
+            <!-- 관리자 -->
+            <a href="admin_dashboard.html" class="nav-item admin-item">
+                <span class="icon">🔐</span>관리자 모드
+            </a>
+        </nav>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="main-content">
+
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🍽️ 메뉴관리 시스템</h1>
+                <p>메뉴/레시피 관리</p>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: white; font-weight: 600;">기준 날짜:</span>
+                    <input type="date" id="currentDate" value="2025-08-28" style="padding: 8px; border-radius: 6px; border: none;">
+                </div>
+                <button class="btn btn-secondary" onclick="location.href='/meal-plan'" style="background: rgba(255,255,255,0.2); border: 1px solid white;">📊 식단표 작성</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/ordering'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 10px;">📈 발주 관리</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/preprocessing-demo'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="main-container">
+        <!-- 좌측 메뉴 목록 (1/3) -->
+        <div class="menu-list-section">
+            <div class="search-controls">
+                <div class="control-group">
+                    <label>메뉴명 검색</label>
+                    <div class="search-input-group">
+                        <input type="text" id="searchMenuName" placeholder="메뉴명을 입력하세요" onkeyup="searchMenus()">
+                        <button type="button" class="view-all-btn" onclick="viewAllMenus()">📋 전체보기</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>분류 필터</label>
+                    <select id="categoryFilter" onchange="filterMenus()">
+                        <option value="">전체</option>
+                        <option value="주식">주식</option>
+                        <option value="국/찌개">국/찌개</option>
+                        <option value="반찬">반찬</option>
+                        <option value="후식">후식</option>
+                    </select>
+                </div>
+                
+                <div class="menu-actions">
+                    <button class="btn btn-new" onclick="showCreateNewMenu()">+ 새 메뉴</button>
+                    <button class="btn btn-copy" onclick="copySelectedMenu()" id="copyMenuBtn" disabled>📋 복사</button>
+                </div>
+                
+                <button class="btn" onclick="loadMenus()">🔍 전체보기</button>
+            </div>
+            
+            <div class="menu-count" id="menuCount">
+                메뉴를 불러오는 중...
+            </div>
+            
+            <div id="menuList" class="menu-list">
+                <!-- 메뉴 목록이 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+
+        <!-- 우측 레시피 상세 (2/3) -->
+        <div class="recipe-detail-section">
+            <div id="recipeDetail">
+                <div class="empty-state">
+                    <h3>메뉴를 선택해주세요</h3>
+                    <p>좌측 목록에서 메뉴를 선택하면 레시피 정보가 표시됩니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 식자재 검색 팝업 -->
+    <div class="popup-overlay" id="ingredientSearchPopup">
+        <div class="ingredient-search-popup">
+            <div class="popup-header">
+                <h3>🔍 식자재 검색 및 추가</h3>
+                <button class="popup-close-btn" onclick="closeIngredientSearchPopup()">×</button>
+            </div>
+            
+            <div class="popup-content">
+                <div class="search-section">
+                    <div class="search-controls-popup">
+                        <input type="text" id="ingredientSearchInput" class="search-input-popup" 
+                               placeholder="식자재명 또는 코드를 입력하세요" 
+                               onkeyup="searchIngredients()">
+                        <select id="supplierFilter" class="supplier-filter" onchange="searchIngredients()">
+                            <option value="">전체 업체</option>
+                        </select>
+                        <button class="btn" onclick="searchIngredients()">🔍 검색</button>
+                    </div>
+                    
+                    <div class="search-stats" id="searchStats">
+                        검색 결과를 불러오는 중...
+                    </div>
+                </div>
+                
+                <div class="ingredients-results">
+                    <table class="ingredients-table-popup">
+                        <thead>
+                            <tr>
+                                <th width="7%">코드</th>
+                                <th width="20%">식자재명</th>
+                                <th width="5%">단위</th>
+                                <th width="8%">입고가</th>
+                                <th width="8%">판매가</th>
+                                <th width="12%">공급업체</th>
+                                <th width="8%">선발주일</th>
+                                <th width="8%">최소주문량</th>
+                                <th width="6%">수량</th>
+                                <th width="18%">발주정보</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredientSearchResults">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                                    식자재를 검색하세요.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="popup-actions">
+                <button class="popup-btn popup-btn-secondary" onclick="closeIngredientSearchPopup()">취소</button>
+                <button class="popup-btn popup-btn-primary" id="addSelectedIngredientsBtn" 
+                        onclick="addSelectedIngredients()" disabled>
+                    선택된 식자재 추가
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allMenus = [];
+        let filteredMenus = [];
+        let currentRecipeId = null;
+        let currentRecipeData = { ingredients: [] };
+
+        // 페이지 로드 시 메뉴 목록 불러오기
+        document.addEventListener('DOMContentLoaded', function() {
+            // 네비게이션 강제 바인딩
+            console.log('페이지 로드됨 - 네비게이션 바인딩 시작');
+            
+            // 발주 관리 링크 강제 바인딩
+            const orderingLink = document.querySelector('a[href="/ordering"]');
+            if (orderingLink) {
+                console.log('발주 관리 링크 찾음');
+                orderingLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('발주 관리 클릭 이벤트 발생');
+                    alert('발주 관리로 이동합니다 (강제 바인딩)');
+                    window.location.href = '/ordering';
+                });
+            }
+            
+            // 전처리 지시서 링크 강제 바인딩
+            const preprocessingLink = document.querySelector('a[href="/preprocessing-demo"]');
+            if (preprocessingLink) {
+                console.log('전처리 링크 찾음');
+                preprocessingLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('전처리 클릭 이벤트 발생');
+                    alert('전처리지시서로 이동합니다 (강제 바인딩)');
+                    window.location.href = '/preprocessing-demo';
+                });
+            }
+            
+            // URL 파라미터에서 메뉴명 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            const menuName = urlParams.get('menu');
+            
+            loadMenus();
+            
+            // 메뉴명이 있으면 자동으로 검색
+            if (menuName) {
+                setTimeout(() => {
+                    searchMenuByName(decodeURIComponent(menuName));
+                }, 500); // 메뉴 로드 후 검색
+            }
+        });
+
+        // 특정 메뉴명으로 검색하는 함수
+        async function searchMenuByName(menuName) {
+            try {
+                // 올바른 검색 필드에 값 설정
+                document.getElementById('searchMenuName').value = menuName;
+                searchMenus(); // 검색 실행
+                
+                // DOM 업데이트를 위한 짧은 대기 후 메뉴 선택
+                setTimeout(() => {
+                    // 검색 결과에서 정확히 일치하는 메뉴 찾기
+                    const menuItems = document.querySelectorAll('.menu-item');
+                    for (let item of menuItems) {
+                        const itemName = item.querySelector('h4').textContent.trim();
+                        if (itemName === menuName) {
+                            // 해당 메뉴의 ID 가져와서 selectMenu 함수 직접 호출
+                            const menuId = item.getAttribute('data-menu-id');
+                            if (menuId) {
+                                selectMenu(parseInt(menuId));
+                                // 스크롤하여 해당 메뉴로 이동
+                                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                // 강조 표시
+                                item.style.backgroundColor = '#fff3cd';
+                                item.style.border = '2px solid #ffc107';
+                                setTimeout(() => {
+                                    item.style.backgroundColor = '';
+                                    item.style.border = '';
+                                }, 3000);
+                            }
+                            break;
+                        }
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('메뉴 검색 실패:', error);
+            }
+        }
+
+        // 메뉴 목록 로드
+        async function loadMenus() {
+            try {
+                const response = await fetch('/api/search_recipes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({keyword: '', limit: 50}) // 50개씩 로드
+                });
+                const result = await response.json();
+                allMenus = result.success ? (result.recipes || []) : [];
+                filteredMenus = [...allMenus];
+                
+                updateMenuCount();
+                renderMenuList();
+            } catch (error) {
+                console.error('메뉴 로드 실패:', error);
+                document.getElementById('menuList').innerHTML = 
+                    '<div class="loading">메뉴를 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        // 메뉴 검색
+        function searchMenus() {
+            const searchTerm = document.getElementById('searchMenuName').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+            
+            filteredMenus = allMenus.filter(menu => {
+                const matchesSearch = menu.name.toLowerCase().includes(searchTerm);
+                const matchesCategory = !category || menu.category === category;
+                return matchesSearch && matchesCategory;
+            });
+            
+            updateMenuCount();
+            renderMenuList();
+        }
+
+        // 분류별 필터링
+        function filterMenus() {
+            searchMenus(); // 검색과 동일한 로직 사용
+        }
+
+        // 메뉴 개수 업데이트
+        function updateMenuCount() {
+            const count = filteredMenus.length;
+            const totalCount = count >= 50 ? '1,000+ 메뉴 (상위 50개 표시)' : `${count}개 메뉴`;
+            document.getElementById('menuCount').textContent = totalCount;
+        }
+
+        // 메뉴 목록 렌더링
+        function renderMenuList() {
+            const menuListElement = document.getElementById('menuList');
+            
+            if (filteredMenus.length === 0) {
+                menuListElement.innerHTML = '<div class="loading">검색 결과가 없습니다.</div>';
+                return;
+            }
+
+            const menuItems = filteredMenus.slice(0, 50).map(menu => `
+                <div class="menu-item" onclick="selectMenu(${menu.id})" data-menu-id="${menu.id}">
+                    <h4>${menu.name}</h4>
+                    <div class="menu-details">
+                        <p class="menu-meta">${menu.category || '미분류'} | 버전 ${menu.version || '1.0'} | ⭐ ${menu.score || 0}</p>
+                        <div style="margin-top: 4px;">
+            <span style="font-size: 12px; font-weight: bold; color: #007bff;">단가: <span id="menuPrice_${menu.id}">0원</span></span>
+        </div>
+                        <p class="ingredients-info">
+                            <span class="ingredient-count">📦 ${menu.ingredient_count || 0}개 식재료</span>
+                            ${menu.main_ingredients ? `<br><span class="main-ingredients">주재료: ${menu.main_ingredients}</span>` : ''}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+
+            menuListElement.innerHTML = menuItems;
+        }
+
+        // 메뉴 선택
+        async function selectMenu(recipeId) {
+            currentRecipeId = recipeId;
+            
+            // 선택된 메뉴 표시
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-menu-id="${recipeId}"]`).classList.add('active');
+            
+            // 복사 버튼 활성화
+            document.getElementById('copyMenuBtn').disabled = false;
+            
+            // 레시피 상세 정보 로드
+            await loadRecipeDetail(recipeId);
+        }
+        
+        // 새 메뉴 생성 모달 표시
+        function showCreateNewMenu() {
+            const menuName = prompt('새 메뉴명을 입력하세요:');
+            if (menuName && menuName.trim()) {
+                createNewMenu(menuName.trim());
+            }
+        }
+        
+        // 새 메뉴 생성
+        function createNewMenu(menuName) {
+            // 임시로 새 메뉴 객체 생성 (실제로는 API 호출)
+            const newMenu = {
+                id: Date.now(),
+                name: menuName,
+                score: 3,
+                version: '1.0',
+                notes: '새로 생성된 메뉴',
+                category: '기타'
+            };
+            
+            allMenus.unshift(newMenu);
+            filteredMenus = [...allMenus];
+            
+            updateMenuCount();
+            renderMenuList();
+            selectMenu(newMenu.id);
+            
+            alert(`"${menuName}" 메뉴가 생성되었습니다.`);
+        }
+
+        // 레시피 상세 정보 로드
+        async function loadRecipeDetail(recipeId) {
+            try {
+                document.getElementById('recipeDetail').innerHTML = 
+                    '<div class="loading">레시피 정보를 불러오는 중...</div>';
+                
+                const response = await fetch(`/api/recipe/${recipeId}`);
+                const recipe = await response.json();
+                
+                // 현재 레시피 데이터 업데이트
+                currentRecipeData = {
+                    ...recipe,
+                    ingredients: recipe.ingredients || []
+                };
+                
+                renderRecipeDetail(recipe);
+                
+                // 합계 금액 계산 (더 빠른 실행)
+                clearTimeout(window.recalculateTimeout);
+                window.recalculateTimeout = setTimeout(() => {
+                    calculateRecipeTotal();
+                }, 100);
+            } catch (error) {
+                console.error('레시피 로드 실패:', error);
+                document.getElementById('recipeDetail').innerHTML = 
+                    '<div class="loading">레시피 정보를 불러오는데 실패했습니다.</div>';
+            }
+        }
+
+        // 레시피 상세 정보 렌더링
+        function renderRecipeDetail(recipe) {
+            const detailHtml = `
+                <div class="recipe-header">
+                    <div class="recipe-title-section">
+                        <div class="recipe-title">${recipe.name}</div>
+                        <div class="recipe-image-section">
+                            <div class="recipe-image-placeholder" id="recipeImage">
+                                <span class="image-placeholder-text">📷 이미지 없음</span>
+                            </div>
+                            <button type="button" class="image-upload-btn" onclick="triggerImageUpload()">
+                                📸 이미지 추가
+                            </button>
+                            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        </div>
+                    </div>
+                    <div class="recipe-meta">
+                        <span class="meta-item">분류: ${recipe.category || '미분류'}</span>
+                        <span class="meta-item">버전: ${recipe.version || '1.0'}</span>
+                        <span class="meta-item">평가: ${recipe.evaluation_score || '-'}/5</span>
+                        <span class="meta-item">적용일: ${recipe.effective_date || '-'}</span>
+                    </div>
+                </div>
+
+                <!-- 상단 저장 버튼 및 합계 -->
+                <div class="top-action-buttons">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="recipe-total-compact">
+                            <span style="font-size: 14px; font-weight: 600; color: #333;">💰 메뉴 단가:</span>
+                            <span id="recipeTotalAmountTop" style="font-size: 18px; font-weight: bold; color: #007bff; margin-left: 8px;">0원</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="saveRecipe()">💾 저장</button>
+                        <button class="btn btn-secondary" onclick="resetRecipe()">🔄 초기화</button>
+                        <button class="btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);" onclick="showCopyRecipeModal()">📋 복사하기</button>
+                    </div>
+                </div>
+                
+                <div class="recipe-form">
+                    <!-- 식재료 섹션을 최상단으로 이동 -->
+                    <div class="ingredients-section">
+                        <div class="ingredients-header">
+                            <h3>📦 식자재 및 소요량</h3>
+                            <button class="btn btn-secondary" onclick="addIngredient()">+ 식자재 추가</button>
+                        </div>
+                        <div class="ingredients-table-wrapper">
+                            <table class="ingredients-table">
+                                <thead>
+                                    <tr>
+                                        <th width="4%">NO</th>
+                                        <th width="16%">식자재</th>
+                                        <th width="8%">코드</th>
+                                        <th width="10%">업체명</th>
+                                        <th width="6%">기본</th>
+                                        <th width="6%">상세</th>
+                                        <th width="6%">활성화</th>
+                                        <th width="8%">1인분량</th>
+                                        <th width="6%">단위</th>
+                                        <th width="8%">발주량</th>
+                                        <th width="6%">단가</th>
+                                        <th width="6%">금액</th>
+                                        <th width="5%">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ingredientsList">
+                                    ${renderIngredientsTable(recipe.ingredients || [])}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>메뉴명</label>
+                            <input type="text" id="recipeName" value="${recipe.name}">
+                        </div>
+                        <div class="form-group">
+                            <label>분류</label>
+                            <select id="recipeCategory">
+                                <option value="">선택하세요</option>
+                                <option value="주식" ${recipe.category === '주식' ? 'selected' : ''}>주식</option>
+                                <option value="국/찌개" ${recipe.category === '국/찌개' ? 'selected' : ''}>국/찌개</option>
+                                <option value="반찬" ${recipe.category === '반찬' ? 'selected' : ''}>반찬</option>
+                                <option value="후식" ${recipe.category === '후식' ? 'selected' : ''}>후식</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>버전</label>
+                            <input type="text" id="recipeVersion" value="${recipe.version || '1.0'}">
+                        </div>
+                        <div class="form-group">
+                            <label>평가점수</label>
+                            <select id="recipeScore">
+                                <option value="">선택</option>
+                                <option value="1" ${recipe.evaluation_score == 1 ? 'selected' : ''}>1점</option>
+                                <option value="2" ${recipe.evaluation_score == 2 ? 'selected' : ''}>2점</option>
+                                <option value="3" ${recipe.evaluation_score == 3 ? 'selected' : ''}>3점</option>
+                                <option value="4" ${recipe.evaluation_score == 4 ? 'selected' : ''}>4점</option>
+                                <option value="5" ${recipe.evaluation_score == 5 ? 'selected' : ''}>5점</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>레시피 컬러</label>
+                            <div class="color-input-section">
+                                <input type="color" id="recipeColor" value="${recipe.color || '#667eea'}" onchange="updateColorPreview()">
+                                <div class="color-preview" id="colorPreview">
+                                    <span class="color-label">${getColorName(recipe.color || '#667eea')}</span>
+                                </div>
+                                <button type="button" class="color-reset-btn" onclick="resetColor()">초기화</button>
+                            </div>
+                            <small class="color-help">레시피를 시각적으로 구분하는 데 사용됩니다</small>
+                        </div>
+                        <div class="form-group">
+                            <label>적용일</label>
+                            <input type="date" id="recipeEffectiveDate" value="${recipe.effective_date || ''}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>비고</label>
+                        <textarea id="recipeNotes" placeholder="레시피 관련 메모나 특이사항을 입력하세요">${recipe.notes || ''}</textarea>
+                    </div>
+                    
+                    <!-- 메뉴 단가 합계 -->
+                    <div class="recipe-total-section">
+                        <div class="recipe-total-header">💰 메뉴 단가 (합계)</div>
+                        <div class="recipe-total-amount" id="recipeTotalAmount">계산 중...</div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn" onclick="saveRecipe()">저장</button>
+                        <button class="btn btn-secondary" onclick="resetRecipe()">초기화</button>
+                        <button class="btn btn-success" onclick="copyRecipe()">복사하기</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('recipeDetail').innerHTML = detailHtml;
+        }
+
+        // 식자재 목록 렌더링
+        function renderIngredients(ingredients) {
+            if (!ingredients || ingredients.length === 0) {
+                return '<p style="text-align: center; color: #666;">등록된 식자재가 없습니다.</p>';
+            }
+
+            return ingredients.map((ingredient, index) => `
+                <div class="ingredient-item" data-index="${index}">
+                    <input type="text" value="${ingredient.name}" placeholder="식자재명" onchange="updateIngredient(${index}, 'name', this.value)">
+                    <input type="number" value="${ingredient.quantity}" placeholder="수량" step="0.001" onchange="updateIngredient(${index}, 'quantity', this.value)">
+                    <input type="text" value="${ingredient.unit}" placeholder="단위" onchange="updateIngredient(${index}, 'unit', this.value)">
+                    <button class="btn-delete" onclick="removeIngredient(${index})">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        function renderIngredientsTable(ingredients) {
+            if (!ingredients || ingredients.length === 0) {
+                return `
+                    <tr>
+                        <td colspan="13" style="text-align: center; color: #666; padding: 20px;">
+                            등록된 식자재가 없습니다.<br>
+                            <small>상단의 "식자재 추가" 버튼을 눌러 식자재를 추가해주세요.</small>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return ingredients.map((ingredient, index) => {
+                const totalAmount = (ingredient.quantity || 0) * (ingredient.unit_in_kg || 1);
+                const totalCost = totalAmount * (ingredient.price || 0);
+                
+                return `
+                    <tr data-index="${index}">
+                        <td>${index + 1}</td>
+                        <td style="position: relative;">
+                            <input type="text" value="${ingredient.name || ''}" 
+                                   placeholder="식자재명" 
+                                   class="ingredient-name-input"
+                                   readonly style="background: #f8f9fa; padding-right: 25px;">
+                            <button class="ingredient-search-btn" onclick="openIngredientSearchForReplace(${index})" 
+                                    style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); 
+                                           background: #667eea; color: white; border: none; width: 20px; height: 20px; 
+                                           border-radius: 3px; font-size: 12px; cursor: pointer;"
+                                    title="식자재 변경">🔍</button>
+                        </td>
+                        <td>
+                            <input type="text" value="${ingredient.code || ''}" 
+                                   placeholder="코드" 
+                                   style="font-size: 11px; text-align: center; background: #f8f9fa;"
+                                   readonly>
+                        </td>
+                        <td>
+                            <input type="text" value="${ingredient.supplier_name || ''}" 
+                                   placeholder="업체명" 
+                                   style="font-size: 10px; text-align: center; background: #f8f9fa;"
+                                   readonly>
+                        </td>
+                        <td>
+                            <input type="checkbox" ${ingredient.is_basic ? 'checked' : ''} 
+                                   onchange="updateIngredientTable(${index}, 'is_basic', this.checked)">
+                        </td>
+                        <td>
+                            <input type="checkbox" ${ingredient.show_detail ? 'checked' : ''} 
+                                   onchange="updateIngredientTable(${index}, 'show_detail', this.checked)">
+                        </td>
+                        <td>
+                            <input type="checkbox" ${ingredient.is_active !== false ? 'checked' : ''} 
+                                   onchange="updateIngredientTable(${index}, 'is_active', this.checked)">
+                        </td>
+                        <td>
+                            <input type="number" value="${ingredient.quantity || ''}" 
+                                   placeholder="0.0" step="0.001" 
+                                   onchange="updateIngredientTable(${index}, 'quantity', this.value)">
+                        </td>
+                        <td>
+                            <input type="text" value="${ingredient.unit || ''}" 
+                                   placeholder="kg"
+                                   readonly style="background: #f8f9fa;">
+                        </td>
+                        <td>
+                            <input type="number" value="${totalAmount.toFixed(3)}" 
+                                   readonly style="background: #f8f9fa;">
+                        </td>
+                        <td>
+                            <input type="number" value="${ingredient.price || ''}" 
+                                   placeholder="0"
+                                   readonly style="background: #f8f9fa;">
+                        </td>
+                        <td>
+                            <input type="number" value="${totalCost.toFixed(0)}" 
+                                   readonly style="background: #f8f9fa;">
+                        </td>
+                        <td style="text-align: left; font-size: 11px; color: #666;">
+                            ${ingredient.code || '-'}
+                        </td>
+                        <td>
+                            <button class="btn-small btn-delete" onclick="removeIngredientFromTable(${index})">
+                                삭제
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 새 메뉴 생성
+        function createNewMenu() {
+            const menuName = document.getElementById('newMenuName').value.trim();
+            const category = document.getElementById('newMenuCategory').value;
+            
+            if (!menuName) {
+                alert('메뉴명을 입력해주세요.');
+                return;
+            }
+
+            // 새 메뉴 객체 생성
+            const newRecipe = {
+                id: Date.now(), // 임시 ID
+                name: menuName,
+                category: category,
+                version: '1.0',
+                ingredients: [],
+                notes: ''
+            };
+
+            // 메뉴 목록에 추가
+            allMenus.unshift(newRecipe);
+            filteredMenus = [...allMenus];
+            
+            updateMenuCount();
+            renderMenuList();
+            
+            // 새로 생성한 메뉴 선택
+            selectMenu(newRecipe.id);
+            
+            // 입력 필드 초기화
+            document.getElementById('newMenuName').value = '';
+            document.getElementById('newMenuCategory').value = '';
+        }
+
+        // 선택된 메뉴 복사
+        function copySelectedMenu() {
+            if (!currentRecipeId) {
+                alert('복사할 메뉴를 먼저 선택해주세요.');
+                return;
+            }
+
+            const originalMenu = allMenus.find(menu => menu.id === currentRecipeId);
+            if (!originalMenu) return;
+
+            const newName = prompt(`"${originalMenu.name}"을(를) 복사합니다. 새 메뉴명을 입력하세요:`, originalMenu.name + ' (복사)');
+            if (!newName || !newName.trim()) return;
+
+            const copiedMenu = {
+                ...originalMenu,
+                id: Date.now(),
+                name: newName.trim(),
+                version: '1.0',
+                notes: `${originalMenu.name}에서 복사됨`
+            };
+
+            allMenus.unshift(copiedMenu);
+            filteredMenus = [...allMenus];
+            
+            updateMenuCount();
+            renderMenuList();
+            selectMenu(copiedMenu.id);
+            
+            alert(`"${newName}" 메뉴가 생성되었습니다.`);
+        }
+
+        // 식자재 검색 팝업 관련 변수
+        let availableIngredients = [];
+        let filteredIngredients = [];
+        let selectedIngredients = [];
+        let currentEditingIndex = -1;
+        
+        // 식자재 추가 - 검색 팝업 열기
+        function addIngredient() {
+            currentEditingIndex = -1; // 새 재료 추가
+            openIngredientSearchPopup();
+        }
+        
+        // 식자재 검색 팝업 열기
+        async function openIngredientSearchPopup() {
+            window.currentReplaceIndex = null; // 교체 모드가 아님
+            // 식자재 데이터 로드
+            await loadAvailableIngredients();
+            
+            // 팝업 표시
+            document.getElementById('ingredientSearchPopup').classList.add('active');
+            
+            // 검색 입력 필드에 포커스
+            document.getElementById('ingredientSearchInput').focus();
+        }
+
+        // 식자재 교체를 위한 검색 팝업 열기
+        async function openIngredientSearchForReplace(index) {
+            window.currentReplaceIndex = index; // 교체할 식자재의 인덱스 저장
+            // 식자재 데이터 로드
+            await loadAvailableIngredients();
+            
+            // 팝업 표시
+            document.getElementById('ingredientSearchPopup').classList.add('active');
+            
+            // 검색 입력 필드에 포커스
+            document.getElementById('ingredientSearchInput').focus();
+        }
+        
+        // 사용 가능한 식자재 및 공급업체 로드
+        async function loadAvailableIngredients() {
+            try {
+                // 식자재 목록 로드
+                const ingredientsResponse = await fetch('/api/ingredients');
+                availableIngredients = await ingredientsResponse.json();
+                filteredIngredients = [...availableIngredients];
+                
+                // 공급업체 목록 로드 및 필터 업데이트
+                const suppliersResponse = await fetch('/api/suppliers');
+                const suppliers = await suppliersResponse.json();
+                
+                const supplierFilter = document.getElementById('supplierFilter');
+                supplierFilter.innerHTML = '<option value="">전체 업체</option>' + 
+                    suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                
+                updateIngredientSearchResults();
+            } catch (error) {
+                console.error('식자재 로드 실패:', error);
+                availableIngredients = [];
+                filteredIngredients = [];
+            }
+        }
+        
+        // 식자재 검색
+        function searchIngredients() {
+            const searchTerm = document.getElementById('ingredientSearchInput').value.toLowerCase();
+            const supplierFilter = document.getElementById('supplierFilter').value;
+            
+            filteredIngredients = availableIngredients.filter(ingredient => {
+                const matchesSearch = !searchTerm || 
+                    ingredient.name.toLowerCase().includes(searchTerm) || 
+                    (ingredient.code && ingredient.code.toLowerCase().includes(searchTerm));
+                const matchesSupplier = !supplierFilter || ingredient.supplier_id == supplierFilter;
+                return matchesSearch && matchesSupplier;
+            });
+            
+            updateIngredientSearchResults();
+        }
+        
+        // 검색 결과 업데이트
+        function updateIngredientSearchResults() {
+            const tbody = document.getElementById('ingredientSearchResults');
+            const stats = document.getElementById('searchStats');
+            
+            // 판매가 낮은 순으로 정렬
+            filteredIngredients.sort((a, b) => {
+                const priceA = parseFloat(a.selling_price) || 999999;
+                const priceB = parseFloat(b.selling_price) || 999999;
+                return priceA - priceB;
+            });
+            
+            // 통계 업데이트
+            stats.textContent = `총 ${filteredIngredients.length}개의 식자재가 검색되었습니다. (판매가 낮은 순)`;
+            
+            if (filteredIngredients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+                            검색 결과가 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = filteredIngredients.map(ingredient => `
+                <tr class="ingredient-row" onclick="selectIngredientForAdd(${ingredient.id})" data-ingredient-id="${ingredient.id}">
+                    <td style="font-size: 11px;">${ingredient.code || '-'}</td>
+                    <td style="text-align: left;">
+                        <div style="font-weight: bold; font-size: 12px;">${ingredient.name}</div>
+                        ${ingredient.allergy_codes ? `<div style="color: #e74c3c; font-size: 10px;">알레르기: ${ingredient.allergy_codes}</div>` : ''}
+                    </td>
+                    <td style="font-size: 11px;">${ingredient.base_unit || 'kg'}</td>
+                    <td style="font-size: 12px; color: #6c757d;">${ingredient.unit_price ? ingredient.unit_price.toLocaleString() + '원' : '-'}</td>
+                    <td style="font-weight: bold; color: #2c5aa0; font-size: 12px;">${ingredient.selling_price ? ingredient.selling_price.toLocaleString() + '원' : '-'}</td>
+                    <td style="text-align: left;">
+                        <div style="font-weight: bold; font-size: 11px;">${ingredient.supplier_name || '미지정'}</div>
+                    </td>
+                    <td style="font-size: 11px; color: #e74c3c;">
+                        ${(() => {
+                            if (!ingredient.preorder_date) return '-';
+                            const orderDate = new Date(ingredient.preorder_date);
+                            const today = new Date();
+                            const diffDays = Math.ceil((orderDate - today) / (1000 * 60 * 60 * 24)) + 1;
+                            return diffDays > 0 ? '+' + diffDays + '일' : '+1일';
+                        })()}
+                    </td>
+                    <td style="font-size: 11px;">
+                        ${ingredient.moq ? `${ingredient.moq}${ingredient.base_unit || 'kg'}` : '-'}
+                    </td>
+                    <td>
+                        <input type="number" value="1" min="0.001" step="0.001" 
+                               onclick="event.stopPropagation()" 
+                               data-quantity="${ingredient.id}" 
+                               style="width: 40px; padding: 1px; text-align: center; font-size: 11px;">
+                    </td>
+                    <td style="text-align: left; font-size: 11px;">
+                        ${ingredient.delivery_schedule ? `<div style="color: #28a745;">${ingredient.delivery_schedule}</div>` : '<div style="color: #6c757d;">정보없음</div>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 식자재 선택
+        function selectIngredientForAdd(ingredientId) {
+            // 선택 상태 토글
+            const row = document.querySelector(`tr[data-ingredient-id="${ingredientId}"]`);
+            const isSelected = row.classList.contains('selected');
+            
+            if (isSelected) {
+                row.classList.remove('selected');
+                selectedIngredients = selectedIngredients.filter(id => id !== ingredientId);
+            } else {
+                row.classList.add('selected');
+                selectedIngredients.push(ingredientId);
+            }
+            
+            // 추가 버튼 활성화/비활성화
+            const addButton = document.getElementById('addSelectedIngredientsBtn');
+            addButton.disabled = selectedIngredients.length === 0;
+        }
+        
+        // 선택된 식자재 추가
+        function addSelectedIngredients() {
+            if (selectedIngredients.length === 0) return;
+            
+            const ingredientsList = document.getElementById('ingredientsList');
+            
+            // 교체 모드인지 확인
+            if (window.currentReplaceIndex !== null && window.currentReplaceIndex !== undefined) {
+                // 교체 모드: 하나의 식자재만 선택되었다고 가정
+                const ingredientId = selectedIngredients[0];
+                const ingredient = availableIngredients.find(ing => ing.id === ingredientId);
+                const quantityInput = document.querySelector(`input[data-quantity="${ingredientId}"]`);
+                const quantity = parseFloat(quantityInput.value) || 1;
+                
+                if (ingredient) {
+                    replaceIngredient(window.currentReplaceIndex, ingredient, quantity);
+                }
+                
+                closeIngredientSearchPopup();
+                return;
+            }
+            
+            // 빈 메시지가 있다면 제거
+            const emptyMessage = ingredientsList.querySelector('td[colspan="13"]');
+            if (emptyMessage) {
+                emptyMessage.parentElement.remove();
+            }
+            
+            selectedIngredients.forEach(ingredientId => {
+                const ingredient = availableIngredients.find(ing => ing.id === ingredientId);
+                const quantityInput = document.querySelector(`input[data-quantity="${ingredientId}"]`);
+                const quantity = parseFloat(quantityInput.value) || 1;
+                
+                if (ingredient) {
+                    const currentRows = Array.from(ingredientsList.querySelectorAll('tr[data-index]'));
+                    const newIndex = currentRows.length;
+                    
+                    // 현재 레시피 데이터에 추가
+                    if (!currentRecipeData.ingredients) {
+                        currentRecipeData.ingredients = [];
+                    }
+                    
+                    currentRecipeData.ingredients.push({
+                        id: ingredient.id,
+                        name: ingredient.name,
+                        code: ingredient.code,
+                        quantity: quantity,
+                        unit: ingredient.base_unit,
+                        price: ingredient.selling_price || ingredient.price,
+                        supplier_id: ingredient.supplier_id,
+                        supplier_name: ingredient.supplier_name,
+                        unit_in_kg: 1, // 기본값
+                        is_basic: false,
+                        show_detail: false,
+                        is_active: true
+                    });
+                    
+                    const totalAmount = quantity * 1; // unit_in_kg 기본값 1
+                    const totalCost = totalAmount * (ingredient.selling_price || ingredient.price || 0);
+                    
+                    const newIngredientHtml = `
+                        <tr data-index="${newIndex}">
+                            <td>${newIndex + 1}</td>
+                            <td style="position: relative;">
+                                <input type="text" value="${ingredient.name}" 
+                                       class="ingredient-name-input"
+                                       readonly style="background: #f8f9fa; padding-right: 25px;">
+                                <button class="ingredient-search-btn" onclick="openIngredientSearchForReplace(${newIndex})" 
+                                        style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); 
+                                               background: #667eea; color: white; border: none; width: 20px; height: 20px; 
+                                               border-radius: 3px; font-size: 12px; cursor: pointer;"
+                                        title="식자재 변경">🔍</button>
+                            </td>
+                            <td>
+                                <input type="text" value="${ingredient.code || ingredient.ingredient_code || ''}" 
+                                       style="font-size: 11px; text-align: center; background: #f8f9fa;"
+                                       readonly>
+                            </td>
+                            <td>
+                                <input type="text" value="${ingredient.supplier_name || ''}" 
+                                       style="font-size: 10px; text-align: center; background: #f8f9fa;"
+                                       readonly>
+                            </td>
+                            <td>
+                                <input type="checkbox" onchange="updateIngredientTable(${newIndex}, 'is_basic', this.checked)">
+                            </td>
+                            <td>
+                                <input type="checkbox" onchange="updateIngredientTable(${newIndex}, 'show_detail', this.checked)">
+                            </td>
+                            <td>
+                                <input type="checkbox" checked onchange="updateIngredientTable(${newIndex}, 'is_active', this.checked)">
+                            </td>
+                            <td>
+                                <input type="number" value="${quantity}" step="0.001" 
+                                       onchange="updateIngredientTable(${newIndex}, 'quantity', this.value)">
+                            </td>
+                            <td>
+                                <input type="text" value="${ingredient.base_unit || 'kg'}"
+                                       readonly style="background: #f8f9fa;">
+                            </td>
+                            <td>
+                                <input type="number" value="${totalAmount.toFixed(3)}" readonly style="background: #f8f9fa;">
+                            </td>
+                            <td>
+                                <input type="number" value="${ingredient.selling_price || ingredient.price || ''}"
+                                       readonly style="background: #f8f9fa;">
+                            </td>
+                            <td>
+                                <input type="number" value="${totalCost.toFixed(0)}" readonly style="background: #f8f9fa;">
+                            </td>
+                            <td style="text-align: left; font-size: 11px; color: #666;">
+                                -
+                            </td>
+                            <td>
+                                <button class="btn-small btn-delete" onclick="removeIngredientFromTable(${newIndex})">
+                                    삭제
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    
+                    ingredientsList.insertAdjacentHTML('beforeend', newIngredientHtml);
+                }
+            });
+            
+            // 팝업 닫기
+            closeIngredientSearchPopup();
+        }
+        
+        // 기존 식자재 교체
+        function replaceIngredient(index, newIngredient, quantity) {
+            // 데이터 업데이트
+            if (!currentRecipeData.ingredients) {
+                currentRecipeData.ingredients = [];
+            }
+            
+            // 기존 1인분량 유지 (사용자가 입력한 값)
+            const existingQuantity = currentRecipeData.ingredients[index]?.quantity || quantity;
+            
+            currentRecipeData.ingredients[index] = {
+                id: newIngredient.id,
+                name: newIngredient.name,
+                code: newIngredient.code || newIngredient.ingredient_code,
+                quantity: existingQuantity,
+                unit: newIngredient.base_unit,
+                price: newIngredient.selling_price || newIngredient.price,
+                supplier_id: newIngredient.supplier_id,
+                supplier_name: newIngredient.supplier_name,
+                unit_in_kg: 1,
+                is_basic: currentRecipeData.ingredients[index]?.is_basic || false,
+                show_detail: currentRecipeData.ingredients[index]?.show_detail || false,
+                is_active: currentRecipeData.ingredients[index]?.is_active !== false
+            };
+            
+            // UI 업데이트: 전체 테이블 다시 렌더링
+            const ingredientsList = document.getElementById('ingredientsList');
+            ingredientsList.innerHTML = renderIngredientsTable(currentRecipeData.ingredients);
+            
+            // 인덱스 재조정
+            reindexIngredients();
+            
+            // 총 금액 재계산
+            calculateRecipeTotal();
+        }
+
+        // 식자재 검색 팝업 닫기
+        function closeIngredientSearchPopup() {
+            document.getElementById('ingredientSearchPopup').classList.remove('active');
+            // 교체 모드 초기화
+            window.currentReplaceIndex = null;
+            // 선택 상태 초기화
+            selectedIngredients = [];
+            document.querySelectorAll('.ingredient-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            // 검색 필드 초기화
+            document.getElementById('ingredientSearchInput').value = '';
+            document.getElementById('supplierFilter').value = '';
+        }
+
+        // 테이블 형태 식재료 업데이트
+        function updateIngredientTable(index, field, value) {
+            // readonly 필드는 업데이트하지 않음
+            if (field === 'name' || field === 'code' || field === 'supplier_name' || field === 'price' || field === 'unit') {
+                return;
+            }
+            
+            // 현재 식재료 데이터 업데이트
+            if (!currentRecipeData.ingredients) {
+                currentRecipeData.ingredients = [];
+            }
+            
+            if (!currentRecipeData.ingredients[index]) {
+                currentRecipeData.ingredients[index] = {};
+            }
+            
+            currentRecipeData.ingredients[index][field] = value;
+            
+            // 발주량과 금액 자동 계산
+            if (field === 'quantity' || field === 'unit_in_kg') {
+                updateCalculatedFields(index);
+            }
+        }
+
+        // 계산된 필드 업데이트
+        function updateCalculatedFields(index) {
+            const row = document.querySelector(`tr[data-index="${index}"]`);
+            if (!row) return;
+            
+            const ingredient = currentRecipeData.ingredients[index];
+            const quantity = parseFloat(ingredient.quantity) || 0;
+            const unitInKg = parseFloat(ingredient.unit_in_kg) || 1;
+            const price = parseFloat(ingredient.price) || 0;
+            
+            const totalAmount = quantity * unitInKg;
+            const totalCost = totalAmount * price;
+            
+            // 발주량 업데이트 (10번째 컬럼)
+            const amountInput = row.querySelector('td:nth-child(10) input');
+            if (amountInput) {
+                amountInput.value = totalAmount.toFixed(3);
+            }
+            
+            // 금액 업데이트 (12번째 컬럼)
+            const costInput = row.querySelector('td:nth-child(12) input');
+            if (costInput) {
+                costInput.value = totalCost.toFixed(0);
+            }
+            
+            // 디바운스 적용하여 불필요한 재계산 방지
+            clearTimeout(window.recalculateTimeout);
+            window.recalculateTimeout = setTimeout(() => {
+                calculateRecipeTotal();
+            }, 50);
+        }
+
+        // 테이블에서 식재료 제거
+        function removeIngredientFromTable(index) {
+            const row = document.querySelector(`tr[data-index="${index}"]`);
+            if (row) {
+                row.remove();
+                
+                // 배열에서 제거
+                if (currentRecipeData.ingredients && currentRecipeData.ingredients[index]) {
+                    currentRecipeData.ingredients.splice(index, 1);
+                }
+                
+                // 인덱스 재정렬
+                reindexIngredientsTable();
+                
+                // 합계 재계산 (디바운스 적용)
+                clearTimeout(window.recalculateTimeout);
+                window.recalculateTimeout = setTimeout(() => {
+                    calculateRecipeTotal();
+                }, 50);
+            }
+        }
+
+        // 테이블 인덱스 재정렬
+        function reindexIngredientsTable() {
+            const rows = document.querySelectorAll('tr[data-index]');
+            rows.forEach((row, newIndex) => {
+                row.setAttribute('data-index', newIndex);
+                row.querySelector('td:first-child').textContent = newIndex + 1;
+                
+                // 이벤트 핸들러 업데이트
+                const inputs = row.querySelectorAll('input, button');
+                inputs.forEach(input => {
+                    const onchangeAttr = input.getAttribute('onchange');
+                    const onclickAttr = input.getAttribute('onclick');
+                    
+                    if (onchangeAttr) {
+                        input.setAttribute('onchange', onchangeAttr.replace(/\d+/, newIndex));
+                    }
+                    if (onclickAttr) {
+                        input.setAttribute('onclick', onclickAttr.replace(/\d+/, newIndex));
+                    }
+                });
+            });
+        }
+
+        // 레시피 단가 합계 계산 (최적화된 버전)
+        function calculateRecipeTotal() {
+            try {
+                let total = 0;
+                const rows = document.querySelectorAll('.ingredients-table tbody tr[data-index]');
+                
+                // 비어있는 테이블이면 0 반환
+                if (rows.length === 0) {
+                    updateTotalDisplays(0);
+                    return 0;
+                }
+                
+                // 각 행의 금액 입력 필드에서 값 추출 (12번째 컬럼이 금액)
+                rows.forEach(row => {
+                    const costInput = row.querySelector('td:nth-child(12) input[type="number"]');
+                    if (costInput && costInput.value && !isNaN(costInput.value)) {
+                        total += parseFloat(costInput.value);
+                    }
+                });
+                
+                updateTotalDisplays(total);
+                return total;
+            } catch (error) {
+                console.error('합계 계산 오류:', error);
+                updateTotalDisplays(0);
+                return 0;
+            }
+        }
+        
+        // 합계 표시 업데이트 (분리된 함수)
+        function updateTotalDisplays(total) {
+            const formattedTotal = total.toLocaleString() + '원';
+            
+            // 상단 합계 표시 업데이트
+            const topTotalElement = document.getElementById('recipeTotalAmountTop');
+            if (topTotalElement) {
+                topTotalElement.textContent = formattedTotal;
+            }
+            
+            // 하단 합계 표시 업데이트
+            const bottomTotalElement = document.getElementById('recipeTotalAmount');
+            if (bottomTotalElement) {
+                bottomTotalElement.textContent = formattedTotal;
+            }
+            
+            // 좌측 메뉴 목록의 단가 업데이트
+            if (currentRecipeId) {
+                const menuPriceElement = document.getElementById(`menuPrice_${currentRecipeId}`);
+                if (menuPriceElement) {
+                    menuPriceElement.textContent = formattedTotal;
+                }
+            }
+        }
+        
+        // 식자재 정보 업데이트
+        function updateIngredient(index, field, value) {
+            // 실제 구현에서는 여기서 레시피 데이터를 업데이트합니다
+            console.log(`Ingredient ${index} ${field} updated to:`, value);
+        }
+
+        // 식자재 삭제
+        function removeIngredient(index) {
+            const ingredient = document.querySelector(`[data-index="${index}"]`);
+            if (ingredient) {
+                ingredient.remove();
+            }
+        }
+
+        // 레시피 저장
+        async function saveRecipe() {
+            if (!currentRecipeId) {
+                alert('저장할 레시피를 선택해주세요.');
+                return;
+            }
+
+            const recipeData = {
+                id: currentRecipeId,
+                name: document.getElementById('recipeName').value,
+                category: document.getElementById('recipeCategory').value,
+                version: document.getElementById('recipeVersion').value,
+                evaluation_score: document.getElementById('recipeScore').value,
+                notes: document.getElementById('recipeNotes').value,
+                ingredients: collectIngredients()
+            };
+
+            try {
+                // 여기서 실제 API 호출을 합니다
+                console.log('Saving recipe:', recipeData);
+                alert('레시피가 저장되었습니다.');
+                
+                // 메뉴 목록 새로고침
+                loadMenus();
+            } catch (error) {
+                console.error('저장 실패:', error);
+                alert('저장에 실패했습니다.');
+            }
+        }
+
+        // 식자재 데이터 수집
+        function collectIngredients() {
+            const ingredients = [];
+            document.querySelectorAll('.ingredient-item').forEach(item => {
+                const inputs = item.querySelectorAll('input');
+                if (inputs.length >= 3 && inputs[0].value.trim()) {
+                    ingredients.push({
+                        name: inputs[0].value.trim(),
+                        quantity: parseFloat(inputs[1].value) || 0,
+                        unit: inputs[2].value.trim()
+                    });
+                }
+            });
+            return ingredients;
+        }
+
+        // 레시피 초기화
+        function resetRecipe() {
+            if (currentRecipeId && confirm('현재 수정사항이 모두 초기화됩니다. 계속하시겠습니까?')) {
+                loadRecipeDetail(currentRecipeId);
+            }
+        }
+
+        // 복사 모달 표시
+        function showCopyRecipeModal() {
+            if (!currentRecipeId || !currentRecipeData) {
+                alert('복사할 레시피를 선택해주세요.');
+                return;
+            }
+            
+            const currentTotal = calculateRecipeTotal();
+            const ingredientCount = currentRecipeData.ingredients ? currentRecipeData.ingredients.length : 0;
+            
+            const confirmMessage = `
+"복사할 레시피 정보:
+
+메뉴명: ${currentRecipeData.name}
+버전: ${currentRecipeData.version || '1.0'}
+식재료 개수: ${ingredientCount}개
+예상 단가: ${currentTotal.toLocaleString()}원
+
+이 레시피를 복사하시겠습니까?"`;
+            
+            if (confirm(confirmMessage)) {
+                const newName = prompt('새 메뉴명을 입력하세요:', currentRecipeData.name + ' (복사)');
+                if (newName && newName.trim()) {
+                    performRecipeCopy(newName.trim());
+                }
+            }
+        }
+        
+        // 레시피 복사 실행
+        function performRecipeCopy(newName) {
+            const copiedRecipe = {
+                ...currentRecipeData,
+                id: Date.now(),
+                name: newName,
+                version: '1.0',
+                notes: `"${currentRecipeData.name}"에서 복사됨 (${new Date().toLocaleDateString('ko-KR')})`
+            };
+            
+            allMenus.unshift(copiedRecipe);
+            filteredMenus = [...allMenus];
+            
+            updateMenuCount();
+            renderMenuList();
+            selectMenu(copiedRecipe.id);
+            
+            alert(`""메뉴가 생성되었습니다.`);
+        }
+        
+        // 레시피 복사
+        function copyRecipe() {
+            showCopyRecipeModal();
+        }
+
+        // 전체보기 기능
+        function viewAllMenus() {
+            // 검색어 초기화
+            document.getElementById('searchMenuName').value = '';
+            // 분류 필터 초기화
+            document.getElementById('categoryFilter').value = '';
+            // 전체 메뉴 표시
+            filteredMenus = [...allMenus];
+            updateMenuCount();
+            renderMenuList();
+            
+            // 사용자에게 피드백 제공
+            const button = document.querySelector('.view-all-btn');
+            const originalText = button.innerHTML;
+            button.innerHTML = '✅ 전체표시됨';
+            button.style.background = '#007bff';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '#28a745';
+            }, 1500);
+        }
+
+        // 이미지 업로드 관련 함수들
+        function triggerImageUpload() {
+            document.getElementById('imageInput').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 파일 크기 검사 (5MB 제한)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('파일 크기는 5MB 이하여야 합니다.');
+                    return;
+                }
+
+                // 이미지 미리보기
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageContainer = document.getElementById('recipeImage');
+                    imageContainer.innerHTML = `
+                        <img src="${e.target.result}" alt="레시피 이미지" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                        <button type="button" class="remove-image-btn" onclick="removeImage()" title="이미지 제거">❌</button>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            const imageContainer = document.getElementById('recipeImage');
+            imageContainer.innerHTML = '<span class="image-placeholder-text">📷 이미지 없음</span>';
+            document.getElementById('imageInput').value = '';
+        }
+
+        // 컬러 관련 함수들
+        function updateColorPreview() {
+            const colorInput = document.getElementById('recipeColor');
+            const colorPreview = document.getElementById('colorPreview');
+            const colorValue = colorInput.value;
+            
+            colorPreview.style.setProperty('--preview-color', colorValue);
+            colorPreview.style.background = colorValue;
+            colorPreview.querySelector('.color-label').textContent = getColorName(colorValue);
+        }
+
+        function resetColor() {
+            const defaultColor = '#667eea';
+            document.getElementById('recipeColor').value = defaultColor;
+            updateColorPreview();
+        }
+
+        function getColorName(hex) {
+            const colorMap = {
+                '#667eea': '기본 보라',
+                '#ff6b6b': '빨강',
+                '#4ecdc4': '청록',
+                '#45b7d1': '파랑',
+                '#96ceb4': '연녹',
+                '#feca57': '노랑',
+                '#ff9ff3': '핑크',
+                '#54a0ff': '하늘',
+                '#5f27cd': '진보라',
+                '#00d2d3': '민트'
+            };
+            return colorMap[hex.toLowerCase()] || hex.toUpperCase();
+        }
+
+        // 식재료 일괄 대체 모달 열기
+        function openBulkReplaceModal() {
+            document.getElementById('bulkReplaceModal').style.display = 'flex';
+            document.getElementById('previewSection').style.display = 'none';
+        }
+
+        // 식재료 일괄 대체 모달 닫기
+        function closeBulkReplaceModal() {
+            document.getElementById('bulkReplaceModal').style.display = 'none';
+            // 폼 초기화
+            document.getElementById('oldIngredientCode').value = '';
+            document.getElementById('oldIngredientName').value = '';
+            document.getElementById('newIngredientCode').value = '';
+            document.getElementById('newIngredientName').value = '';
+            document.getElementById('replaceReason').value = '발주불가로 인한 대체';
+            document.getElementById('previewSection').style.display = 'none';
+        }
+
+        // 미리보기 실행
+        async function previewBulkReplace() {
+            const oldCode = document.getElementById('oldIngredientCode').value.trim();
+            const newCode = document.getElementById('newIngredientCode').value.trim();
+            const newName = document.getElementById('newIngredientName').value.trim();
+            
+            if (!oldCode || !newCode || !newName) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            try {
+                // 임시로 영향받는 레시피 목록 표시 (실제로는 API 호출 필요)
+                const previewInfo = document.getElementById('previewInfo');
+                const affectedRecipes = document.getElementById('affectedRecipes');
+                
+                previewInfo.innerHTML = `
+                    <strong>⚠️ 주의사항</strong><br>
+                    식재료 코드 '${oldCode}'를 '${newCode}'로 대체합니다.<br>
+                    이 작업은 되돌릴 수 없으니 신중히 검토해주세요.
+                `;
+                
+                // API 호출로 실제 영향받는 레시피 조회
+                const response = await fetch('/api/preview_bulk_replace', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        old_ingredient_code: oldCode,
+                        new_ingredient_code: newCode,
+                        new_ingredient_name: newName,
+                        reason: '발주불가로 인한 대체'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    previewInfo.innerHTML = `
+                        <div class="preview-summary">
+                            <strong>⚠️ 주의사항</strong><br>
+                            식재료 코드 '<span style="background-color: #ffebee; padding: 2px 4px; border-radius: 3px; color: #c62828;">${oldCode}</span>'를 '<span style="background-color: #e8f5e8; padding: 2px 4px; border-radius: 3px; color: #2e7d32;">${newCode}</span>'로 대체합니다.<br>
+                            이 작업은 되돌릴 수 없으니 신중히 검토해주세요.<br><br>
+                            <strong>📈 영향 범위:</strong> ${result.message}
+                        </div>
+                    `;
+                    
+                    if (result.affected_count > 0) {
+                        let recipeListHtml = '<div class="affected-recipes-list">';
+                        recipeListHtml += '<h4 style="margin-top: 15px; color: #1976d2;">📋 영향받는 레시피 목록:</h4>';
+                        
+                        result.affected_recipes.forEach((recipe, index) => {
+                            recipeListHtml += `
+                                <div class="recipe-item" style="padding: 8px; margin: 5px 0; background-color: #f8f9fa; border-left: 3px solid #1976d2; border-radius: 3px;">
+                                    <span style="font-weight: bold; color: #1976d2;">${index + 1}.</span>
+                                    <span style="font-weight: 500; margin-left: 8px;">${recipe.recipe_name}</span>
+                                    <span style="color: #666; margin-left: 8px; font-size: 0.9em;">(사용량: ${recipe.amount}${recipe.unit})</span>
+                                </div>
+                            `;
+                        });
+                        
+                        recipeListHtml += '</div>';
+                        affectedRecipes.innerHTML = recipeListHtml;
+                    } else {
+                        affectedRecipes.innerHTML = '<div style="text-align: center; padding: 20px; color: #4caf50; font-weight: bold;">✅ 영향받는 레시피가 없습니다.</div>';
+                    }
+                    
+                } else {
+                    previewInfo.innerHTML = `<div style="color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 5px;">❌ 오류: ${result.message}</div>`;
+                    affectedRecipes.innerHTML = '';
+                }
+                
+                document.getElementById('previewSection').style.display = 'block';
+                
+            } catch (error) {
+                console.error('미리보기 실패:', error);
+                document.getElementById('previewInfo').innerHTML = '<div style="color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 5px;">❌ 미리보기 조회 중 오류가 발생했습니다.</div>';
+                document.getElementById('affectedRecipes').innerHTML = '';
+                document.getElementById('previewSection').style.display = 'block';
+            }
+        }
+
+        // 일괄 대체 실행
+        async function executeBulkReplace() {
+            const oldCode = document.getElementById('oldIngredientCode').value.trim();
+            const newCode = document.getElementById('newIngredientCode').value.trim();
+            const newName = document.getElementById('newIngredientName').value.trim();
+            const reason = document.getElementById('replaceReason').value;
+            
+            if (!oldCode || !newCode || !newName) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            if (!confirm('정말로 식재료 일괄 대체를 실행하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/bulk_replace_ingredient', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        old_ingredient_code: oldCode,
+                        new_ingredient_code: newCode,
+                        new_ingredient_name: newName,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ 식재료 일괄 대체 완료!\n${result.message}\n영향받은 레시피: ${result.affected_count}개`);
+                    closeBulkReplaceModal();
+                    
+                    // 현재 화면 새로고침하여 변경사항 반영
+                    if (currentRecipeId) {
+                        loadRecipe(currentRecipeId);
+                    }
+                } else {
+                    alert(`❌ 식재료 일괄 대체 실패:\n${result.message}`);
+                }
+                
+            } catch (error) {
+                console.error('일괄 대체 실패:', error);
+                alert('식재료 일괄 대체 중 오류가 발생했습니다.');
+            }
+        }
+    </script>
+
+    <!-- 식재료 일괄 대체 모달 -->
+    <div class="modal-overlay" id="bulkReplaceModal" style="display: none;">
+        <div class="bulk-replace-modal">
+            <div class="modal-header">
+                <h3>🔄 식재료 일괄 대체</h3>
+                <button class="modal-close-btn" onclick="closeBulkReplaceModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div class="bulk-replace-form">
+                    <div class="form-section">
+                        <h4>대체할 식재료 정보</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="oldIngredientCode">기존 식재료 코드:</label>
+                                <input type="text" id="oldIngredientCode" placeholder="예: F318494" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="oldIngredientName">기존 식재료명:</label>
+                                <input type="text" id="oldIngredientName" placeholder="자동 조회됨" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>새로운 식재료 정보</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newIngredientCode">새 식재료 코드:</label>
+                                <input type="text" id="newIngredientCode" placeholder="예: F318500" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newIngredientName">새 식재료명:</label>
+                                <input type="text" id="newIngredientName" placeholder="예: (사조푸디스트)김치(포기김치)1KG" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label for="replaceReason">대체 사유:</label>
+                            <select id="replaceReason">
+                                <option value="발주불가로 인한 대체">발주불가로 인한 대체</option>
+                                <option value="가격 변동으로 인한 대체">가격 변동으로 인한 대체</option>
+                                <option value="품질 개선으로 인한 대체">품질 개선으로 인한 대체</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section" id="previewSection" style="display: none;">
+                        <h4>영향받는 레시피</h4>
+                        <div class="preview-info" id="previewInfo"></div>
+                        <div class="affected-recipes" id="affectedRecipes"></div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="previewBulkReplace()">미리보기</button>
+                        <button class="btn btn-primary" onclick="executeBulkReplace()">일괄 대체 실행</button>
+                        <button class="btn btn-default" onclick="closeBulkReplaceModal()">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .bulk-replace-modal {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .bulk-replace-form {
+            padding: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .form-section h4 {
+            margin-bottom: 15px;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .preview-section {
+            background: #fff;
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .preview-info {
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .affected-recipes {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+        }
+
+        .recipe-item {
+            padding: 5px 10px;
+            margin: 3px 0;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .modal-actions {
+            padding: 20px 0 0 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-default {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-default:hover {
+            background: #d1d5db;
+        }
+    </style>
+        </div> <!-- main-content 종료 -->
+    </div> <!-- container 종료 -->
+</body>
+</html>
