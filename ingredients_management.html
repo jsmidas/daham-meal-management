@@ -664,16 +664,17 @@
             <div class="logo">
                 <h1>테스트푸드 급식관리</h1>
             </div>
-            <a href="/" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
-            <a href="/meal-plan" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
-            <a href="/meal-count" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
-            <a href="/ingredients" class="nav-item active"><i class="fas fa-carrot"></i>식자재 관리</a>
-            <a href="/ordering" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
-            <a href="/receiving" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="/dashboard.html" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="/menu_recipe_management.html" class="nav-item"><i class="fas fa-utensils"></i>메뉴/레시피 관리</a>
+            <a href="/meal_plan_management.html" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="/meal_count_management.html" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="/ingredients_management.html" class="nav-item active"><i class="fas fa-carrot"></i>식자재 관리</a>
+            <a href="/ordering_management.html" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="/receiving_management.html" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
             <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
-            <a href="/preprocessing-demo" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
-            <a href="/cooking" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
-            <a href="/portion" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <a href="/preprocessing_management.html" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="/cooking_instruction.html" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="/portioning.html" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
             <div class="nav-divider"></div>
             <a href="/admin_dashboard.html" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
         </nav>
@@ -935,6 +936,8 @@
         let isSearching = false;
         let currentSort = 'price_per_unit'; // 기본 정렬: 단위당 단가
         let sortDirection = 'asc'; // 오름차순
+        let isLoadingMore = false; // 추가 로딩 중 플래그
+        let totalDataCount = 0; // 실제 DB의 전체 데이터 수
         
         // 페이지 로드 시 식자재 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
@@ -980,21 +983,26 @@
             return dateString;
         }
 
-        async function loadIngredients() {
+        async function loadIngredients(pageNum = 1, appendData = false) {
             try {
-                // 필터링 파라미터 가져오기 (기본값을 false로 변경하여 모든 데이터 표시)
+                if (!appendData) {
+                    // 초기 로딩 시 로딩 메시지 표시
+                    document.getElementById('loadingDiv').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 식자재 목록을 불러오는 중...';
+                    document.getElementById('loadingDiv').style.display = 'block';
+                }
+
+                // 필터링 파라미터 가져오기
                 const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked ?? false;
                 const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked ?? false;
-                
-                // 새로운 /ingredients API 사용 - 최대 120,000개 데이터 가져오기
-                const response = await fetch('http://127.0.0.1:8010/ingredients?page=1&per_page=120000');
+
+                // 페이지당 10,000개씩 가져오기
+                const perPageLoad = 10000;
+                const response = await fetch(`http://127.0.0.1:8010/ingredients?page=${pageNum}&per_page=${perPageLoad}`);
                 const data = await response.json();
                 
-                // 전역 변수 allIngredients에 저장
-                allIngredients = [];
                 if (data.success) {
-                    // API 응답의 영어 필드를 한글로 매핑 + 원본 필드도 모두 보존
-                    allIngredients = (data.ingredients || []).map(item => ({
+                    // API 응답의 영어 필드를 한글로 매핑
+                    const newIngredients = (data.ingredients || []).map(item => ({
                         // 한글 필드명
                         '분류(대분류)': item.category,
                         '기본식자재(세분류)': item.sub_category,
@@ -1023,86 +1031,78 @@
                         '수정일': formatDate(item.updated_at),
 
                         // 영어 필드명도 보존 (엑셀 다운로드용)
-                        ...item
+                        // 원본 데이터 별도 프로퍼티로 저장
+                        _original: item
                     }));
 
-                    // 디버깅: 첫 번째 아이템 확인
-                    if (allIngredients.length > 0) {
-                        console.log('첫 번째 식자재 데이터:', allIngredients[0]);
-                        console.log('전체 데이터 수:', allIngredients.length);
+                    if (appendData) {
+                        // 추가 로딩인 경우 기존 데이터에 병합
+                        allIngredients = allIngredients.concat(newIngredients);
+                    } else {
+                        // 초기 로딩인 경우 새로 설정
+                        allIngredients = newIngredients;
+                        totalDataCount = data.total_count || newIngredients.length;
+                    }
+
+                    // 전체 데이터 수 업데이트
+                    totalItems = allIngredients.length;
+
+                    // 로딩 상태 표시 업데이트
+                    if (totalDataCount > allIngredients.length && !appendData) {
+                        // 아직 더 로드할 데이터가 있는 경우
+                        document.getElementById('loadingDiv').innerHTML =
+                            `<div style="background: #e8f4fd; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <i class="fas fa-info-circle"></i> ${allIngredients.length.toLocaleString()}개 로드 완료
+                                (전체: ${totalDataCount.toLocaleString()}개)
+                                <button onclick="loadMoreData()" class="btn btn-primary" style="margin-left: 10px; padding: 5px 10px;">
+                                    <i class="fas fa-download"></i> 나머지 데이터 로드
+                                </button>
+                            </div>`;
+                        document.getElementById('loadingDiv').style.display = 'block';
+                    } else if (appendData) {
+                        // 추가 로딩 완료
+                        document.getElementById('loadingDiv').innerHTML =
+                            `<div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <i class="fas fa-check-circle"></i> 전체 ${allIngredients.length.toLocaleString()}개 데이터 로드 완료!
+                            </div>`;
+                        setTimeout(() => {
+                            document.getElementById('loadingDiv').style.display = 'none';
+                        }, 3000);
+                    }
+
+                    // 더 로드할 데이터가 있고 10,000개 이상인 경우 자동으로 계속 로드
+                    if (data.ingredients && data.ingredients.length === 10000 && !appendData) {
+                        // 다음 페이지 자동 로드
+                        setTimeout(() => {
+                            loadMoreDataAutomatically(pageNum + 1);
+                        }, 100);
                     }
                 } else {
-                    // 오류시 기본 데이터 사용
-                    allIngredients = [
-                    {
-                        category: '가금류',
-                        subcategory: '기타가금류',
-                        code: '1000067464',
-                        name: '밀가루대만두,주고슈빵,150G/PAC',
-                        origin: '',
-                        calculation: '',
-                        specification: '종합빝,15CPAC',
-                        base_unit: 'Full tax',
-                        tax_free: 'D-1',
-                        selective_order: '490',
-                        purchase_price: '540',
-                        price: '삼양식품주주',
-                        supplier_name: '',
-                        memo: ''
-                    },
-                    {
-                        category: '가금류', 
-                        subcategory: '기타가금류',
-                        code: '1000067461',
-                        name: '주붕색피자,왕시중국식,우유통 284G/PAC',
-                        origin: '',
-                        calculation: '',
-                        specification: '주획,284G/PAC', 
-                        base_unit: 'Full tax',
-                        tax_free: 'D-1',
-                        selective_order: '4020',
-                        purchase_price: '4430',
-                        price: '삼양식품주주',
-                        supplier_name: '',
-                        memo: ''
-                    },
-                    {
-                        category: '뇁신거',
-                        subcategory: '과실',
-                        code: '영역자자',
-                        name: '쉐(20KG)',
-                        origin: '유',
-                        calculation: '무',
-                        specification: '20kg',
-                        base_unit: 'EA',
-                        tax_free: '유',
-                        selective_order: '2',
-                        purchase_price: '수자',
-                        price: '수자',
-                        supplier_name: '',
-                        memo: ''
+                    if (!appendData) {
+                        allIngredients = [];
                     }
-                    ];
                 }
                 
                 // 전체 데이터 저장하고 필터링 적용
                 // allIngredients는 이미 위에서 설정됨
 
-                // 초기 정렬 설정 (단위당 단가 오름차순)
-                currentSort = 'price_per_unit';
-                sortDirection = 'asc';
+                if (!appendData) {
+                    // 초기 로딩일 때만 정렬 설정 및 필터 적용
+                    currentSort = 'price_per_unit';
+                    sortDirection = 'asc';
 
-                // 필터링 적용 (필터링 내부에서 정렬도 함께 수행됨)
-                applyFilters();
-                
-                // 업체별 박스 업데이트 (API response의 supplier_stats 사용)
-                updateSuppliersGrid(data.supplier_stats || {});
+                    // 필터링 적용
+                    applyFilters();
 
-                // 필터링이 완료되면 페이지 표시
-                // applyFilters() 내부에서 displayPage()가 호출됨
+                    // 업체별 박스 업데이트
+                    updateSuppliersGrid(data.supplier_stats || {});
+                } else {
+                    // 추가 로딩일 때는 필터만 다시 적용
+                    applyFilters();
+                }
                 
             } catch (error) {
-                console.error('Error loading ingredients:', error);
+                // // console.error('Error loading ingredients:', error);
                 document.getElementById('loadingDiv').style.display = 'none';
             }
         }
@@ -1389,7 +1389,7 @@
         }
         
         function updateSuppliersGrid(supplierStats) {
-            console.log('updateSuppliersGrid called with:', supplierStats);
+            // console.log('updateSuppliersGrid called with:', supplierStats);
             
             const suppliersGrid = document.getElementById('suppliersGrid');
             suppliersGrid.innerHTML = '';
@@ -1403,7 +1403,7 @@
                 }))
                 .sort((a, b) => b.count - a.count);
             
-            console.log('Sorted suppliers:', sortedSuppliers);
+            // console.log('Sorted suppliers:', sortedSuppliers);
             
             // 상위 24개 표시
             sortedSuppliers.slice(0, 24).forEach(supplier => {
@@ -1553,7 +1553,7 @@
                     alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
                 }
             } catch (error) {
-                console.error('Error saving ingredient:', error);
+                // // console.error('Error saving ingredient:', error);
                 alert('저장 중 오류가 발생했습니다: ' + error.message);
             }
         }
@@ -1583,7 +1583,7 @@
                     alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
                 }
             } catch (error) {
-                console.error('Error deleting ingredient:', error);
+                // // console.error('Error deleting ingredient:', error);
                 alert('삭제 중 오류가 발생했습니다: ' + error.message);
             }
         }
@@ -1594,14 +1594,14 @@
             const codeSearch = document.getElementById('searchCode').value.toLowerCase().trim();
 
             // 디버깅: 검색 대상 데이터 확인
-            console.log('=== 검색 범위 디버깅 ===');
-            console.log('전체 데이터(allIngredients) 개수:', allIngredients.length);
-            console.log('현재 페이지:', currentPage);
-            console.log('페이지당 항목:', itemsPerPage);
+            // console.log('=== 검색 범위 디버깅 ===');
+            // console.log('전체 데이터(allIngredients) 개수:', allIngredients.length);
+            // console.log('현재 페이지:', currentPage);
+            // console.log('페이지당 항목:', itemsPerPage);
             const currentPageStart = (currentPage - 1) * itemsPerPage;
             const currentPageEnd = Math.min(currentPageStart + itemsPerPage, allIngredients.length);
-            console.log('현재 페이지 데이터 범위:', currentPageStart, '~', currentPageEnd);
-            console.log('현재 페이지 표시 데이터 수:', currentPageEnd - currentPageStart);
+            // console.log('현재 페이지 데이터 범위:', currentPageStart, '~', currentPageEnd);
+            // console.log('현재 페이지 표시 데이터 수:', currentPageEnd - currentPageStart);
             
             // 검색어가 하나도 없으면 전체 표시
             if (!supplierSearch && !nameSearch && !codeSearch) {
@@ -1610,10 +1610,10 @@
             }
             
             // 필터링 및 매치 점수 계산
-            console.log('검색 대상 데이터:', allIngredients);
-            console.log('검색 대상 데이터 개수:', allIngredients.length);
-            console.log('첫 번째 데이터:', allIngredients[0]);
-            console.log('1000번째 데이터(있다면):', allIngredients[999]);
+            // console.log('검색 대상 데이터:', allIngredients);
+            // console.log('검색 대상 데이터 개수:', allIngredients.length);
+            // console.log('첫 번째 데이터:', allIngredients[0]);
+            // console.log('1000번째 데이터(있다면):', allIngredients[999]);
 
             filteredIngredients = allIngredients.filter(ingredient => {
                 let match = true;
@@ -1682,8 +1682,8 @@
             });
             
             // 검색 결과 로그
-            console.log('검색 결과 개수:', filteredIngredients.length);
-            console.log('검색 결과 샘플 (처음 3개):', filteredIngredients.slice(0, 3));
+            // console.log('검색 결과 개수:', filteredIngredients.length);
+            // console.log('검색 결과 샘플 (처음 3개):', filteredIngredients.slice(0, 3));
 
             // 검색 결과를 단위당 단가로 정렬 (0원과 null 제외, 낮은 값이 위로)
             filteredIngredients.sort((a, b) => {
@@ -1841,7 +1841,7 @@
 
         // 필터 적용 함수
         function applyFilters() {
-            console.log('필터 적용 중...');
+            // console.log('필터 적용 중...');
 
             const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked || false;
             const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked || false;
@@ -1961,10 +1961,99 @@
             });
         }
 
+        // 추가 데이터 로드 함수들
+        async function loadMoreData() {
+            if (isLoadingMore) return;
+            isLoadingMore = true;
+
+            const currentLoadedCount = allIngredients.length;
+            const nextPage = Math.floor(currentLoadedCount / 10000) + 1;
+
+            document.getElementById('loadingDiv').innerHTML =
+                `<div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <i class="fas fa-spinner fa-spin"></i> 추가 데이터를 로딩 중... (${currentLoadedCount.toLocaleString()}개 로드됨)
+                </div>`;
+
+            await loadIngredients(nextPage, true);
+            isLoadingMore = false;
+        }
+
+        // 자동으로 계속 로드하는 함수
+        async function loadMoreDataAutomatically(pageNum) {
+            if (isLoadingMore) return;
+            isLoadingMore = true;
+
+            const response = await fetch(`http://127.0.0.1:8010/ingredients?page=${pageNum}&per_page=10000`);
+            const data = await response.json();
+
+            if (data.success && data.ingredients && data.ingredients.length > 0) {
+                const newIngredients = data.ingredients.map(item => ({
+                    '분류(대분류)': item.category,
+                    '기본식자재(세분류)': item.sub_category,
+                    '고유코드': item.ingredient_code,
+                    '식자재명': item.ingredient_name,
+                    '원산지': item.origin,
+                    '게시유무': item.posting_status,
+                    '규격': item.specification,
+                    '단위': item.unit,
+                    '면세': item.tax_type,
+                    '선발주일': item.delivery_days,
+                    'g당단가': item.price_per_unit,
+                    '입고가': item.purchase_price,
+                    '판매가': item.selling_price,
+                    '거래처명': item.supplier_name,
+                    '비고': item.notes,
+                    '등록일': formatDate(item.created_at),
+                    '협력업체명': item.supplier_name,
+                    '단위당 단가': item.price_per_unit,
+                    '게시여부': item.posting_status,
+                    '과/면세': item.tax_type,
+                    '사용유무': item.is_active,
+                    '생성일': formatDate(item.created_date),
+                    '생성자': item.created_by,
+                    '수정일': formatDate(item.updated_at),
+                    _original: item
+                }));
+
+                allIngredients = allIngredients.concat(newIngredients);
+                totalItems = allIngredients.length;
+
+                // 상태 업데이트
+                document.getElementById('loadingDiv').innerHTML =
+                    `<div style="background: #e8f4fd; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <i class="fas fa-spinner fa-spin"></i> 로딩 중... ${allIngredients.length.toLocaleString()}개 / ${totalDataCount.toLocaleString()}개
+                        <div style="width: 100%; background: #ddd; height: 20px; border-radius: 10px; margin-top: 5px;">
+                            <div style="width: ${(allIngredients.length/totalDataCount*100).toFixed(1)}%; background: #3498db; height: 100%; border-radius: 10px;"></div>
+                        </div>
+                    </div>`;
+
+                // 다음 페이지 계속 로드 (10,000개씩 받았으면 더 있을 가능성)
+                if (data.ingredients.length === 10000) {
+                    setTimeout(() => {
+                        loadMoreDataAutomatically(pageNum + 1);
+                    }, 50); // 짧은 딜레이로 UI 업데이트 허용
+                } else {
+                    // 모든 데이터 로드 완료
+                    document.getElementById('loadingDiv').innerHTML =
+                        `<div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                            <i class="fas fa-check-circle"></i> 전체 ${allIngredients.length.toLocaleString()}개 데이터 로드 완료!
+                        </div>`;
+                    setTimeout(() => {
+                        document.getElementById('loadingDiv').style.display = 'none';
+                    }, 3000);
+
+                    // 필터 재적용
+                    applyFilters();
+                }
+            }
+
+            isLoadingMore = false;
+        }
+
         // 모달 외부 클릭시 닫기
         window.onclick = function(event) {
             const ingredientModal = document.getElementById('ingredientModal');
-            
+
             if (event.target === ingredientModal) {
                 closeIngredientModal();
             }

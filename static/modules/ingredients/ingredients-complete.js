@@ -12,12 +12,12 @@ window.IngredientsModule = {
 
     // 모듈 초기화
     async init() {
-        console.log('📦 Complete Ingredients Module 초기화');
-        
+        // console.log('📦 Complete Ingredients Module 초기화');
+
         // 현재 페이지가 ingredients 등록 페이지인지 확인
         const currentPage = document.querySelector('.page-content:not(.hidden)');
         if (!currentPage || currentPage.id !== 'ingredients-page') {
-            console.log('📦 init: 다른 페이지에서 호출됨, 초기화 건너뜀');
+            // console.log('📦 init: 다른 페이지에서 호출됨, 초기화 건너뜀');
             return this;
         }
         
@@ -66,7 +66,7 @@ window.IngredientsModule = {
     // 식자재 목록 로드
     async loadIngredientsList() {
         try {
-            console.log('[Ingredients] 식자재 목록 로드 시작...');
+            // console.log('[Ingredients] 식자재 목록 로드 시작...');
             const response = await fetch('http://localhost:9000/api/admin/ingredients-new');
             const result = await response.json();
             const ingredients = result.ingredients || result.data || [];
@@ -75,7 +75,7 @@ window.IngredientsModule = {
             this.displayIngredients(ingredients);
             
         } catch (error) {
-            console.error('[Ingredients] 식자재 목록 로드 실패:', error);
+            // console.error('[Ingredients] 식자재 목록 로드 실패:', error);
             const tbody = document.getElementById('ingredients-tbody');
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: #dc3545;">식자재 목록을 불러올 수 없습니다.</td></tr>';
@@ -135,7 +135,7 @@ window.IngredientsModule = {
         );
 
         this.displayIngredients(filteredIngredients);
-        console.log(`[Ingredients] 검색 결과: ${filteredIngredients.length}개`);
+            // console.log(`[Ingredients] 검색 결과: ${filteredIngredients.length}개`);
     },
 
     // 식자재 수정
@@ -185,7 +185,7 @@ window.IngredientsModule = {
             // 다운로드 성공 메시지
             this.showNotification('📋 양식 다운로드가 시작되었습니다.', 'success');
         } catch (error) {
-            console.error('[Ingredients] 양식 다운로드 실패:', error);
+            // console.error('[Ingredients] 양식 다운로드 실패:', error);
             this.showNotification('❌ 양식 다운로드에 실패했습니다.', 'error');
         }
     },
@@ -291,7 +291,7 @@ window.IngredientsModule = {
     updateFileList() {
         const fileListDiv = document.getElementById('selected-files-list');
         if (!fileListDiv) {
-            console.log('[Ingredients] 선택된 파일들:', this.uploadedFiles.map(f => f.name));
+            // console.log('[Ingredients] 선택된 파일들:', this.uploadedFiles.map(f => f.name));
             return;
         }
         
@@ -346,7 +346,7 @@ window.IngredientsModule = {
 
     // 파일 업로드 실행
     async uploadFiles() {
-        console.log('[Ingredients] ★★★ MODULAR uploadFiles 함수 호출됨 - 실제 서버 업로드 시작 ★★★');
+            // console.log('[Ingredients] ★★★ MODULAR uploadFiles 함수 호출됨 - 실제 서버 업로드 시작 ★★★');
         if (this.uploadedFiles.length === 0) {
             this.showNotification('❌ 업로드할 파일을 선택해주세요.', 'error');
             return;
@@ -411,7 +411,7 @@ window.IngredientsModule = {
             this.loadIngredientsList();
             
         } catch (error) {
-            console.error('[Ingredients] 업로드 실패:', error);
+            // console.error('[Ingredients] 업로드 실패:', error);
             this.showNotification('❌ 파일 업로드 중 오류가 발생했습니다.', 'error');
             
             if (progressSection) progressSection.style.display = 'none';
@@ -420,12 +420,12 @@ window.IngredientsModule = {
 
     // 실제 서버 업로드 함수
     async uploadFileToServer(file) {
-        console.log('[Ingredients] 🚀 uploadFileToServer 함수 시작 - 파일:', file.name);
+            // console.log('[Ingredients] 🚀 uploadFileToServer 함수 시작 - 파일:', file.name);
         const formData = new FormData();
         formData.append('file', file);
         
         try {
-            console.log('[Ingredients] 🌐 서버 요청 시작 - /api/admin/ingredients-new/upload');
+            // console.log('[Ingredients] 🌐 서버 요청 시작 - /api/admin/ingredients-new/upload');
             const response = await fetch('http://localhost:9000/api/admin/ingredients-new/upload', {
                 method: 'POST',
                 body: formData,
@@ -450,7 +450,7 @@ window.IngredientsModule = {
                 const errorDetails = details.error_details || [];
                 const hasErrorFile = details.has_error_file || false;
                 
-                console.log(`[Ingredients] 파일 업로드 완료: ${file.name} - ${totalRows}행 처리됨 (처리: ${processedCount}, 업데이트: ${updatedCount}, 실패: ${errorCount})`);
+            // console.log(`[Ingredients] 파일 업로드 완료: ${file.name} - ${totalRows}행 처리됨 (처리: ${processedCount}, 업데이트: ${updatedCount}, 실패: ${errorCount})`);
                 
                 // 상세 결과 표시
                 this.displaySingleUploadResult(file.name, {
@@ -467,7 +467,7 @@ window.IngredientsModule = {
                 throw new Error(result.message || '업로드 실패');
             }
         } catch (error) {
-            console.error('[Ingredients] 업로드 오류:', error);
+            // console.error('[Ingredients] 업로드 오류:', error);
             throw error;
         }
     },
@@ -606,7 +606,7 @@ window.IngredientsModule = {
                 throw new Error('다운로드 실패');
             }
         } catch (error) {
-            console.error('오류 파일 다운로드 실패:', error);
+            // console.error('오류 파일 다운로드 실패:', error);
             this.showNotification('오류 파일 다운로드에 실패했습니다.', 'error');
         }
     },
@@ -695,16 +695,16 @@ window.IngredientsModule = {
             const result = await response.json();
             
             this.uploadHistory = result.history || [];
-            console.log('[Ingredients] 업로드 히스토리 로드됨:', this.uploadHistory.length);
+            // console.log('[Ingredients] 업로드 히스토리 로드됨:', this.uploadHistory.length);
         } catch (error) {
-            console.error('[Ingredients] 업로드 히스토리 로드 실패:', error);
+            // console.error('[Ingredients] 업로드 히스토리 로드 실패:', error);
         }
     },
 
     // 업체별 필터링
     filterUploadHistory() {
         const supplierFilter = document.getElementById('supplier-filter')?.value;
-        console.log('[Ingredients] 업체별 필터:', supplierFilter);
+            // console.log('[Ingredients] 업체별 필터:', supplierFilter);
         this.showNotification('업체별 필터가 적용되었습니다.', 'info');
     },
 
@@ -714,7 +714,7 @@ window.IngredientsModule = {
         const dateFrom = document.getElementById('date-from')?.value;
         const dateTo = document.getElementById('date-to')?.value;
         
-        console.log('[Ingredients] 업로드 이력 검색:', { supplierFilter, dateFrom, dateTo });
+            // console.log('[Ingredients] 업로드 이력 검색:', { supplierFilter, dateFrom, dateTo });
         this.showNotification('업로드 이력을 조회했습니다.', 'success');
     },
 
@@ -917,7 +917,7 @@ window.IngredientsModule = {
                 this.showCodeSuccess(inputElement, '✅ 사용 가능한 고유코드입니다');
             }
         } catch (error) {
-            console.error('고유코드 중복 체크 실패:', error);
+            // console.error('고유코드 중복 체크 실패:', error);
             this.clearCodeValidation(inputElement);
         }
     },
@@ -992,7 +992,7 @@ window.IngredientsModule = {
                 this.showNotification('❌ 식자재 정보를 불러올 수 없습니다.', 'error');
             }
         } catch (error) {
-            console.error('[Ingredients] 식자재 정보 로드 실패:', error);
+            // console.error('[Ingredients] 식자재 정보 로드 실패:', error);
             this.showNotification('❌ 식자재 정보를 불러오는 중 오류가 발생했습니다.', 'error');
         }
     },
@@ -1018,7 +1018,7 @@ window.IngredientsModule = {
                 this.showNotification(`❌ 삭제 실패: ${result.message}`, 'error');
             }
         } catch (error) {
-            console.error('[Ingredients] 식자재 삭제 실패:', error);
+            // console.error('[Ingredients] 식자재 삭제 실패:', error);
             this.showNotification('❌ 식자재 삭제 중 오류가 발생했습니다.', 'error');
         }
     },
@@ -1121,7 +1121,7 @@ window.IngredientsModule = {
             }
 
         } catch (error) {
-            console.error('[Ingredients] 식자재 저장 실패:', error);
+            // console.error('[Ingredients] 식자재 저장 실패:', error);
             this.showNotification('❌ 식자재 저장 중 오류가 발생했습니다.', 'error');
         }
     }
@@ -1148,7 +1148,7 @@ window.displayBulkUploadResults = (results, total, success, failed) => Ingredien
 
 // 새로운 모달 함수들
 window.showCreateModal = () => {
-    console.log('[DEBUG] showCreateModal 호출됨');
+            // console.log('[DEBUG] showCreateModal 호출됨');
     IngredientsModule.showCreateModal();
 };
 window.closeIngredientModal = () => IngredientsModule.closeIngredientModal();
@@ -1156,39 +1156,39 @@ window.saveIngredient = () => IngredientsModule.saveIngredient();
 
 // 백업 함수 (전역 스코프에서 직접 접근 가능)
 window.openIngredientCreateModal = function() {
-    console.log('[DEBUG] 백업 함수 openIngredientCreateModal 호출됨');
+            // console.log('[DEBUG] 백업 함수 openIngredientCreateModal 호출됨');
     try {
         document.getElementById('ingredient-modal-title').textContent = '🆕 신규 식자재 등록';
         document.getElementById('ingredient-form').reset();
         document.getElementById('ingredient-id').value = '';
         document.getElementById('ingredient-modal').style.display = 'flex';
-        console.log('[DEBUG] 모달 표시 성공');
+            // console.log('[DEBUG] 모달 표시 성공');
     } catch (error) {
-        console.error('[DEBUG] 모달 표시 실패:', error);
+            // console.error('[DEBUG] 모달 표시 실패:', error);
     }
 };
 
-console.log('📦 Complete Ingredients Module 정의 완료');
+            // console.log('📦 Complete Ingredients Module 정의 완료');
 
 // 페이지 로드 후 버튼 상태 확인
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[DEBUG] DOM 로드 완료, 버튼 상태 확인...');
+            // console.log('[DEBUG] DOM 로드 완료, 버튼 상태 확인...');
     
     setTimeout(() => {
         const btn = document.getElementById('create-ingredient-btn');
         const page = document.getElementById('ingredients-page');
         
-        console.log('[DEBUG] 생성 버튼 요소:', btn);
-        console.log('[DEBUG] 식자재 페이지 요소:', page);
-        console.log('[DEBUG] 페이지 클래스:', page?.className);
-        console.log('[DEBUG] 버튼 스타일:', btn?.style.cssText);
+            // console.log('[DEBUG] 생성 버튼 요소:', btn);
+            // console.log('[DEBUG] 식자재 페이지 요소:', page);
+            // console.log('[DEBUG] 페이지 클래스:', page?.className);
+            // console.log('[DEBUG] 버튼 스타일:', btn?.style.cssText);
         
         if (btn) {
-            console.log('[DEBUG] ✅ 버튼 찾음');
-            console.log('[DEBUG] 버튼 표시 상태:', window.getComputedStyle(btn).display);
-            console.log('[DEBUG] 버튼 가시성:', window.getComputedStyle(btn).visibility);
+            // console.log('[DEBUG] ✅ 버튼 찾음');
+            // console.log('[DEBUG] 버튼 표시 상태:', window.getComputedStyle(btn).display);
+            // console.log('[DEBUG] 버튼 가시성:', window.getComputedStyle(btn).visibility);
         } else {
-            console.log('[DEBUG] ❌ 버튼을 찾을 수 없음');
+            // console.log('[DEBUG] ❌ 버튼을 찾을 수 없음');
         }
     }, 1000);
 });

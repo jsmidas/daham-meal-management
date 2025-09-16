@@ -33,7 +33,7 @@ window.IngredientsModule = {
 
     // 모듈 초기화
     async init() {
-        console.log('🥬 Ingredients Module 초기화');
+        // console.log('🥬 Ingredients Module 초기화');
         await this.loadIngredients();
         await this.loadIngredientStatistics();
         this.setupEventListeners();
@@ -134,7 +134,7 @@ window.IngredientsModule = {
                 throw new Error('재계산 실패');
             }
         } catch (error) {
-            console.error('재계산 오류:', error);
+        // console.error('재계산 오류:', error);
             document.body.removeChild(progressModal);
             document.body.removeChild(overlay);
             alert('❌ 재계산 중 오류가 발생했습니다.\n\n' + error.message);
@@ -172,7 +172,7 @@ window.IngredientsModule = {
                 this.updatePagination(data.currentPage || 1, data.totalPages || 1);
             }
         } catch (error) {
-            console.error('식자재 목록 로드 실패:', error);
+        // console.error('식자재 목록 로드 실패:', error);
             const tbody = document.getElementById('ingredients-table-body');
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="11">식자재 목록을 불러올 수 없습니다.</td></tr>';
@@ -204,7 +204,7 @@ window.IngredientsModule = {
                 });
             }
         } catch (error) {
-            console.error('식자재 통계 로드 실패:', error);
+        // console.error('식자재 통계 로드 실패:', error);
         }
     },
 
@@ -279,19 +279,19 @@ window.IngredientsModule = {
 
     // 새 식자재 추가 모달
     showAddModal() {
-        console.log('새 식자재 추가 모달');
+        // console.log('새 식자재 추가 모달');
         alert('새 식자재 추가 기능 (구현 예정)');
     },
 
     // 식자재 수정
     editIngredient(id) {
-        console.log('식자재 수정:', id);
+        // console.log('식자재 수정:', id);
         alert(`식자재 수정 기능 - ID: ${id} (구현 예정)`);
     },
 
     // 상태 토글
     toggleStatus(id) {
-        console.log('식자재 상태 토글:', id);
+        // console.log('식자재 상태 토글:', id);
         alert(`식자재 상태 토글 기능 - ID: ${id} (구현 예정)`);
     },
 
@@ -300,7 +300,7 @@ window.IngredientsModule = {
         if (!confirm('정말로 이 식자재를 삭제하시겠습니까?')) {
             return;
         }
-        console.log('식자재 삭제:', id);
+        // console.log('식자재 삭제:', id);
         alert(`식자재 삭제 기능 - ID: ${id} (구현 예정)`);
     },
 
@@ -365,7 +365,7 @@ window.IngredientsModule = {
 
     // 단위당 단가 계산
     calculatePricePerUnit() {
-        console.log('단위당 단가 계산 시작...');
+        // console.log('단위당 단가 계산 시작...');
 
         // price-per-gram 모듈이 있으면 사용
         if (window.PricePerGramModule) {
@@ -390,7 +390,7 @@ window.IngredientsModule = {
 
                         if (grams > 0) {
                             const pricePerGram = (price / grams).toFixed(2);
-                            console.log(`${specText}: ₩${pricePerGram}/단위`);
+        // console.log(`${specText}: ₩${pricePerGram}/단위`);
                         }
                     }
                 }
@@ -403,7 +403,7 @@ window.IngredientsModule = {
 
 // 식자재 관리 페이지 초기화
 function initializeIngredientsPage() {
-    console.log('식자재 관리 모듈 초기화');
+        // console.log('식자재 관리 모듈 초기화');
     setupEventListeners();
     loadUploadHistory();
 }
@@ -469,7 +469,7 @@ function downloadTemplate() {
         // 다운로드 성공 메시지
         showNotification('📋 양식 다운로드가 시작되었습니다.', 'success');
     } catch (error) {
-        console.error('양식 다운로드 실패:', error);
+        // console.error('양식 다운로드 실패:', error);
         showNotification('❌ 양식 다운로드에 실패했습니다.', 'error');
     }
 }
@@ -581,7 +581,7 @@ function clearFiles() {
 function updateFileList() {
     const fileListDiv = document.getElementById('selected-files-list');
     if (!fileListDiv) {
-        console.log('선택된 파일들:', uploadedFiles.map(f => f.name));
+        // console.log('선택된 파일들:', uploadedFiles.map(f => f.name));
         return;
     }
     
@@ -636,7 +636,7 @@ function disableUploadButton() {
 
 // 파일 업로드 실행
 async function uploadFiles() {
-    console.log('★★★ MODULAR uploadFiles 함수 호출됨 - 실제 서버 업로드 시작 ★★★');
+        // console.log('★★★ MODULAR uploadFiles 함수 호출됨 - 실제 서버 업로드 시작 ★★★');
     if (uploadedFiles.length === 0) {
         showNotification('❌ 업로드할 파일을 선택해주세요.', 'error');
         return;
@@ -702,7 +702,7 @@ async function uploadFiles() {
         loadUploadHistory();
         
     } catch (error) {
-        console.error('업로드 실패:', error);
+        // console.error('업로드 실패:', error);
         showNotification('❌ 파일 업로드 중 오류가 발생했습니다.', 'error');
         
         if (progressSection) progressSection.style.display = 'none';
@@ -789,12 +789,12 @@ function displayBulkUploadResults(uploadResults, totalProcessed, totalSuccess, t
 // 파일 업로드 시뮬레이션 (대량 데이터 처리 시뮬레이션)
 // 실제 서버 업로드 함수
 async function uploadFileToServer(file) {
-    console.log('🚀 uploadFileToServer 함수 시작 - 파일:', file.name);
+        // console.log('🚀 uploadFileToServer 함수 시작 - 파일:', file.name);
     const formData = new FormData();
     formData.append('file', file);
     
     try {
-        console.log('🌐 서버 요청 시작 - /api/admin/upload-ingredients');
+        // console.log('🌐 서버 요청 시작 - /api/admin/upload-ingredients');
         const response = await fetch('http://localhost:9000/api/admin/upload-ingredients', {
             method: 'POST',
             body: formData,
@@ -808,7 +808,7 @@ async function uploadFileToServer(file) {
         const result = await response.json();
         
         if (result.success && result.details) {
-            console.log(`파일 업로드 완료: ${file.name} - ${result.details.total_rows}행 처리됨 (신규: ${result.details.new_count}, 업데이트: ${result.details.updated_count}, 실패: ${result.details.error_count})`);
+        // console.log(`파일 업로드 완료: ${file.name} - ${result.details.total_rows}행 처리됨 (신규: ${result.details.new_count}, 업데이트: ${result.details.updated_count}, 실패: ${result.details.error_count})`);
             return {
                 processedRows: result.details.total_rows,
                 successRows: result.details.new_count + result.details.updated_count,
@@ -818,7 +818,7 @@ async function uploadFileToServer(file) {
             };
         } else if (result.success) {
             // 이전 형식 지원 (details 없는 경우)
-            console.log(`파일 업로드 완료: ${file.name} - ${result.total || 0}행 처리됨`);
+        // console.log(`파일 업로드 완료: ${file.name} - ${result.total || 0}행 처리됨`);
             return {
                 processedRows: result.total || 0,
                 successRows: result.processed || 0,
@@ -828,7 +828,7 @@ async function uploadFileToServer(file) {
             throw new Error(result.message || '업로드 실패');
         }
     } catch (error) {
-        console.error('업로드 오류:', error);
+        // console.error('업로드 오류:', error);
         throw error;
     }
 }
@@ -838,7 +838,7 @@ async function uploadFileToServer(file) {
 // 업로드 히스토리 로드
 function loadUploadHistory() {
     // 실제 구현에서는 API에서 데이터를 가져옴
-    console.log('업로드 히스토리 로드됨');
+        // console.log('업로드 히스토리 로드됨');
 }
 
 // 업로드 결과 상세 팝업 표시 - 전역 함수로 선언
@@ -913,7 +913,7 @@ window.closeResultModal = function() {
 // 업체별 필터링
 function filterUploadHistory() {
     const supplierFilter = document.getElementById('supplier-filter')?.value;
-    console.log('업체별 필터:', supplierFilter);
+        // console.log('업체별 필터:', supplierFilter);
     showNotification('업체별 필터가 적용되었습니다.', 'info');
 }
 
@@ -923,7 +923,7 @@ function searchUploadHistory() {
     const dateFrom = document.getElementById('date-from')?.value;
     const dateTo = document.getElementById('date-to')?.value;
     
-    console.log('업로드 이력 검색:', { supplierFilter, dateFrom, dateTo });
+        // console.log('업로드 이력 검색:', { supplierFilter, dateFrom, dateTo });
     showNotification('업로드 이력을 조회했습니다.', 'success');
 }
 

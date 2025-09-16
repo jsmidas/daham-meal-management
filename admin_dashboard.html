@@ -56,11 +56,20 @@
                 <a href="#" class="nav-item" data-page="ingredients">
                     <span class="icon">📦</span>식자재 관리
                 </a>
+                <a href="#" class="nav-item" data-page="menu-recipe">
+                    <span class="icon">🍽️</span>메뉴/레시피 관리
+                </a>
+                <a href="#" class="nav-item" data-page="cooking-instruction">
+                    <span class="icon">👨‍🍳</span>조리지시서
+                </a>
+                <a href="#" class="nav-item" data-page="portion-instruction">
+                    <span class="icon">🥄</span>소분지시서
+                </a>
             </div>
             
             <div class="sidebar-footer" style="margin-top: auto; padding: 20px;">
                 <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
-                    <a href="/" class="nav-item" style="background: #e8f5e8; color: #4caf50;">
+                    <a href="dashboard.html" style="display: block; padding: 12px 20px; background: #e8f5e8; color: #4caf50; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600;">
                         <span class="icon">🍽️</span>급식관리로 이동
                     </a>
                 </div>
@@ -76,6 +85,7 @@
                     <div class="user-info">
                         관리자님, 안녕하세요! | 오늘: <span id="current-date"></span>
                     </div>
+                    <button class="server-btn" onclick="startServer()" style="margin-right: 10px; background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">서버 시작</button>
                     <button class="logout-btn" onclick="logout()">로그아웃</button>
                 </div>
             </div>
@@ -169,6 +179,18 @@
                 <div id="ingredients-content" class="page-content" style="display: none;">
                     <!-- 식자재 관리 모듈이 여기에 로드됩니다 -->
                 </div>
+
+                <div id="menu-recipe-content" class="page-content" style="display: none;">
+                    <!-- 메뉴/레시피 관리 모듈이 여기에 로드됩니다 -->
+                </div>
+
+                <div id="cooking-instruction-content" class="page-content" style="display: none;">
+                    <!-- 조리지시서 모듈이 여기에 로드됩니다 -->
+                </div>
+
+                <div id="portion-instruction-content" class="page-content" style="display: none;">
+                    <!-- 소분지시서 모듈이 여기에 로드됩니다 -->
+                </div>
             </div>
         </main>
     </div>
@@ -183,6 +205,40 @@
             API_BASE_URL: 'http://127.0.0.1:8010',
             API_TIMEOUT: 30000
         };
+
+        // 서버 시작 함수
+        function startServer() {
+            const btn = document.querySelector('.server-btn');
+            btn.disabled = true;
+            btn.textContent = '서버 시작 중...';
+
+            // Windows 환경에서 새 콘솔 창으로 서버 실행
+            const cmd = 'start cmd /k python test_samsung_api.py';
+
+            // 실제 서버 시작 명령 실행 (로컬 환경에서만 동작)
+            fetch('http://127.0.0.1:8080/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            })
+            .then(response => {
+                if (response.ok) {
+                    btn.style.background = '#8bc34a';
+                    btn.textContent = '서버 실행 중';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error('서버 시작 실패');
+                }
+            })
+            .catch(error => {
+                // 로컬에서 직접 실행 시도
+                alert('서버를 직접 실행해주세요:\npython test_samsung_api.py');
+                btn.disabled = false;
+                btn.textContent = '서버 시작';
+            });
+        }
     </script>
 
     <!-- 메인 초기화 스크립트 -->

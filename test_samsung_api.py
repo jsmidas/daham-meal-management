@@ -4,7 +4,7 @@
 삼성웰스토리 식자재 데이터 테스트 API
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -735,7 +735,7 @@ async def delete_ingredient(ingredient_id: int):
 
 @app.get("/ingredients")
 async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None, category: str = None):
-    """사용자용 식자재 목록 조회 (페이징, 검색, 필터링)"""
+    """사용자용 식자재 목록 조회 (페이징, 검색, 필터링) - 대용량 지원"""
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
@@ -2863,6 +2863,16 @@ async def deactivate_supplier(supplier_id: int):
         return {"success": False, "error": str(e)}
 
 # HTML 파일 서빙
+@app.get("/dashboard.html")
+async def get_dashboard():
+    """사용자 대시보드 HTML 반환"""
+    try:
+        with open("dashboard.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="dashboard.html not found")
+
 @app.get("/admin_dashboard.html")
 async def get_admin_dashboard():
     """관리자 대시보드 HTML 반환"""
@@ -2882,6 +2892,260 @@ async def get_ingredients_management():
         return HTMLResponse(content=content)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="ingredients_management.html not found")
+
+@app.get("/meal_plans.html")
+async def get_meal_plans():
+    """식단 관리 HTML 반환"""
+    try:
+        with open("meal_plans.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="meal_plans.html not found")
+
+@app.get("/meal_count.html")
+async def get_meal_count():
+    """식수 관리 HTML 반환"""
+    try:
+        with open("meal_count.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="meal_count.html not found")
+
+@app.get("/purchase_order.html")
+async def get_purchase_order():
+    """발주 관리 HTML 반환"""
+    try:
+        with open("purchase_order.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="purchase_order.html not found")
+
+@app.get("/receipt_statement.html")
+async def get_receipt_statement():
+    """입고 명세서 HTML 반환"""
+    try:
+        with open("receipt_statement.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="receipt_statement.html not found")
+
+@app.get("/daily_logs.html")
+async def get_daily_logs():
+    """각종 일지 HTML 반환"""
+    try:
+        with open("daily_logs.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="daily_logs.html not found")
+
+@app.get("/preprocessing.html")
+async def get_preprocessing():
+    """전처리 지시서 HTML 반환"""
+    try:
+        with open("preprocessing.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="preprocessing.html not found")
+
+@app.get("/preprocessing_management.html")
+async def get_preprocessing_management():
+    """전처리 관리 HTML 반환"""
+    try:
+        with open("preprocessing_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="preprocessing_management.html not found")
+
+@app.get("/cooking_instruction.html")
+async def get_cooking_instruction():
+    """조리 지시서 HTML 반환"""
+    try:
+        with open("cooking_instruction.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="cooking_instruction.html not found")
+
+@app.get("/portioning.html")
+async def get_portioning():
+    """소분 지시서 HTML 반환"""
+    try:
+        with open("portioning.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="portioning.html not found")
+
+@app.get("/ordering_management.html")
+async def get_ordering_management():
+    """발주 관리 시스템 HTML 반환"""
+    try:
+        with open("ordering_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="ordering_management.html not found")
+
+@app.get("/cooking_instruction_management.html")
+async def get_cooking_instruction_management():
+    """조리 지시서 관리 HTML 반환"""
+    try:
+        with open("cooking_instruction_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="cooking_instruction_management.html not found")
+
+@app.get("/portion_instruction_management.html")
+async def get_portion_instruction_management():
+    """소분 지시서 관리 HTML 반환"""
+    try:
+        with open("portion_instruction_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="portion_instruction_management.html not found")
+
+@app.get("/receiving_management.html")
+async def get_receiving_management():
+    """입고명세서 관리 HTML 반환"""
+    try:
+        with open("receiving_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="receiving_management.html not found")
+
+@app.get("/meal_plan_management.html")
+async def get_meal_plan_management():
+    """기존 식단표 관리 HTML 반환"""
+    try:
+        with open("meal_plan_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="meal_plan_management.html not found")
+
+@app.get("/meal_count_management.html")
+async def get_meal_count_management():
+    """기존 식수 관리 HTML 반환"""
+    try:
+        with open("meal_count_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="meal_count_management.html not found")
+
+@app.get("/meal_pricing_management_new.html")
+async def get_meal_pricing_management():
+    """기존 식단가 관리 HTML 반환"""
+    try:
+        with open("meal_pricing_management_new.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="meal_pricing_management_new.html not found")
+
+# 식단 관리 페이지를 위한 API 엔드포인트
+@app.get("/api/recipes")
+async def get_recipes():
+    """레시피(메뉴) 목록 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # recipes 테이블이 없으면 임시 데이터 반환
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recipes'")
+        if not cursor.fetchone():
+            # 임시 메뉴 데이터
+            mock_recipes = [
+                {"id": 1, "name": "김치찌개", "category": "국/찌개", "price": 3000},
+                {"id": 2, "name": "된장찌개", "category": "국/찌개", "price": 2800},
+                {"id": 3, "name": "제육볶음", "category": "주찬", "price": 4500},
+                {"id": 4, "name": "불고기", "category": "주찬", "price": 5000},
+                {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
+                {"id": 6, "name": "시금치나물", "category": "부찬", "price": 1500},
+                {"id": 7, "name": "김치", "category": "김치", "price": 1000},
+                {"id": 8, "name": "쌀밥", "category": "밥", "price": 1000},
+            ]
+            conn.close()
+            return {"success": True, "recipes": mock_recipes}
+
+        cursor.execute("SELECT * FROM recipes")
+        recipes = cursor.fetchall()
+        conn.close()
+
+        return {"success": True, "recipes": recipes}
+    except Exception as e:
+        return {"success": False, "error": str(e), "recipes": []}
+
+@app.post("/api/search_recipes")
+async def search_recipes(request: Request):
+    """레시피 검색 API"""
+    try:
+        body = await request.json()
+        search_term = body.get('search', '').lower()
+
+        # 모든 레시피 데이터
+        all_recipes = [
+            {"id": 1, "name": "김치찌개", "category": "국/찌개", "price": 3000},
+            {"id": 2, "name": "된장찌개", "category": "국/찌개", "price": 2800},
+            {"id": 3, "name": "제육볶음", "category": "주찬", "price": 4500},
+            {"id": 4, "name": "불고기", "category": "주찬", "price": 5000},
+            {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
+            {"id": 6, "name": "시금치나물", "category": "부찬", "price": 1500},
+            {"id": 7, "name": "김치", "category": "김치", "price": 1000},
+            {"id": 8, "name": "쌀밥", "category": "밥", "price": 1000},
+            {"id": 9, "name": "미역국", "category": "국/찌개", "price": 2500},
+            {"id": 10, "name": "갈비탕", "category": "국/찌개", "price": 6000},
+        ]
+
+        # 검색어가 있으면 필터링
+        if search_term:
+            filtered_recipes = [
+                recipe for recipe in all_recipes
+                if search_term in recipe['name'].lower() or search_term in recipe['category'].lower()
+            ]
+        else:
+            filtered_recipes = all_recipes
+
+        return {"success": True, "data": filtered_recipes}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/meal-counts")
+async def get_meal_counts():
+    """식수 데이터 조회"""
+    try:
+        # 임시 데이터 반환
+        mock_data = {
+            "success": True,
+            "data": [
+                {"date": "2025-09-16", "breakfast": 100, "lunch": 250, "dinner": 180},
+                {"date": "2025-09-15", "breakfast": 95, "lunch": 245, "dinner": 175},
+                {"date": "2025-09-14", "breakfast": 102, "lunch": 255, "dinner": 185},
+            ]
+        }
+        return mock_data
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/menu_recipe_management.html")
+async def get_menu_recipe_management():
+    """메뉴/레시피 관리 HTML 반환"""
+    try:
+        with open("menu_recipe_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="menu_recipe_management.html not found")
 
 @app.get("/sample%20data/food_sample.xls")
 async def get_food_sample():
@@ -2999,6 +3263,47 @@ async def create_activity_log(log_data: dict):
         return {"success": True, "log": activity}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+# ========== 누락된 라우트 추가 ==========
+@app.get("/receiving_management.html")
+async def get_receiving_management():
+    """입고명세서 관리 HTML 반환"""
+    try:
+        with open("receiving_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="receiving_management.html not found")
+
+@app.get("/preprocessing_management.html")
+async def get_preprocessing_management():
+    """전처리지시서 관리 HTML 반환"""
+    try:
+        with open("preprocessing_management.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="preprocessing_management.html not found")
+
+@app.get("/cooking_instruction.html")
+async def get_cooking_instruction():
+    """조리지시서 HTML 반환"""
+    try:
+        with open("cooking_instruction.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="cooking_instruction.html not found")
+
+@app.get("/portioning.html")
+async def get_portioning():
+    """소분지시서 HTML 반환"""
+    try:
+        with open("portioning.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="portioning.html not found")
 
 if __name__ == "__main__":
     import uvicorn

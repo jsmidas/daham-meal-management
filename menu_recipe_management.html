@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메뉴/레시피 관리 - 테스트 급식관리 시스템시스템</title>
+    <title>🍳 메뉴/레시피 관리 - 급식관리 시스템</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -14,45 +16,81 @@
         body {
             font-family: 'Malgun Gothic', sans-serif;
             background-color: #f5f5f5;
+            margin: 0;
         }
-        
-        .navigation-bar {
-            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+
+        .container {
             display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 100vh;
         }
-        
-        .nav-item {
+
+        /* 사이드바 */
+        .sidebar {
+            width: 180px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
             color: white;
-            padding: 8px 16px;
-            margin: 0 5px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.3s;
-            cursor: pointer;
-            position: relative;
-            z-index: 1000;
-            display: inline-block;
+            padding: 15px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
+
+        .logo {
+            text-align: center;
+            padding: 0 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
         }
-        
-        .nav-item.active {
-            background: rgba(255,255,255,0.2);
-            font-weight: 600;
-        }
-        
-        .nav-logo {
+
+        .logo h1 {
             font-size: 18px;
             font-weight: bold;
-            color: white;
-            margin-right: 30px;
+            color: #3498db;
         }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-right: 3px solid #3498db;
+        }
+
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 14px;
+            width: 16px;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 15px;
+        }
+
+        .admin-item {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+        }
+
+        .admin-item:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-right: 3px solid #e74c3c;
+        }
+
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            background: #f5f5f5;
+            overflow-y: auto;
+        }
+        
         
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -68,7 +106,7 @@
         
         .main-container {
             display: flex;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 60px);
             gap: 20px;
             padding: 20px;
         }
@@ -864,20 +902,29 @@
     </style>
 </head>
 <body>
-    <!-- 상단 네비게이션 메뉴 -->
-    <div class="navigation-bar">
-        <div class="nav-logo">🍽️ 테스트 급식관리 시스템시스템</div>
-        <a href="/dashboard" class="nav-item">📈 대시보드</a>
-        <a href="/" class="nav-item active">📋 메뉴/레시피 관리</a>
-        <a href="/meal-count" class="nav-item">👥 식수 등록 관리</a>
-        <a href="/meal-plan" class="nav-item">📊 식단표 작성</a>
-        <a href="/ordering" class="nav-item" onclick="console.log('발주 관리 클릭됨'); alert('발주 관리로 이동합니다'); window.location.href='/ordering'; return false;">📈 발주 관리</a>
-        <a href="/receiving" class="nav-item">📦 입고명세서 관리</a>
-        <a href="#" class="nav-item">📋 각종 일지</a>
-        <a href="/preprocessing-demo" class="nav-item">🔪 전처리지시서</a>
-        <a href="/cooking" class="nav-item">👨‍🍳 조리지시서</a>
-        <a href="/portion" class="nav-item">📊 소분지시서</a>
-    </div>
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>테스트푸드 급식관리</h1>
+            </div>
+            <a href="/dashboard.html" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="/menu_recipe_management.html" class="nav-item active"><i class="fas fa-utensils"></i>메뉴/레시피 관리</a>
+            <a href="/meal_plan_management.html" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="/meal_count_management.html" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="/ingredients_management.html" class="nav-item"><i class="fas fa-carrot"></i>식자재 관리</a>
+            <a href="/ordering_management.html" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="/receiving_management.html" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
+            <a href="/preprocessing_management.html" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="/cooking_instruction_management.html" class="nav-item"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="/portion_instruction_management.html" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <div class="nav-divider"></div>
+            <a href="/admin_dashboard.html" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+        </nav>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <div class="main-content">
 
     <div class="header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -890,9 +937,9 @@
                     <span style="color: white; font-weight: 600;">기준 날짜:</span>
                     <input type="date" id="currentDate" value="2025-08-28" style="padding: 8px; border-radius: 6px; border: none;">
                 </div>
-                <button class="btn btn-secondary" onclick="location.href='/meal-plan'" style="background: rgba(255,255,255,0.2); border: 1px solid white;">📊 식단표 작성</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/ordering'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 10px;">📈 발주 관리</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/preprocessing-demo'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
+                <button class="btn btn-secondary" onclick="location.href='meal_plans.html'" style="background: rgba(255,255,255,0.2); border: 1px solid white;">📊 식단표 작성</button>
+                <button class="btn btn-secondary" onclick="window.location.href='purchase_order.html'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 10px;">📈 발주 관리</button>
+                <button class="btn btn-secondary" onclick="window.location.href='preprocessing.html'" style="background: rgba(255,107,53,0.3); border: 1px solid white; margin-left: 5px;">🔪 전처리지시서</button>
             </div>
         </div>
     </div>
@@ -2654,5 +2701,7 @@
             background: #d1d5db;
         }
     </style>
+        </div> <!-- main-content 종료 -->
+    </div> <!-- container 종료 -->
 </body>
 </html>

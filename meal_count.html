@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👥 식수 관리 - 급식관리 시스템</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+    <!-- 기존 meal_count_management.html로 리다이렉트 -->
+    <meta http-equiv="refresh" content="0; url=/meal_count_management.html">
+
+    <!-- 공통 스타일 -->
+    <link rel="stylesheet" href="static/css/user/dashboard-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 사이드바 네비게이션 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>🍽️ 급식관리 시스템</h1>
+            </div>
+
+            <!-- 메인 관리 -->
+            <div class="nav-section">
+                <div class="nav-title">메인 관리</div>
+                <a href="dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>대시보드
+                </a>
+                <a href="menu_recipe_management.html" class="nav-item">
+                    <span class="icon">🍳</span>메뉴/레시피 관리
+                </a>
+                <a href="meal_plans.html" class="nav-item">
+                    <span class="icon">📅</span>식단 관리
+                </a>
+                <a href="meal_count.html" class="nav-item active">
+                    <span class="icon">👥</span>식수 관리
+                </a>
+            </div>
+
+            <!-- 식자재 관리 -->
+            <div class="nav-section">
+                <div class="nav-title">식자재 관리</div>
+                <a href="ingredients_management.html" class="nav-item">
+                    <span class="icon">📦</span>식자재 관리
+                </a>
+                <a href="purchase_order.html" class="nav-item">
+                    <span class="icon">📝</span>발주 관리
+                </a>
+                <a href="receipt_statement.html" class="nav-item">
+                    <span class="icon">📋</span>입고 명세서
+                </a>
+            </div>
+
+            <!-- 작업 지시서 -->
+            <div class="nav-section">
+                <div class="nav-title">작업 관리</div>
+                <a href="daily_logs.html" class="nav-item">
+                    <span class="icon">📓</span>각종 일지
+                </a>
+                <a href="preprocessing.html" class="nav-item">
+                    <span class="icon">🔪</span>전처리 지시서
+                </a>
+                <a href="cooking_instruction.html" class="nav-item">
+                    <span class="icon">👨‍🍳</span>조리 지시서
+                </a>
+                <a href="portioning.html" class="nav-item">
+                    <span class="icon">🥘</span>소분 지시서
+                </a>
+            </div>
+
+            <div class="nav-divider"></div>
+
+            <!-- 관리자 -->
+            <a href="admin_dashboard.html" class="nav-item admin-item">
+                <span class="icon">🔐</span>관리자 모드
+            </a>
+        </nav>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>👥 식수 관리</h1>
+                <p>일일 식수 현황을 관리합니다</p>
+            </div>
+
+            <!-- 컨텐츠 영역 -->
+            <div class="content-area">
+                <div class="meal-count-container">
+                    <!-- 식수 관리 기능 구현 예정 -->
+                    <p>식수 관리 기능이 여기에 표시됩니다</p>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
