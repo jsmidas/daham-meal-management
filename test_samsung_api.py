@@ -5,7 +5,7 @@
 """
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -128,6 +128,11 @@ app.add_middleware(
     allow_methods=["*"],  # 모든 HTTP 메소드 허용
     allow_headers=["*"],  # 모든 헤더 허용
 )
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Return empty favicon to avoid 404 errors"""
+    return Response(content=b"", media_type="image/x-icon")
 
 @app.get("/")
 async def root():
@@ -529,6 +534,12 @@ async def get_admin_ingredients_new(page: int = 1, limit: int = 20, search: str 
         ingredients = []
 
         for row in cursor.fetchall():
+            # 단위당 단가 계산
+            purchase_price = row[11] or 0
+            specification = row[7] or ""
+            unit = row[8] or ""
+            price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+
             ingredients.append({
                 "id": row[0],
                 "category": row[1] or "-",
@@ -546,7 +557,7 @@ async def get_admin_ingredients_new(page: int = 1, limit: int = 20, search: str 
                 "supplier_name": row[13] or "-",
                 "notes": row[14] or "-",
                 "created_at": row[15] or "",
-                "price_per_unit": None  # 백업 DB에는 이 컬럼이 없음
+                "price_per_unit": price_per_unit  # 실시간 계산된 단위당 단가
             })
         
         conn.close()
@@ -719,6 +730,109 @@ async def delete_ingredient(ingredient_id: int):
         
         return {"success": True, "message": "식자재가 삭제되었습니다."}
         
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/ingredients")
+async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None, category: str = None):
+    """사용자용 식자재 목록 조회 (페이징, 검색, 필터링)"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # WHERE 조건 구성
+        where_conditions = []
+        params = []
+
+        if search:
+            where_conditions.append("ingredient_name LIKE ?")
+            params.append(f"%{search}%")
+
+        if category:
+            where_conditions.append("category = ?")
+            params.append(category)
+
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+
+        # 총 개수 조회
+        count_query = f"SELECT COUNT(*) FROM ingredients {where_clause}"
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()[0]
+
+        # 페이징 계산
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+
+        # 데이터 조회
+        data_query = f"""
+            SELECT
+                id,
+                category,
+                sub_category,
+                ingredient_code,
+                ingredient_name,
+                origin,
+                posting_status,
+                specification,
+                unit,
+                tax_type,
+                delivery_days,
+                purchase_price,
+                selling_price,
+                supplier_name,
+                notes,
+                created_at
+            FROM ingredients
+            {where_clause}
+            ORDER BY id DESC
+            LIMIT ? OFFSET ?
+        """
+
+        cursor.execute(data_query, params + [per_page, offset])
+        ingredients = []
+
+        for row in cursor.fetchall():
+            # 단위당 단가 계산
+            purchase_price = row[11] or 0
+            specification = row[7] or ""
+            unit = row[8] or ""
+            price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+
+            ingredients.append({
+                "id": row[0],
+                "category": row[1] or "-",
+                "sub_category": row[2] or "-",
+                "ingredient_code": row[3] or "-",
+                "ingredient_name": row[4] or "-",
+                "origin": row[5] or "-",
+                "posting_status": row[6] or "미지정",
+                "specification": row[7] or "-",
+                "unit": row[8] or "-",
+                "tax_type": row[9] or "-",
+                "delivery_days": row[10] or "-",
+                "purchase_price": row[11] or 0,
+                "selling_price": row[12] or 0,
+                "supplier_name": row[13] or "-",
+                "notes": row[14] or "-",
+                "created_at": row[15] or "",
+                "price_per_unit": price_per_unit
+            })
+
+        conn.close()
+
+        return {
+            "success": True,
+            "ingredients": ingredients,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_items": total_count,
+                "items_per_page": per_page,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 

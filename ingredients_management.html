@@ -919,13 +919,31 @@
                 const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked ?? false;
                 const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked ?? false;
                 
-                // 작동하는 테스트 API 사용 - 전체 데이터 가져오기 위해 limit 크게 설정
-                const response = await fetch('http://127.0.0.1:8010/all-ingredients-for-suppliers?limit=200000');
+                // 새로운 /ingredients API 사용 - 최대 120,000개 데이터 가져오기
+                const response = await fetch('http://127.0.0.1:8010/ingredients?page=1&per_page=120000');
                 const data = await response.json();
                 
                 let ingredients = [];
                 if (data.success) {
-                    ingredients = data.ingredients || [];
+                    // API 응답의 영어 필드를 한글로 매핑
+                    ingredients = (data.ingredients || []).map(item => ({
+                        '분류(대분류)': item.category,
+                        '기본식자재(세분류)': item.sub_category,
+                        '고유코드': item.ingredient_code,
+                        '식자재명': item.ingredient_name,
+                        '원산지': item.origin,
+                        '게시유무': item.posting_status,
+                        '규격': item.specification,
+                        '단위': item.unit,
+                        '면세': item.tax_type,
+                        '선발주일': item.delivery_days,
+                        'g당단가': item.price_per_unit,
+                        '입고가': item.purchase_price,
+                        '판매가': item.selling_price,
+                        '거래처명': item.supplier_name,
+                        '비고': item.notes,
+                        '등록일': item.created_at
+                    }));
                 } else {
                     // 오류시 기본 데이터 사용
                     ingredients = [
