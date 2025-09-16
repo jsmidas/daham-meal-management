@@ -92,7 +92,15 @@
       "Bash(rm:*)",
       "Bash(git rm:*)",
       "Bash(for:*)",
-      "Bash(do echo \"Processing $file\")"
+      "Bash(do echo \"Processing $file\")",
+      "Bash(do sed -i 's/href=\"\"\\/\\([^\"\"]*\\)\"\"/href=\"\"\\1\"\"/g' \"$file\")",
+      "Bash(echo:*)",
+      "Bash(do sed -i 's/cooking_instruction\\.html/cooking_instruction_management.html/g; s/portioning\\.html/portion_instruction_management.html/g' \"$file\")",
+      "Read(//c/**)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then sed -i 's/cooking_instruction\\.html/cooking_instruction_management.html/g; s/portioning\\.html/portion_instruction_management.html/g' \"$file\")",
+      "Bash(fi)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

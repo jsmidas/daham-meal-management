@@ -4,7 +4,7 @@
 삼성웰스토리 식자재 데이터 테스트 API
 """
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form, Query
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,7 +15,15 @@ import os
 import hashlib
 import datetime
 import re
-from typing import Optional
+from typing import Optional, List, Dict
+import sys
+import traceback
+from pathlib import Path
+sys.path.append('utils')
+try:
+    from image_processor import ImageProcessor
+except ImportError:
+    ImageProcessor = None  # 나중에 설치하면 사용
 from improved_unit_price_calculator import calculate_unit_price_improved, parse_specification_improved
 
 app = FastAPI()
@@ -3088,35 +3096,84 @@ async def get_recipes():
 
 @app.post("/api/search_recipes")
 async def search_recipes(request: Request):
-    """레시피 검색 API"""
+    """레시피 검색 API - 9,447개의 실제 레시피 데이터"""
     try:
         body = await request.json()
-        search_term = body.get('search', '').lower()
+        keyword = body.get('keyword', '').lower()
+        limit = body.get('limit', 50)
 
-        # 모든 레시피 데이터
-        all_recipes = [
-            {"id": 1, "name": "김치찌개", "category": "국/찌개", "price": 3000},
-            {"id": 2, "name": "된장찌개", "category": "국/찌개", "price": 2800},
-            {"id": 3, "name": "제육볶음", "category": "주찬", "price": 4500},
-            {"id": 4, "name": "불고기", "category": "주찬", "price": 5000},
-            {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
-            {"id": 6, "name": "시금치나물", "category": "부찬", "price": 1500},
-            {"id": 7, "name": "김치", "category": "김치", "price": 1000},
-            {"id": 8, "name": "쌀밥", "category": "밥", "price": 1000},
-            {"id": 9, "name": "미역국", "category": "국/찌개", "price": 2500},
-            {"id": 10, "name": "갈비탕", "category": "국/찌개", "price": 6000},
-        ]
+        # JSON 파일에서 레시피 로드 (캐싱)
+        if not hasattr(app, 'all_recipes_cache'):
+            try:
+                import json
+                with open('recipes_clean.json', 'r', encoding='utf-8') as f:
+                    recipes_data = json.load(f)
+                    # 데이터 포맷 변환
+                    app.all_recipes_cache = []
+                    for idx, recipe in enumerate(recipes_data):
+                        # DB에서 썸네일 정보 조회
+                        thumbnail_path = None
+                        try:
+                            conn = sqlite3.connect(DB_PATH)
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                SELECT image_thumbnail FROM recipes
+                                WHERE recipe_name = ? AND is_active = 1
+                                ORDER BY created_at DESC
+                                LIMIT 1
+                            """, (recipe.get('ri_name', ''),))
+                            result = cursor.fetchone()
+                            if result and result[0]:
+                                thumbnail_path = result[0]
+                            conn.close()
+                        except:
+                            pass
+
+                        app.all_recipes_cache.append({
+                            "id": int(recipe.get('ri_seq', idx + 1)),
+                            "name": recipe.get('ri_name', 'Unknown'),
+                            "category": recipe.get('ctg_name', '기타'),
+                            "price": 3000,  # 기본 가격
+                            "color": recipe.get('ri_color', '#ffffff'),
+                            "method": recipe.get('ri_standard_cooking_method', ''),
+                            "creator": recipe.get('mb_name', ''),
+                            "thumbnail": thumbnail_path
+                        })
+                print(f"Loaded {len(app.all_recipes_cache)} recipes from JSON file")
+            except Exception as e:
+                print(f"Failed to load recipes from JSON: {e}")
+                # 파일 로드 실패 시 기본 데이터 사용
+                app.all_recipes_cache = [
+                    {"id": 1, "name": "김치찌개", "category": "국/찌개", "price": 3000},
+                    {"id": 2, "name": "된장찌개", "category": "국/찌개", "price": 2800},
+                    {"id": 3, "name": "제육볶음", "category": "주찬", "price": 4500},
+                    {"id": 4, "name": "불고기", "category": "주찬", "price": 5000},
+                    {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
+                ]
 
         # 검색어가 있으면 필터링
-        if search_term:
+        if keyword:
             filtered_recipes = [
-                recipe for recipe in all_recipes
-                if search_term in recipe['name'].lower() or search_term in recipe['category'].lower()
+                recipe for recipe in app.all_recipes_cache
+                if keyword in recipe['name'].lower() or keyword in recipe['category'].lower()
             ]
         else:
-            filtered_recipes = all_recipes
+            filtered_recipes = app.all_recipes_cache
 
-        return {"success": True, "data": filtered_recipes}
+        # 실제 필터링된 전체 개수 저장
+        total_filtered = len(filtered_recipes)
+
+        # 제한된 수만 반환 (최대 1000개)
+        max_limit = min(limit, 1000)
+        limited_recipes = filtered_recipes[:max_limit]
+
+        # 전체 개수 정보도 함께 반환
+        return {
+            "success": True,
+            "data": limited_recipes,
+            "total": len(app.all_recipes_cache),
+            "filtered": total_filtered  # 잘리기 전의 실제 검색 결과 수
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -3146,6 +3203,16 @@ async def get_menu_recipe_management():
         return HTMLResponse(content=content)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="menu_recipe_management.html not found")
+
+@app.get("/menu_recipe_grid.html")
+async def get_menu_recipe_grid():
+    """메뉴/레시피 그리드 페이지 (엑셀 스타일)"""
+    try:
+        with open("menu_recipe_grid.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="menu_recipe_grid.html not found")
 
 @app.get("/sample%20data/food_sample.xls")
 async def get_food_sample():
@@ -3304,6 +3371,224 @@ async def get_portioning():
         return HTMLResponse(content=content)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="portioning.html not found")
+
+# ========== 레시피 관련 API ==========
+
+@app.post("/api/recipe/save")
+async def save_recipe(
+    recipe_name: str = Form(...),
+    category: str = Form(...),
+    food_color: str = Form(None),
+    cooking_note: str = Form(None),
+    ingredients: str = Form(...),  # JSON string
+    image: Optional[UploadFile] = File(None),
+    image_url: str = Form(None)  # 기존 이미지 링크
+):
+    """레시피 저장 API"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # DB 테이블 생성 (없으면)
+        schema_path = Path('database/recipe_schema.sql')
+        if schema_path.exists():
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                schema_sql = f.read()
+                cursor.executescript(schema_sql)
+
+        # 레시피 코드 생성
+        recipe_code = f"RCP_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # 재료 데이터 파싱
+        ingredients_data = json.loads(ingredients)
+
+        # 총 재료비 계산
+        total_cost = sum(float(item.get('amount', 0)) for item in ingredients_data if item.get('ingredient_name'))
+
+        # 이미지 처리
+        image_path = None
+        thumbnail_path = None
+
+        # 기존 이미지 URL이 제공된 경우 (링크로 재사용)
+        if image_url:
+            # image_url은 이미 저장된 경로 (예: static/uploads/recipes/thumbnails/xxx.jpg)
+            image_path = image_url.replace('/thumbnails/', '/compressed/')
+            thumbnail_path = image_url
+        # 새로운 이미지가 업로드된 경우
+        elif image and image.filename and ImageProcessor:
+            processor = ImageProcessor()
+            file_data = await image.read()
+            result = processor.process_upload(file_data, image.filename)
+
+            if result['success']:
+                image_path = result['compressed']['path']
+                thumbnail_path = result['thumbnail']['path']
+
+        # 레시피 저장
+        cursor.execute("""
+            INSERT INTO recipes (
+                recipe_code, recipe_name, category, food_color,
+                total_cost, cooking_note, image_path, image_thumbnail,
+                created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            recipe_code, recipe_name, category, food_color,
+            total_cost, cooking_note, image_path, thumbnail_path,
+            'admin'  # TODO: 실제 사용자로 변경
+        ))
+
+        recipe_id = cursor.lastrowid
+
+        # 재료 저장
+        for idx, item in enumerate(ingredients_data):
+            if item.get('ingredient_name'):  # 빈 행 제외
+                cursor.execute("""
+                    INSERT INTO recipe_ingredients (
+                        recipe_id, ingredient_code, ingredient_name,
+                        specification, unit, delivery_days,
+                        selling_price, quantity, amount,
+                        supplier_name, sort_order
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    recipe_id,
+                    item.get('ingredient_code', ''),
+                    item.get('ingredient_name'),
+                    item.get('specification', ''),
+                    item.get('unit', ''),
+                    int(item.get('delivery_days', 0)),
+                    float(item.get('selling_price', 0)),
+                    float(item.get('quantity', 0)),
+                    float(item.get('amount', 0)),
+                    item.get('supplier_name', ''),
+                    idx
+                ))
+
+        conn.commit()
+
+        return {
+            'success': True,
+            'message': '레시피가 성공적으로 저장되었습니다.',
+            'recipe_id': recipe_id,
+            'recipe_code': recipe_code,
+            'image_path': image_path,
+            'thumbnail_path': thumbnail_path
+        }
+
+    except Exception as e:
+        conn.rollback()
+        print(f"레시피 저장 오류: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"레시피 저장 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.get("/api/recipe/list")
+async def get_recipe_list(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    category: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """레시피 목록 조회 API"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 조건 구성
+        where_conditions = ["r.is_active = 1"]
+        params = []
+
+        if category:
+            where_conditions.append("r.category = ?")
+            params.append(category)
+
+        if search:
+            where_conditions.append("r.recipe_name LIKE ?")
+            params.append(f"%{search}%")
+
+        where_clause = " AND ".join(where_conditions)
+
+        # 전체 개수
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM recipes r
+            WHERE {where_clause}
+        """
+        total = cursor.execute(count_query, params).fetchone()['total']
+
+        # 페이징 데이터
+        offset = (page - 1) * per_page
+        params.extend([per_page, offset])
+
+        query = f"""
+            SELECT
+                r.id, r.recipe_code, r.recipe_name, r.category,
+                r.food_color, r.total_cost, r.image_thumbnail,
+                r.created_at,
+                COUNT(ri.id) as ingredient_count
+            FROM recipes r
+            LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+            WHERE {where_clause}
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+            LIMIT ? OFFSET ?
+        """
+
+        recipes = cursor.execute(query, params).fetchall()
+
+        return {
+            'success': True,
+            'recipes': [dict(row) for row in recipes],
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page
+        }
+
+    except Exception as e:
+        print(f"레시피 목록 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"레시피 목록 조회 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.get("/api/recipe/{recipe_id}")
+async def get_recipe_detail(recipe_id: int):
+    """레시피 상세 조회 API"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 레시피 기본 정보
+        recipe = cursor.execute("""
+            SELECT * FROM recipes
+            WHERE id = ? AND is_active = 1
+        """, (recipe_id,)).fetchone()
+
+        if not recipe:
+            raise HTTPException(status_code=404, detail="레시피를 찾을 수 없습니다.")
+
+        # 재료 목록
+        ingredients = cursor.execute("""
+            SELECT * FROM recipe_ingredients
+            WHERE recipe_id = ?
+            ORDER BY sort_order
+        """, (recipe_id,)).fetchall()
+
+        return {
+            'success': True,
+            'recipe': dict(recipe),
+            'ingredients': [dict(row) for row in ingredients]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"레시피 상세 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"레시피 상세 조회 실패: {str(e)}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     import uvicorn

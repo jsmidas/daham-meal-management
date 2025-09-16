@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>다함 식자재 관리 - 사용자</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .menu-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .menu-card .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .menu-card .title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .menu-card .description {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            text-align: right;
+            margin-bottom: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #ff5252;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">
+            <span id="userName">사용자님</span>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+
+        <h1>🍽️ 다함 급식 관리 시스템</h1>
+        <p class="subtitle">원하는 메뉴를 선택하세요</p>
+
+        <div class="menu-grid">
+            <a href="menu_recipe_management.html" class="menu-card">
+                <span class="icon">📝</span>
+                <div class="title">메뉴/레시피 관리</div>
+                <div class="description">새로운 메뉴 등록 및 레시피 관리</div>
+            </a>
+
+            <a href="ingredients_management.html" class="menu-card">
+                <span class="icon">📦</span>
+                <div class="title">식자재 관리</div>
+                <div class="description">식자재 검색 및 단가 확인</div>
+            </a>
+
+            <a href="meal_plan_management.html" class="menu-card">
+                <span class="icon">📅</span>
+                <div class="title">식단 계획</div>
+                <div class="description">주간/월간 식단 계획 수립</div>
+            </a>
+
+            <a href="ordering_management.html" class="menu-card">
+                <span class="icon">🛒</span>
+                <div class="title">발주 관리</div>
+                <div class="description">식자재 발주 및 재고 관리</div>
+            </a>
+
+            <a href="meal_count_management.html" class="menu-card">
+                <span class="icon">📊</span>
+                <div class="title">식수 관리</div>
+                <div class="description">일일 식수 인원 관리</div>
+            </a>
+
+            <a href="cooking_instruction_management.html" class="menu-card">
+                <span class="icon">👨‍🍳</span>
+                <div class="title">조리 지시서</div>
+                <div class="description">조리 방법 및 레시피 확인</div>
+            </a>
+
+            <a href="portion_instruction_management.html" class="menu-card">
+                <span class="icon">⚖️</span>
+                <div class="title">소분 지시서</div>
+                <div class="description">식자재 소분 작업 지시</div>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 사용자 정보 로드
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('http://127.0.0.1:8010/api/current-user');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('userName').textContent = data.username + '님';
+                }
+            } catch (error) {
+                console.error('사용자 정보 로드 실패:', error);
+            }
+        }
+
+        // 로그아웃
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                // 로그아웃 처리
+                window.location.href = '/login.html';
+            }
+        }
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+        });
+    </script>
+</body>
+</html>
