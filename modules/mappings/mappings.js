@@ -52,7 +52,10 @@ function displayMappings(mappings, customers, suppliers) {
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="font-weight: 500;">${customer ? customer.name : '⚠️ 삭제된 사업장'}</td>
                 <td>${supplier ? supplier.name : '⚠️ 삭제된 업체'}</td>
-                <td><code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px;">${mapping.delivery_code || '미설정'}</code></td>
+                <td>
+                    <code style="background: #e3f2fd; padding: 2px 6px; border-radius: 3px; margin-right: 4px;">협력: ${mapping.supplier_code || '미설정'}</code>
+                    <code style="background: #fff3cd; padding: 2px 6px; border-radius: 3px;">배송: ${mapping.delivery_code || '미설정'}</code>
+                </td>
                 <td>
                     <span style="color: ${mapping.is_active ? '#28a745' : '#dc3545'}; font-weight: bold;">
                         ${mapping.is_active ? '🟢 거래중' : '🔴 중단'}

@@ -85,7 +85,7 @@ class SupplierMappingModule {
                             <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                                 <th style="padding: 12px; text-align: left;">협력업체</th>
                                 <th style="padding: 12px; text-align: left;">사업장</th>
-                                <th style="padding: 12px; text-align: left;">배송 코드</th>
+                                <th style="padding: 12px; text-align: left;">협력업체 코드 / 배송 코드</th>
                                 <th style="padding: 12px; text-align: center;">상태</th>
                                 <th style="padding: 12px; text-align: center;">등록일</th>
                                 <th style="padding: 12px; text-align: center;">작업</th>
@@ -115,17 +115,28 @@ class SupplierMappingModule {
                     <h3 id="modal-title" style="margin-top: 0;">새 매칭 추가</h3>
 
                     <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">협력업체</label>
-                        <select id="modal-supplier" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                            협력업체 <span style="color: red;">*</span>
+                        </label>
+                        <select id="modal-supplier" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
                             <option value="">선택하세요</option>
                         </select>
                     </div>
 
                     <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">사업장</label>
-                        <select id="modal-site" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                            사업장 <span style="color: red;">*</span>
+                        </label>
+                        <select id="modal-site" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
                             <option value="">선택하세요</option>
                         </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                            협력업체 코드 <span style="color: red;">*</span>
+                        </label>
+                        <input type="text" id="modal-supplier-code" placeholder="예: CJ001 (필수)" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
                     </div>
 
                     <div style="margin-bottom: 15px;">
@@ -303,8 +314,29 @@ class SupplierMappingModule {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('📊 [Supplier Mapping] API 응답:', data);
+
                 this.mappings = data.mappings || [];
-                this.totalPages = data.total_pages || 1;
+
+                // 디버깅: ID 15 데이터 확인
+                const dosirak = this.mappings.find(m => m.id === 15);
+                if (dosirak) {
+                    console.log('🔍 [DEBUG] ID 15 (도시락-동원홈푸드) 데이터:');
+                    console.log('  supplier_code:', dosirak.supplier_code);
+                    console.log('  delivery_code:', dosirak.delivery_code);
+                    console.log('  전체 객체:', dosirak);
+                }
+
+                // total_pages가 없으면 전체 데이터로 계산
+                if (data.total_pages) {
+                    this.totalPages = data.total_pages;
+                } else {
+                    // 전체 매핑 개수로 페이지 수 계산
+                    const totalCount = this.mappings.length;
+                    this.totalPages = Math.max(1, Math.ceil(totalCount / this.itemsPerPage));
+                }
+
+                console.log(`📊 [Supplier Mapping] 로드된 매핑: ${this.mappings.length}개, 페이지: ${this.currentPage}/${this.totalPages}`);
 
                 this.displayMappings();
                 this.updatePagination();
@@ -321,90 +353,13 @@ class SupplierMappingModule {
     }
 
     /**
-     * 실제 DB 데이터 로드 (API 미구현시)
+     * API 실패 시 빈 데이터 표시
      */
     async loadRealData() {
-        // customer_supplier_mappings 테이블의 실제 데이터 사용
-        // DB에 28개의 실제 매핑 데이터가 있음
-        this.mappings = [
-            {
-                id: 1,
-                supplier_name: '동원홈푸드',
-                customer_name: '학교',
-                delivery_code: 'DW001',
-                is_active: true,
-                created_at: '2025-09-06'
-            },
-            {
-                id: 2,
-                supplier_name: '신세계푸드',
-                customer_name: '학교',
-                delivery_code: 'SING001',
-                is_active: true,
-                created_at: '2025-09-06'
-            },
-            {
-                id: 3,
-                supplier_name: '풍전에프엔에스',
-                customer_name: '학교',
-                delivery_code: 'CJ001',
-                is_active: true,
-                created_at: '2025-09-06'
-            },
-            {
-                id: 4,
-                supplier_name: '삼성웰스토리',
-                customer_name: '도시락',
-                delivery_code: 'SW002',
-                is_active: true,
-                created_at: '2025-09-06'
-            },
-            {
-                id: 5,
-                supplier_name: '현대그린푸드',
-                customer_name: '운반급식',
-                delivery_code: 'HG003',
-                is_active: true,
-                created_at: '2025-09-06'
-            }
-        ];
-
-        this.totalPages = Math.ceil(this.mappings.length / this.itemsPerPage);
-        this.displayMappings();
-        this.updatePagination();
-    }
-
-    /**
-     * 더미 데이터 표시 (API 미구현시)
-     */
-    displayDummyData() {
-        this.mappings = [
-            {
-                id: 1,
-                supplier_name: '삼성웰스토리',
-                site_name: '도시락-강남점',
-                delivery_code: 'SW-GN001',
-                is_active: true,
-                created_at: '2025-01-14'
-            },
-            {
-                id: 2,
-                supplier_name: '현대그린푸드',
-                site_name: '운반-서초점',
-                delivery_code: 'HG-SC001',
-                is_active: true,
-                created_at: '2025-01-14'
-            },
-            {
-                id: 3,
-                supplier_name: 'CJ프레시웨이',
-                site_name: '학교-서울초등',
-                delivery_code: 'CJ-SE001',
-                is_active: false,
-                created_at: '2025-01-13'
-            }
-        ];
-
+        console.log('⚠️ [Supplier Mapping] API 실패 - 빈 데이터 표시');
+        // 하드코딩 제거 - 빈 배열 사용
+        this.mappings = [];
+        this.totalPages = 1;
         this.displayMappings();
         this.updatePagination();
     }
@@ -414,7 +369,20 @@ class SupplierMappingModule {
      */
     displayMappings() {
         const tbody = document.getElementById('mapping-table-body');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('❌ [Supplier Mapping] 테이블 tbody를 찾을 수 없습니다');
+            return;
+        }
+
+        console.log(`📊 [Supplier Mapping] 표시할 매핑 수: ${this.mappings.length}`);
+
+        // 디버깅: 표시 전 ID 15 데이터 재확인
+        const dosirak = this.mappings.find(m => m.id === 15);
+        if (dosirak) {
+            console.log('🎨 [Display] ID 15 표시 직전 데이터:');
+            console.log('  supplier_code:', dosirak.supplier_code);
+            console.log('  delivery_code:', dosirak.delivery_code);
+        }
 
         if (this.mappings.length === 0) {
             tbody.innerHTML = `
@@ -427,27 +395,55 @@ class SupplierMappingModule {
             return;
         }
 
-        tbody.innerHTML = this.mappings.map(mapping => `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 12px;">${mapping.supplier_name || '-'}</td>
-                <td style="padding: 12px;">${mapping.customer_name || mapping.site_name || '-'}</td>
-                <td style="padding: 12px;">
-                    <code style="background: #f5f5f5; padding: 4px 8px; border-radius: 3px;">
-                        ${mapping.delivery_code || '미설정'}
-                    </code>
-                </td>
-                <td style="padding: 12px; text-align: center;">
-                    <span style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; ${mapping.is_active ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
-                        ${mapping.is_active ? '활성' : '비활성'}
-                    </span>
-                </td>
-                <td style="padding: 12px; text-align: center;">${mapping.created_at || '-'}</td>
-                <td style="padding: 12px; text-align: center;">
-                    <button onclick="window.supplierMapping.editMapping(${mapping.id})" style="padding: 4px 8px; margin: 0 2px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">수정</button>
-                    <button onclick="window.supplierMapping.deleteMapping(${mapping.id})" style="padding: 4px 8px; margin: 0 2px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">삭제</button>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = this.mappings.map(mapping => {
+            // 날짜 포맷팅
+            let createdDate = '-';
+            if (mapping.created_at) {
+                const date = new Date(mapping.created_at);
+                if (!isNaN(date.getTime())) {
+                    createdDate = date.toLocaleDateString('ko-KR');
+                }
+            }
+
+            // supplier_code와 delivery_code 구분하여 표시
+            const displayCode = mapping.supplier_code || mapping.delivery_code || '미설정';
+
+            // 디버깅: 각 매핑의 값 확인
+            if (mapping.id === 15) {
+                console.log('🚨 [Display Row] ID 15 값 확인:');
+                console.log('  mapping.supplier_code =', mapping.supplier_code);
+                console.log('  mapping.delivery_code =', mapping.delivery_code);
+            }
+
+            return `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px;">${mapping.supplier_name || '-'}</td>
+                    <td style="padding: 12px;">${mapping.customer_name || mapping.site_name || '-'}</td>
+                    <td style="padding: 12px;">
+                        <div>
+                            <code style="background: #e3f2fd; padding: 4px 8px; border-radius: 3px; margin-right: 5px;">
+                                협력업체: ${mapping.supplier_code || '미설정'}
+                            </code>
+                            <code style="background: #fff3cd; padding: 4px 8px; border-radius: 3px;">
+                                배송: ${mapping.delivery_code || '미설정'}
+                            </code>
+                        </div>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; ${mapping.is_active ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
+                            ${mapping.is_active ? '활성' : '비활성'}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">${createdDate}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="window.supplierMapping.editMapping(${mapping.id})" style="padding: 4px 8px; margin: 0 2px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">수정</button>
+                        <button onclick="window.supplierMapping.deleteMapping(${mapping.id})" style="padding: 4px 8px; margin: 0 2px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">삭제</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log('✅ [Supplier Mapping] 테이블 업데이트 완료');
     }
 
     /**
@@ -515,6 +511,12 @@ class SupplierMappingModule {
         const mapping = this.mappings.find(m => m.id === id);
         if (!mapping) return;
 
+        // 디버깅: 매핑 데이터 확인
+        console.log('🔍 [Edit Mapping] ID:', id);
+        console.log('🔍 [Edit Mapping] Found mapping:', mapping);
+        console.log('🔍 [Edit Mapping] supplier_code:', mapping.supplier_code);
+        console.log('🔍 [Edit Mapping] delivery_code:', mapping.delivery_code);
+
         const modal = document.getElementById('mapping-modal');
         const title = document.getElementById('modal-title');
 
@@ -524,12 +526,28 @@ class SupplierMappingModule {
         // 폼에 데이터 설정
         const supplierSelect = document.getElementById('modal-supplier');
         const siteSelect = document.getElementById('modal-site');
-        const codeInput = document.getElementById('modal-delivery-code');
+        const supplierCodeInput = document.getElementById('modal-supplier-code');
+        const deliveryCodeInput = document.getElementById('modal-delivery-code');
         const activeCheck = document.getElementById('modal-is-active');
 
+        // 디버깅: 입력 필드 확인
+        console.log('🔍 [Edit Mapping] Input fields found:');
+        console.log('  - supplierCodeInput:', !!supplierCodeInput);
+        console.log('  - deliveryCodeInput:', !!deliveryCodeInput);
+
         if (supplierSelect) supplierSelect.value = mapping.supplier_id || '';
-        if (siteSelect) siteSelect.value = mapping.site_id || '';
-        if (codeInput) codeInput.value = mapping.delivery_code || '';
+        if (siteSelect) siteSelect.value = mapping.customer_id || mapping.site_id || '';
+
+        if (supplierCodeInput) {
+            supplierCodeInput.value = mapping.supplier_code || '';
+            console.log('🔍 [Edit Mapping] Set supplier_code input to:', supplierCodeInput.value);
+        }
+
+        if (deliveryCodeInput) {
+            deliveryCodeInput.value = mapping.delivery_code || '';
+            console.log('🔍 [Edit Mapping] Set delivery_code input to:', deliveryCodeInput.value);
+        }
+
         if (activeCheck) activeCheck.checked = mapping.is_active;
     }
 
@@ -541,7 +559,7 @@ class SupplierMappingModule {
 
         try {
             const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
-            const response = await fetch(`${apiBase}/api/admin/supplier-mappings/${id}`, {
+            const response = await fetch(`${apiBase}/api/admin/customer-supplier-mappings/${id}`, {
                 method: 'DELETE'
             });
 
@@ -568,27 +586,50 @@ class SupplierMappingModule {
     async saveMapping() {
         const supplierSelect = document.getElementById('modal-supplier');
         const siteSelect = document.getElementById('modal-site');
-        const codeInput = document.getElementById('modal-delivery-code');
+        const supplierCodeInput = document.getElementById('modal-supplier-code');
+        const deliveryCodeInput = document.getElementById('modal-delivery-code');
         const activeCheck = document.getElementById('modal-is-active');
 
+        // 디버깅: 입력 필드 값 확인
+        console.log('💾 [Save Mapping] Reading values from inputs:');
+        console.log('  - supplier_code input value:', supplierCodeInput?.value);
+        console.log('  - delivery_code input value:', deliveryCodeInput?.value);
+
         const data = {
-            supplier_id: supplierSelect?.value,
-            site_id: siteSelect?.value,
-            delivery_code: codeInput?.value,
-            is_active: activeCheck?.checked
+            supplier_id: parseInt(supplierSelect?.value),
+            customer_id: parseInt(siteSelect?.value),  // customer_id는 사업장 ID
+            supplier_code: supplierCodeInput?.value || '',
+            delivery_code: deliveryCodeInput?.value || '',
+            is_active: activeCheck?.checked,
+            priority_order: 1,
+            is_primary_supplier: false,
+            notes: ''
         };
 
+        // 디버깅: 저장할 데이터 확인
+        console.log('💾 [Save Mapping] Data to save:', data);
+        console.log('💾 [Save Mapping] supplier_code:', data.supplier_code);
+        console.log('💾 [Save Mapping] delivery_code:', data.delivery_code);
+
         // 유효성 검사
-        if (!data.supplier_id || !data.site_id || !data.delivery_code) {
-            alert('모든 필드를 입력해주세요.');
+        if (!data.supplier_id) {
+            alert('협력업체를 선택해주세요.');
+            return;
+        }
+        if (!data.customer_id) {
+            alert('사업장을 선택해주세요.');
+            return;
+        }
+        if (!data.supplier_code || data.supplier_code.trim() === '') {
+            alert('협력업체 코드는 필수 항목입니다.');
             return;
         }
 
         try {
             const apiBase = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
             const url = this.currentEditId
-                ? `${apiBase}/api/admin/supplier-mappings/${this.currentEditId}`
-                : `${apiBase}/api/admin/supplier-mappings`;
+                ? `${apiBase}/api/admin/customer-supplier-mappings/${this.currentEditId}`
+                : `${apiBase}/api/admin/customer-supplier-mappings`;
 
             const method = this.currentEditId ? 'PUT' : 'POST';
 
@@ -601,12 +642,20 @@ class SupplierMappingModule {
             });
 
             if (response.ok) {
+                const result = await response.json();
+                console.log('✅ [Supplier Mapping] 저장 성공:', result);
+
                 alert(this.currentEditId ? '수정되었습니다.' : '추가되었습니다.');
                 this.hideModal();
-                this.loadMappings();
+
+                // 목록 새로고침
+                await this.loadMappings();
             } else {
-                // API 미구현시 시뮬레이션
-                this.simulateSave(data);
+                const errorText = await response.text();
+                console.error('❌ [Supplier Mapping] 저장 실패:', response.status, errorText);
+
+                // API 오류 상세 표시
+                alert(`저장 실패: ${response.status} - ${errorText}`);
             }
         } catch (error) {
             console.error('❌ [Supplier Mapping] 저장 실패:', error);
@@ -664,12 +713,14 @@ class SupplierMappingModule {
     resetModalForm() {
         const supplierSelect = document.getElementById('modal-supplier');
         const siteSelect = document.getElementById('modal-site');
-        const codeInput = document.getElementById('modal-delivery-code');
+        const supplierCodeInput = document.getElementById('modal-supplier-code');
+        const deliveryCodeInput = document.getElementById('modal-delivery-code');
         const activeCheck = document.getElementById('modal-is-active');
 
         if (supplierSelect) supplierSelect.value = '';
         if (siteSelect) siteSelect.value = '';
-        if (codeInput) codeInput.value = '';
+        if (supplierCodeInput) supplierCodeInput.value = '';
+        if (deliveryCodeInput) deliveryCodeInput.value = '';
         if (activeCheck) activeCheck.checked = true;
     }
 

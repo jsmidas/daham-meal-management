@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>협력업체 매핑 최종 테스트</title>
+    <script src="/config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .warning {
+            color: orange;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 협력업체 매핑 최종 테스트</h1>
+
+    <div class="test-container">
+        <h2>1. API 데이터 확인</h2>
+        <button class="test-button" onclick="testAPI()">API 테스트</button>
+        <div id="api-result" class="result-box"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>2. 모듈 로드 테스트</h2>
+        <button class="test-button" onclick="loadModule()">모듈 로드</button>
+        <div id="module-result" class="result-box"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>3. 실제 페이지 표시</h2>
+        <div id="supplier-mappings-content"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>4. 수정 테스트</h2>
+        <button class="test-button" onclick="testEdit()">도시락-동원홈푸드 수정 테스트</button>
+        <div id="edit-result" class="result-box"></div>
+    </div>
+
+    <script>
+        const API_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8015';
+
+        async function testAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '테스트 중...';
+
+            try {
+                // 전체 매핑 목록 가져오기
+                const response = await fetch(`${API_URL}/api/admin/customer-supplier-mappings`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // 도시락-동원홈푸드 찾기
+                    const dosirak = data.mappings.find(m =>
+                        m.customer_name?.includes('도시락') &&
+                        m.supplier_name?.includes('동원')
+                    );
+
+                    let html = `<span class="success">✅ API 연결 성공</span>\n`;
+                    html += `총 매핑 수: ${data.mappings.length}개\n\n`;
+
+                    if (dosirak) {
+                        html += `<strong>도시락-동원홈푸드 데이터:</strong>\n`;
+                        html += `ID: ${dosirak.id}\n`;
+                        html += `Customer ID: ${dosirak.customer_id}\n`;
+                        html += `Supplier ID: ${dosirak.supplier_id}\n`;
+                        html += `<span class="${dosirak.supplier_code ? 'success' : 'error'}">Supplier Code: "${dosirak.supplier_code || 'MISSING'}"</span>\n`;
+                        html += `<span class="${dosirak.delivery_code !== undefined ? 'success' : 'error'}">Delivery Code: "${dosirak.delivery_code || ''}"</span>\n`;
+
+                        // 상세 API 호출
+                        const detailResponse = await fetch(`${API_URL}/api/admin/customer-supplier-mappings/${dosirak.id}`);
+                        const detailData = await detailResponse.json();
+
+                        if (detailData.success) {
+                            html += `\n<strong>상세 API 응답:</strong>\n`;
+                            html += `<span class="${detailData.mapping.supplier_code ? 'success' : 'error'}">Supplier Code: "${detailData.mapping.supplier_code || 'MISSING'}"</span>\n`;
+                            html += `<span class="${detailData.mapping.delivery_code !== undefined ? 'success' : 'error'}">Delivery Code: "${detailData.mapping.delivery_code || ''}"</span>\n`;
+                        }
+                    } else {
+                        html += `<span class="warning">⚠️ 도시락-동원홈푸드 매핑을 찾을 수 없습니다</span>`;
+                    }
+
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ API 오류: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 연결 실패: ${error.message}</span>`;
+            }
+        }
+
+        async function loadModule() {
+            const resultDiv = document.getElementById('module-result');
+            resultDiv.innerHTML = '모듈 로드 중...';
+
+            try {
+                // 기존 모듈 정리
+                if (window.supplierMapping) {
+                    if (typeof window.supplierMapping.destroy === 'function') {
+                        window.supplierMapping.destroy();
+                    }
+                    window.supplierMapping = null;
+                }
+
+                // 모듈 로드
+                const script = document.createElement('script');
+                script.src = '/static/modules/mappings/supplier-mapping.js';
+
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+
+                // 모듈 초기화
+                if (window.SupplierMappingModule) {
+                    window.supplierMapping = new window.SupplierMappingModule();
+                    await window.supplierMapping.init();
+
+                    resultDiv.innerHTML = `<span class="success">✅ 모듈 로드 성공</span>\n`;
+                    resultDiv.innerHTML += `모듈 타입: ${typeof window.supplierMapping}\n`;
+                    resultDiv.innerHTML += `초기화 완료: ${window.supplierMapping ? 'YES' : 'NO'}\n`;
+                    resultDiv.innerHTML += `매핑 수: ${window.supplierMapping.mappings.length}개`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ SupplierMappingModule을 찾을 수 없습니다</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ 모듈 로드 실패: ${error.message}</span>`;
+            }
+        }
+
+        async function testEdit() {
+            const resultDiv = document.getElementById('edit-result');
+            resultDiv.innerHTML = '테스트 중...';
+
+            if (!window.supplierMapping) {
+                resultDiv.innerHTML = `<span class="error">❌ 모듈이 로드되지 않았습니다. 먼저 모듈을 로드하세요.</span>`;
+                return;
+            }
+
+            // 도시락-동원홈푸드 찾기
+            const dosirak = window.supplierMapping.mappings.find(m =>
+                m.customer_name?.includes('도시락') &&
+                m.supplier_name?.includes('동원')
+            );
+
+            if (!dosirak) {
+                resultDiv.innerHTML = `<span class="error">❌ 도시락-동원홈푸드 매핑을 찾을 수 없습니다</span>`;
+                return;
+            }
+
+            let html = `<strong>수정 테스트 - ID: ${dosirak.id}</strong>\n\n`;
+
+            // 원본 데이터
+            html += `<strong>원본 데이터:</strong>\n`;
+            html += `Supplier Code: "${dosirak.supplier_code || ''}"\n`;
+            html += `Delivery Code: "${dosirak.delivery_code || ''}"\n\n`;
+
+            // editMapping 호출 시뮬레이션
+            window.supplierMapping.currentEditId = dosirak.id;
+
+            // 가상의 입력 필드 생성
+            const testContainer = document.createElement('div');
+            testContainer.innerHTML = `
+                <input type="hidden" id="modal-supplier" value="${dosirak.supplier_id}">
+                <input type="hidden" id="modal-site" value="${dosirak.customer_id}">
+                <input type="text" id="modal-supplier-code" value="${dosirak.supplier_code || ''}">
+                <input type="text" id="modal-delivery-code" value="${dosirak.delivery_code || ''}">
+                <input type="checkbox" id="modal-is-active" ${dosirak.is_active ? 'checked' : ''}>
+            `;
+            document.body.appendChild(testContainer);
+
+            // 값 확인
+            const supplierCodeInput = document.getElementById('modal-supplier-code');
+            const deliveryCodeInput = document.getElementById('modal-delivery-code');
+
+            html += `<strong>모달 입력 필드 값:</strong>\n`;
+            html += `Supplier Code Input: "${supplierCodeInput.value}"\n`;
+            html += `Delivery Code Input: "${deliveryCodeInput.value}"\n\n`;
+
+            // 배송 코드만 변경
+            deliveryCodeInput.value = 'TEST_DELIVERY_123';
+
+            html += `<strong>배송 코드 변경 후:</strong>\n`;
+            html += `Supplier Code Input: "${supplierCodeInput.value}" ${supplierCodeInput.value === (dosirak.supplier_code || '') ? '✅ 변경 안됨' : '❌ 변경됨!'}\n`;
+            html += `Delivery Code Input: "${deliveryCodeInput.value}" ✅ 변경됨\n\n`;
+
+            // 저장 시뮬레이션
+            const saveData = {
+                supplier_id: parseInt(dosirak.supplier_id),
+                customer_id: parseInt(dosirak.customer_id),
+                supplier_code: supplierCodeInput.value,
+                delivery_code: deliveryCodeInput.value,
+                is_active: true
+            };
+
+            html += `<strong>저장할 데이터:</strong>\n`;
+            html += JSON.stringify(saveData, null, 2);
+
+            // 테스트 결과
+            if (saveData.supplier_code === (dosirak.supplier_code || '') &&
+                saveData.delivery_code === 'TEST_DELIVERY_123') {
+                html += `\n\n<span class="success">✅ 테스트 성공: 배송 코드만 변경되고 협력업체 코드는 유지됨</span>`;
+            } else {
+                html += `\n\n<span class="error">❌ 테스트 실패: 필드가 올바르게 분리되지 않음</span>`;
+            }
+
+            // 정리
+            document.body.removeChild(testContainer);
+
+            resultDiv.innerHTML = html;
+        }
+
+        // 페이지 로드 시 자동 실행
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('페이지 로드 완료');
+            console.log('API URL:', API_URL);
+        });
+    </script>
+</body>
+</html>

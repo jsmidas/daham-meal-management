@@ -533,12 +533,25 @@ function updateCostRatio(planId) {
 function addNewMealPlan() {
     // 먼저 사업장이 선택되었는지 확인
     if (!window.currentLocationId || window.currentLocationId === 'all') {
+        console.log('[새 식단표 추가] 사업장 데이터:', window.businessLocations);
+
+        // 사업장 데이터가 없으면 먼저 로드
+        if (!window.businessLocations || window.businessLocations.length === 0) {
+            console.log('[새 식단표 추가] 사업장 데이터가 없어서 로드 중...');
+            alert('사업장 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+            loadBusinessLocations();
+            return;
+        }
+
         // 사업장 선택 드롭다운 생성
         let locationOptions = '<select id="tempLocationSelect" style="padding: 5px; margin: 5px;">';
         locationOptions += '<option value="">사업장을 선택하세요</option>';
 
         window.businessLocations.forEach(loc => {
-            locationOptions += `<option value="${loc.id}">${loc.name} - ${loc.type}</option>`;
+            const locationName = loc.site_name || loc.name || '이름없음';
+            const locationType = loc.site_type || loc.type || '';
+            locationOptions += `<option value="${loc.id}">${locationName}${locationType ? ' - ' + locationType : ''}</option>`;
+            console.log(`[새 식단표 추가] 옵션 추가: ID=${loc.id}, Name=${locationName}, Type=${locationType}`);
         });
         locationOptions += '</select>';
 

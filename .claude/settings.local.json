@@ -80,7 +80,17 @@
       "Bash(del fix_encoding.py)",
       "Bash(del check_db_fields.py)",
       "Bash(del clear_business_locations.py)",
-      "Bash(del staticmodulesmappingshardcoded-data.js)"
+      "Bash(del staticmodulesmappingshardcoded-data.js)",
+      "Bash(del server_control_tower.py server_manager.py server_manager_simple.py server_monitor.py test_monitor.py daham_api.py user_api_server.py add_meal_pricing_api.py)",
+      "Bash(restart_api.bat)",
+      "Bash(★QUICK_START.bat)",
+      "Bash(del fix_business_locations.py)",
+      "Bash(del test_user_update.py)",
+      "Bash(del check_ingredients.py)",
+      "Bash(del test_search_scope.html)",
+      "Bash(del:*)",
+      "Bash(rm:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

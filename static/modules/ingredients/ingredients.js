@@ -6,6 +6,25 @@
 let uploadedFiles = [];
 let uploadHistory = [];
 
+// 정확한 필드 헤더 (띄어쓰기, 괄호 포함 - 매우 중요!)
+const FIELD_HEADERS = [
+    '분류(대분류)',
+    '기본식자재(세분류)',
+    '고유코드',
+    '식자재명',
+    '원산지',
+    '게시유무',
+    '규격',
+    '단위',
+    '면세',
+    '선발주일',
+    '입고가',
+    '판매가',
+    '거래처명',
+    '비고',
+    '등록일'
+];
+
 // IngredientsModule 객체 (다른 모듈과 일관성 유지)
 window.IngredientsModule = {
     currentPage: 1,
@@ -19,6 +38,107 @@ window.IngredientsModule = {
         await this.loadIngredientStatistics();
         this.setupEventListeners();
         return this;
+    },
+
+    // 단위당 단가 재계산
+    async recalculateUnitPrices() {
+        // 확인 대화상자
+        if (!confirm('모든 식자재의 단위당 단가를 재계산하시겠습니까?\n\n약 85,000개의 데이터를 처리하므로 1-2분 정도 소요될 수 있습니다.')) {
+            return;
+        }
+
+        // 진행 상태 표시를 위한 모달 생성
+        const progressModal = document.createElement('div');
+        progressModal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 400px;
+            text-align: center;
+        `;
+        progressModal.innerHTML = `
+            <h3 style="margin-bottom: 20px;">🔄 단위당 단가 재계산 중...</h3>
+            <div style="margin-bottom: 15px;">
+                <div style="background: #f0f0f0; border-radius: 10px; height: 30px; overflow: hidden;">
+                    <div id="progressBar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                        0%
+                    </div>
+                </div>
+            </div>
+            <p id="progressText" style="color: #666;">재계산을 시작하는 중...</p>
+            <p style="font-size: 12px; color: #999; margin-top: 10px;">잠시만 기다려주세요.</p>
+        `;
+        document.body.appendChild(progressModal);
+
+        // 배경 오버레이
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+        `;
+        document.body.appendChild(overlay);
+
+        try {
+            const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
+
+            // 진행률 시뮬레이션 (실제 진행 상황을 알 수 없으므로)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 10;
+                    progress = Math.min(progress, 90);
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressBar').textContent = Math.floor(progress) + '%';
+                    document.getElementById('progressText').textContent = `약 ${Math.floor(progress * 850)}개 처리 중...`;
+                }
+            }, 500);
+
+            const response = await fetch(`${API_BASE_URL}/api/admin/ingredients/recalculate-unit-prices`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            clearInterval(progressInterval);
+
+            if (response.ok) {
+                const result = await response.json();
+
+                // 완료 표시
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressBar').textContent = '100%';
+                document.getElementById('progressText').textContent = '재계산 완료!';
+
+                setTimeout(() => {
+                    document.body.removeChild(progressModal);
+                    document.body.removeChild(overlay);
+
+                    alert(`✅ 단위당 단가 재계산 완료!\n\n${result.message}`);
+
+                    // 테이블 새로고침
+                    this.loadIngredients();
+                }, 1000);
+            } else {
+                throw new Error('재계산 실패');
+            }
+        } catch (error) {
+            console.error('재계산 오류:', error);
+            document.body.removeChild(progressModal);
+            document.body.removeChild(overlay);
+            alert('❌ 재계산 중 오류가 발생했습니다.\n\n' + error.message);
+        }
     },
 
     // 이벤트 리스너 설정
@@ -40,7 +160,7 @@ window.IngredientsModule = {
             const category = document.getElementById('ingredient-category-filter')?.value || '';
             const page = this.currentPage || 1;
             
-            let url = `${CONFIG.API.BASE_URL}/api/admin/ingredients-new?page=${page}&limit=20`;
+            let url = `${window.CONFIG?.API_BASE_URL || 'http://127.0.0.1:8010'}/api/admin/ingredients-new?page=${page}&limit=20`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (category) url += `&category=${encodeURIComponent(category)}`;
             
@@ -63,7 +183,7 @@ window.IngredientsModule = {
     // 식자재 통계 로드
     async loadIngredientStatistics() {
         try {
-            const response = await fetch(`${CONFIG.API.BASE_URL}/api/admin/ingredients-new?page=1&limit=100`);
+            const response = await fetch(`${window.CONFIG?.API_BASE_URL || 'http://127.0.0.1:8010'}/api/admin/ingredients-new?page=1&limit=100`);
             const data = await response.json();
             
             if (data.success && data.ingredients) {
@@ -107,41 +227,36 @@ window.IngredientsModule = {
     displayIngredients(ingredients) {
         const tbody = document.getElementById('ingredients-table-body');
         if (!tbody) return;
-        
+
         if (!ingredients || ingredients.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11">등록된 식자재가 없습니다.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="16">등록된 식자재가 없습니다.</td></tr>';
             return;
         }
-        
+
+        // 단위당 단가 포매팅 함수
+        const formatUnitPrice = (price) => {
+            if (!price || price === 0) return '-';
+            return `<span style="color: #007bff; font-weight: 600;">${Number(price).toFixed(1)}</span>`;
+        };
+
         tbody.innerHTML = ingredients.map(ingredient => `
             <tr>
-                <td>${ingredient.id}</td>
                 <td>${ingredient.category || '-'}</td>
-                <td><strong>${ingredient.ingredient_name}</strong><br><small>${ingredient.sub_category || ''}</small></td>
+                <td>${ingredient.sub_category || '-'}</td>
                 <td>${ingredient.ingredient_code || '-'}</td>
-                <td>${ingredient.unit || '-'}</td>
-                <td>${ingredient.purchase_price ? '₩' + Number(ingredient.purchase_price).toLocaleString() : '-'}</td>
-                <td>${ingredient.selling_price ? '₩' + Number(ingredient.selling_price).toLocaleString() : '-'}</td>
-                <td>${ingredient.supplier_name || '-'}</td>
+                <td>${ingredient.ingredient_name || '-'}</td>
                 <td>${ingredient.origin || '-'}</td>
-                <td>
-                    <span class="status-badge ${ingredient.posting_status === '게시' ? 'active' : 'inactive'}">
-                        ${ingredient.posting_status || '미지정'}
-                    </span>
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-small btn-edit" onclick="IngredientsModule.editIngredient(${ingredient.id})" title="수정">
-                            ✏️
-                        </button>
-                        <button class="btn-small btn-toggle" onclick="IngredientsModule.toggleStatus(${ingredient.id})" title="상태 변경">
-                            ${ingredient.posting_status === '게시' ? '⏸️' : '▶️'}
-                        </button>
-                        <button class="btn-small btn-delete" onclick="IngredientsModule.deleteIngredient(${ingredient.id})" title="삭제">
-                            🗑️
-                        </button>
-                    </div>
-                </td>
+                <td>${ingredient.posting_status || '미지정'}</td>
+                <td>${ingredient.specification || '-'}</td>
+                <td>${ingredient.unit || '-'}</td>
+                <td>${ingredient.tax_type || '-'}</td>
+                <td>${ingredient.delivery_days || '-'}</td>
+                <td>${formatUnitPrice(ingredient.price_per_unit)}</td>
+                <td>${ingredient.purchase_price ? Number(ingredient.purchase_price).toLocaleString() : '-'}</td>
+                <td>${ingredient.selling_price ? Number(ingredient.selling_price).toLocaleString() : '-'}</td>
+                <td>${ingredient.supplier_name || '-'}</td>
+                <td>${ingredient.notes || '-'}</td>
+                <td>${ingredient.created_at ? new Date(ingredient.created_at).toLocaleDateString('ko-KR') : '-'}</td>
             </tr>
         `).join('');
     },
@@ -187,6 +302,102 @@ window.IngredientsModule = {
         }
         console.log('식자재 삭제:', id);
         alert(`식자재 삭제 기능 - ID: ${id} (구현 예정)`);
+    },
+
+    // 템플릿 다운로드
+    downloadTemplate() {
+        const link = document.createElement('a');
+        link.href = '/sample-data/food-template.xls';
+        link.download = '식자재_업로드_템플릿.xls';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    // 오류 데이터 다운로드
+    downloadErrors() {
+        if (!this.errorData || this.errorData.length === 0) {
+            alert('다운로드할 오류 데이터가 없습니다.');
+            return;
+        }
+        // 오류 데이터를 CSV로 변환하여 다운로드
+        const csvContent = this.convertToCSV(this.errorData);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `오류_데이터_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    // 파일 선택 처리
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+
+        if (fileInfo && fileName && fileSize) {
+            fileName.textContent = file.name;
+            fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            fileInfo.style.display = 'flex';
+        }
+
+        this.selectedFile = file;
+    },
+
+    // CSV 변환
+    convertToCSV(data) {
+        const fieldHeaders = [
+            '분류(대분류)', '기본식자재(세분류)', '고유코드', '식자재명',
+            '원산지', '게시유무', '규격', '단위', '면세', '선발주일',
+            '입고가', '판매가', '거래처명', '비고', '등록일'
+        ];
+        const headers = fieldHeaders.join(',');
+        const rows = data.map(row =>
+            fieldHeaders.map(header => row[header] || '').join(',')
+        );
+        return headers + '\n' + rows.join('\n');
+    },
+
+    // 단위당 단가 계산
+    calculatePricePerUnit() {
+        console.log('단위당 단가 계산 시작...');
+
+        // price-per-gram 모듈이 있으면 사용
+        if (window.PricePerGramModule) {
+            window.PricePerGramModule.calculateAll();
+        } else {
+            // 간단한 계산 로직
+            const ingredients = document.querySelectorAll('#ingredients-table-body tr');
+            ingredients.forEach(row => {
+                const priceCell = row.querySelector('td:nth-child(6)'); // 입고가
+                const specCell = row.querySelector('td:nth-child(7)'); // 규격
+
+                if (priceCell && specCell) {
+                    const price = parseFloat(priceCell.textContent.replace(/[^\d]/g, ''));
+                    const specText = specCell.textContent;
+
+                    // 규격에서 무게 추출 (예: "1kg", "500g", "2.5kg")
+                    const weightMatch = specText.match(/(\d+(?:\.\d+)?)\s*(kg|g)/i);
+                    if (weightMatch) {
+                        const weight = parseFloat(weightMatch[1]);
+                        const unit = weightMatch[2].toLowerCase();
+                        const grams = unit === 'kg' ? weight * 1000 : weight;
+
+                        if (grams > 0) {
+                            const pricePerGram = (price / grams).toFixed(2);
+                            console.log(`${specText}: ₩${pricePerGram}/단위`);
+                        }
+                    }
+                }
+            });
+        }
+
+        alert('단위당 단가 계산이 완료되었습니다. 콘솔에서 결과를 확인하세요.');
     }
 };
 
@@ -248,13 +459,13 @@ function downloadTemplate() {
     try {
         // 샘플 Excel 파일 다운로드 로직
         const link = document.createElement('a');
-        link.href = '/static/sample data/food_sample.xls';
+        link.href = '/sample-data/food-template.xls';
         link.download = '식자재_업로드_양식_샘플.xls';
         link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // 다운로드 성공 메시지
         showNotification('📋 양식 다운로드가 시작되었습니다.', 'success');
     } catch (error) {
@@ -900,6 +1111,23 @@ window.clearFiles = clearFiles;
 window.removeFile = removeFile;
 window.processSelectedFiles = processSelectedFiles;
 window.displayBulkUploadResults = displayBulkUploadResults;
+
+// 이미지 모달 관련 함수 - 전역으로 노출
+window.showImageModal = function() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.hideImageModal = function() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+};
 
 // 호환성을 위한 별칭 추가
 window.IngredientManagement = window.IngredientsModule;

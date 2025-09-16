@@ -111,36 +111,34 @@ async function initializePageModule(pageName) {
                 }
             })
             .catch(err => console.error('대시보드 통계 로드 실패:', err));
+
+        // 최근 활동 로그 로드
+        loadActivityLogs();
+        startActivityRefresh();
         return;
     }
 
     const fallbackInitialization = {
         'users': async () => {
-            // 템플릿 로드 먼저 (HTTP 환경에서만 작동)
-            const userContent = document.getElementById('users-content');
-            if (userContent && userContent.innerHTML.trim().length < 100) {
-                try {
-                    // HTTP 환경에서는 파일 로드
-                    if (window.location.protocol.startsWith('http')) {
-                        const response = await fetch('static/templates/users-section.html');
-                        if (response.ok) {
-                            const html = await response.text();
-                            userContent.innerHTML = html;
-                            console.log('✅ 사용자 템플릿 로드 완료');
-                        }
-                    } else {
-                        // file:// 프로토콜에서는 폴백 HTML
-                        userContent.innerHTML = '<div class="page-header"><h2>사용자 관리</h2><p>file:// 프로토콜에서는 제한적 기능만 지원됩니다.</p></div>';
-                        console.log('✅ 사용자 템플릿 폴백 삽입');
-                    }
-                } catch (err) {
-                    console.error('❌ 사용자 템플릿 로드 실패:', err);
+            // Enhanced User Management 모듈 사용
+            if (window.enhancedUserMgmt) {
+                console.log('✅ Enhanced User Management 모듈 사용');
+                return window.enhancedUserMgmt.init();
+            }
+
+            // Enhanced 모듈이 없으면 로드
+            if (!window.enhancedUserMgmt) {
+                await loadScript('/static/modules/users/users-enhanced.js');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                if (window.enhancedUserMgmt) {
+                    return window.enhancedUserMgmt.init();
                 }
             }
 
-            // 모듈 초기화
+            // 폴백: 기존 모듈 사용
+            console.log('⚠️ Enhanced 모듈 로드 실패, 기존 모듈 사용');
             if (!window.UsersManagementFull) {
-                await loadScript('static/modules/users/users-management-full.js');
+                await loadScript('/static/modules/users/users-management-full.js');
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             return window.UsersManagementFull?.init?.();
@@ -150,7 +148,7 @@ async function initializePageModule(pageName) {
 
             // 모듈 초기화
             if (!window.SupplierManagement) {
-                await loadScript('static/modules/suppliers/suppliers.js');
+                await loadScript('/static/modules/suppliers/suppliers.js');
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             return window.SupplierManagement?.init?.();
@@ -180,7 +178,7 @@ async function initializePageModule(pageName) {
 
             // 모듈 초기화
             if (!window.BusinessLocationsModule) {
-                await loadScript('static/modules/sites/sites.js');
+                await loadScript('/static/modules/sites/sites.js');
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             return window.BusinessLocationsModule?.init?.();
@@ -231,16 +229,43 @@ async function initializePageModule(pageName) {
             }
         },
         'ingredients': async () => {
-            if (!window.IngredientManagement) {
-                await loadScript('static/modules/ingredients/ingredients.js');
+            console.log('🥬 식자재 관리 모듈 초기화 시작');
+
+            // 템플릿 로드
+            const ingredientsContent = document.getElementById('ingredients-content');
+            if (ingredientsContent && ingredientsContent.innerHTML.trim().length < 100) {
+                try {
+                    if (window.location.protocol.startsWith('http')) {
+                        const response = await fetch('static/templates/ingredients-section.html');
+                        if (response.ok) {
+                            const html = await response.text();
+                            ingredientsContent.innerHTML = html;
+                            console.log('✅ 식자재 템플릿 로드 완료');
+                        }
+                    }
+                } catch (err) {
+                    console.error('❌ 식자재 템플릿 로드 실패:', err);
+                }
+            }
+
+            // 모듈 로드
+            if (!window.IngredientsModule) {
+                await loadScript('/static/modules/ingredients/ingredients.js');
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
-            return window.IngredientManagement?.init?.();
+
+            // 모듈 초기화
+            if (window.IngredientsModule) {
+                console.log('🚀 IngredientsModule.init 호출');
+                return window.IngredientsModule.init();
+            } else {
+                console.error('❌ IngredientsModule을 찾을 수 없음');
+            }
         },
         'supplier-mapping': async () => {
             // 개선된 매핑 모듈 사용
             if (!window.initEnhancedMapping) {
-                await loadScript('static/modules/mappings/enhanced-mapping.js');
+                await loadScript('/static/modules/mappings/enhanced-mapping.js');
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
 
@@ -298,6 +323,99 @@ async function initializePage() {
     }
 
     console.log('✅ [Admin Dashboard] 초기화 완료');
+}
+
+/**
+ * 최근 활동 로그 로드
+ */
+async function loadActivityLogs() {
+    console.log('📝 최근 활동 로그 로딩...');
+
+    try {
+        const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://127.0.0.1:8010';
+        const response = await fetch(`${API_BASE_URL}/api/admin/activity-logs?limit=15`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const activityList = document.getElementById('activity-list');
+
+        if (!activityList) return;
+
+        if (data.logs && data.logs.length > 0) {
+            activityList.innerHTML = data.logs.map(log => {
+                const time = new Date(log.timestamp).toLocaleString('ko-KR', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // 아이콘 선택
+                let icon = '📝';
+                if (log.action_type.includes('추가')) icon = '➕';
+                else if (log.action_type.includes('수정')) icon = '✏️';
+                else if (log.action_type.includes('삭제')) icon = '🗑️';
+                else if (log.action_type.includes('로그인')) icon = '🔐';
+
+                return `
+                    <div class="log-item">
+                        <div class="log-time">${time}</div>
+                        <div class="log-message">
+                            <span style="margin-right: 5px;">${icon}</span>
+                            <strong>${log.user}</strong> - ${log.action_detail}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            activityList.innerHTML = `
+                <div class="log-item">
+                    <div class="log-message" style="color: #999; text-align: center;">
+                        아직 기록된 활동이 없습니다.
+                    </div>
+                </div>
+            `;
+        }
+
+        console.log('✅ 최근 활동 로그 로드 완료');
+    } catch (error) {
+        console.warn('⚠️ 최근 활동 로그 로드 실패 (서버 재시작 필요):', error.message);
+        const activityList = document.getElementById('activity-list');
+        if (activityList) {
+            activityList.innerHTML = `
+                <div class="log-item">
+                    <div class="log-message" style="color: #ff9800; text-align: center;">
+                        <div style="margin-bottom: 10px;">⚠️ 활동 로그 서비스가 준비 중입니다.</div>
+                        <div style="font-size: 12px; color: #666;">
+                            서버를 재시작하면 활동 로그가 표시됩니다.<br>
+                            (터미널에서 Ctrl+C 후 python test_samsung_api.py 실행)
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+/**
+ * 정기적으로 활동 로그 새로고침 (30초마다)
+ */
+let activityRefreshInterval = null;
+
+function startActivityRefresh() {
+    if (activityRefreshInterval) {
+        clearInterval(activityRefreshInterval);
+    }
+
+    activityRefreshInterval = setInterval(() => {
+        const dashboardContent = document.getElementById('dashboard-content');
+        if (dashboardContent && dashboardContent.style.display !== 'none') {
+            loadActivityLogs();
+        }
+    }, 30000); // 30초마다 새로고침
 }
 
 // 초기화 에러 표시 함수

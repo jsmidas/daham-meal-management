@@ -271,12 +271,12 @@
                     </td>
                     <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
                         <code style="background: #e7f3ff; padding: 3px 6px; border-radius: 3px; font-size: 11px; color: #0066cc; font-weight: 600;">
-                            ${mapping.delivery_code || '-'}
+                            ${mapping.supplier_code || '-'}
                         </code>
                     </td>
                     <td style="padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
                         <code style="background: #fff3cd; padding: 3px 6px; border-radius: 3px; font-size: 11px; color: #856404; font-weight: 600;">
-                            ${mapping.supplier_code || '-'}
+                            ${mapping.delivery_code || '-'}
                         </code>
                     </td>
                     <td style="padding: 8px 12px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 12px;">
