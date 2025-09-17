@@ -1593,6 +1593,17 @@
                 id = null;
             }
 
+            // 선발주일 값 처리: D-1, D+2 같은 형식에서 숫자만 추출
+            let selectiveOrder = document.getElementById('ingredientSelectiveOrder').value;
+            if (selectiveOrder) {
+                // D-, D+ 제거하고 숫자만 추출
+                selectiveOrder = selectiveOrder.replace(/D[\+\-]/gi, '').trim();
+                // 숫자가 아닌 경우 원본 유지
+                if (isNaN(parseInt(selectiveOrder))) {
+                    selectiveOrder = document.getElementById('ingredientSelectiveOrder').value;
+                }
+            }
+
             const data = {
                 category: document.getElementById('ingredientCategory').value,
                 subcategory: document.getElementById('ingredientSubcategory').value,
@@ -1603,7 +1614,7 @@
                 specification: document.getElementById('ingredientSpecification').value,
                 base_unit: document.getElementById('ingredientUnit').value,
                 tax_free: document.getElementById('ingredientTaxFree').value,
-                selective_order: document.getElementById('ingredientSelectiveOrder').value,
+                selective_order: selectiveOrder,
                 purchase_price: document.getElementById('ingredientPurchasePrice').value || null,
                 price: document.getElementById('ingredientPrice').value || null,
                 supplier_name: document.getElementById('ingredientSupplier').value,

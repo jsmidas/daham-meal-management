@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Handsontable 간단 테스트</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.css">
+    <style>
+        #testGrid {
+            margin: 20px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Handsontable 데이터 설정 테스트</h1>
+    <button onclick="testSetData()">데이터 설정 테스트</button>
+    <button onclick="checkData()">현재 데이터 확인</button>
+    <div id="testGrid"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.js"></script>
+    <script>
+        let hot;
+
+        // 초기화
+        const container = document.getElementById('testGrid');
+        const data = [
+            ['', '', '', '', 0],
+            ['', '', '', '', 0],
+            ['', '', '', '', 0]
+        ];
+
+        hot = new Handsontable(container, {
+            data: data,
+            colHeaders: ['코드', '이름', '규격', '단위', '가격'],
+            columns: [
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'numeric' }
+            ],
+            rowHeaders: true,
+            height: 200,
+            licenseKey: 'non-commercial-and-evaluation'
+        });
+
+        function testSetData() {
+            console.log('데이터 설정 시작');
+
+            // 방법 1: setDataAtCell 개별 호출
+            hot.setDataAtCell(0, 0, 'TEST001');
+            hot.setDataAtCell(0, 1, '테스트 재료');
+            hot.setDataAtCell(0, 2, '1kg');
+            hot.setDataAtCell(0, 3, 'kg');
+            hot.setDataAtCell(0, 4, 10000);
+
+            // 방법 2: batch 모드
+            const changes = [
+                [1, 0, 'TEST002'],
+                [1, 1, '테스트 재료2'],
+                [1, 2, '2kg'],
+                [1, 3, 'kg'],
+                [1, 4, 20000]
+            ];
+            hot.setDataAtCell(changes);
+
+            // 렌더링
+            hot.render();
+
+            console.log('데이터 설정 완료');
+
+            // 1초 후 확인
+            setTimeout(() => {
+                checkData();
+            }, 1000);
+        }
+
+        function checkData() {
+            console.log('===== 현재 데이터 =====');
+            const allData = hot.getData();
+            allData.forEach((row, index) => {
+                console.log(`행 ${index}:`, row);
+            });
+            console.log('=====================');
+        }
+    </script>
+</body>
+</html>

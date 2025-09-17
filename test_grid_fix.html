@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>그리드 수정 테스트</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.css">
+    <style>
+        #testGrid {
+            margin: 20px;
+            width: 90%;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        .info {
+            margin: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Handsontable 데이터 표시 문제 해결 테스트</h1>
+
+    <div class="info">
+        <h3>테스트 시나리오:</h3>
+        <ol>
+            <li>빈 그리드 생성</li>
+            <li>식자재 데이터 설정 버튼 클릭</li>
+            <li>데이터가 화면에 표시되는지 확인</li>
+        </ol>
+    </div>
+
+    <button onclick="setIngredientData()">식자재 데이터 설정</button>
+    <button onclick="checkCurrentData()">현재 데이터 확인</button>
+    <button onclick="forceRefresh()">강제 새로고침</button>
+    <button onclick="recreateTable()">테이블 재생성</button>
+
+    <div id="testGrid"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@latest/dist/handsontable.full.min.js"></script>
+    <script>
+        let hot;
+        let currentRow = 0;
+
+        // 초기 그리드 생성
+        function initGrid() {
+            const container = document.getElementById('testGrid');
+
+            // 빈 데이터로 시작
+            const data = [];
+            for (let i = 0; i < 7; i++) {
+                data.push(['', '', '', '', '', 0, 0, 0, 0, '', '']);
+            }
+
+            hot = new Handsontable(container, {
+                data: data,
+                colHeaders: ['식자재코드', '식자재명', '검색', '규격', '단위', '선발주일', '판매가', '1인소요량', '1인재료비', '거래처명', '등록일'],
+                columns: [
+                    { type: 'text', readOnly: true },     // 0: 식자재코드
+                    { type: 'text', readOnly: true },     // 1: 식자재명
+                    { type: 'text', readOnly: true },     // 2: 검색
+                    { type: 'text', readOnly: true },     // 3: 규격
+                    { type: 'text', readOnly: true },     // 4: 단위
+                    { type: 'numeric', readOnly: true },  // 5: 선발주일
+                    { type: 'numeric', readOnly: true },  // 6: 판매가
+                    { type: 'numeric' },                  // 7: 1인소요량 (편집 가능)
+                    { type: 'numeric', readOnly: true },  // 8: 1인재료비
+                    { type: 'text', readOnly: true },     // 9: 거래처명
+                    { type: 'text', readOnly: true }      // 10: 등록일
+                ],
+                colWidths: [100, 200, 50, 100, 60, 80, 100, 100, 100, 150, 100],
+                rowHeaders: true,
+                height: 300,
+                licenseKey: 'non-commercial-and-evaluation'
+            });
+
+            console.log('그리드 초기화 완료');
+        }
+
+        // 식자재 데이터 설정 - 실제 선택 시뮬레이션
+        function setIngredientData() {
+            console.log('=== 식자재 데이터 설정 시작 ===');
+
+            // 테스트 식자재 데이터
+            const testItem = {
+                ingredient_code: 'TEST001',
+                ingredient_name: '테스트 식자재명',
+                specification: '1kg',
+                unit: 'kg',
+                delivery_days: 1,
+                selling_price: 10000,
+                supplier_name: '테스트 거래처'
+            };
+
+            // 방법 1: 직접 setDataAtCell 사용
+            console.log('방법 1: setDataAtCell 개별 호출');
+            hot.setDataAtCell(currentRow, 0, testItem.ingredient_code);
+            hot.setDataAtCell(currentRow, 1, testItem.ingredient_name);
+            hot.setDataAtCell(currentRow, 3, testItem.specification);
+            hot.setDataAtCell(currentRow, 4, testItem.unit);
+            hot.setDataAtCell(currentRow, 5, testItem.delivery_days);
+            hot.setDataAtCell(currentRow, 6, testItem.selling_price);
+            hot.setDataAtCell(currentRow, 9, testItem.supplier_name);
+            hot.setDataAtCell(currentRow, 10, '09.18');
+
+            // 렌더링
+            hot.render();
+
+            console.log('데이터 설정 완료');
+
+            // 1초 후 데이터 확인
+            setTimeout(() => {
+                checkCurrentData();
+            }, 1000);
+        }
+
+        // 현재 데이터 확인
+        function checkCurrentData() {
+            console.log('=== 현재 그리드 데이터 ===');
+            const data = hot.getData();
+            data.forEach((row, index) => {
+                const hasData = row.some(cell => cell && cell !== '' && cell !== 0);
+                if (hasData) {
+                    console.log(`행 ${index}:`, row);
+                }
+            });
+
+            // 특정 셀 직접 확인
+            console.log('=== 첫 번째 행 상세 ===');
+            for (let col = 0; col < 11; col++) {
+                const value = hot.getDataAtCell(0, col);
+                console.log(`  열 ${col}: ${value}`);
+            }
+        }
+
+        // 강제 새로고침
+        function forceRefresh() {
+            console.log('강제 새로고침 시작');
+
+            // 현재 데이터 백업
+            const currentData = hot.getData();
+
+            // updateSettings로 강제 새로고침
+            hot.updateSettings({
+                data: currentData
+            });
+
+            hot.render();
+            console.log('강제 새로고침 완료');
+        }
+
+        // 테이블 재생성
+        function recreateTable() {
+            console.log('테이블 재생성 시작');
+
+            // 현재 데이터 백업
+            const currentData = hot.getData();
+
+            // 기존 인스턴스 제거
+            hot.destroy();
+
+            // 새 인스턴스 생성
+            const container = document.getElementById('testGrid');
+            hot = new Handsontable(container, {
+                data: currentData,
+                colHeaders: ['식자재코드', '식자재명', '검색', '규격', '단위', '선발주일', '판매가', '1인소요량', '1인재료비', '거래처명', '등록일'],
+                columns: [
+                    { type: 'text' },     // readOnly 제거
+                    { type: 'text' },
+                    { type: 'text' },
+                    { type: 'text' },
+                    { type: 'text' },
+                    { type: 'numeric' },
+                    { type: 'numeric' },
+                    { type: 'numeric' },
+                    { type: 'numeric' },
+                    { type: 'text' },
+                    { type: 'text' }
+                ],
+                colWidths: [100, 200, 50, 100, 60, 80, 100, 100, 100, 150, 100],
+                rowHeaders: true,
+                height: 300,
+                licenseKey: 'non-commercial-and-evaluation'
+            });
+
+            console.log('테이블 재생성 완료');
+        }
+
+        // 페이지 로드 시 그리드 초기화
+        window.onload = function() {
+            initGrid();
+            console.log('페이지 로드 완료');
+        };
+    </script>
+</body>
+</html>

@@ -3076,15 +3076,15 @@ async def get_recipes():
         cursor = conn.cursor()
 
         # recipes 테이블 확인 및 데이터 조회
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recipes'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='menu_recipes'")
         table_exists = cursor.fetchone()
 
         if table_exists:
-            cursor.execute("SELECT COUNT(*) FROM recipes")
+            cursor.execute("SELECT COUNT(*) FROM menu_recipes")
             count = cursor.fetchone()[0]
 
             if count > 0:
-                cursor.execute("SELECT * FROM recipes")
+                cursor.execute("SELECT * FROM menu_recipes")
                 recipes = cursor.fetchall()
                 conn.close()
                 return {"success": True, "recipes": recipes}
@@ -3113,8 +3113,14 @@ async def search_recipes(request: Request):
         keyword = body.get('keyword', '').lower()
         limit = body.get('limit', 50)
 
-        # JSON 파일에서 레시피 로드 (캐싱)
-        if not hasattr(app, 'all_recipes_cache'):
+        # JSON 파일에서 레시피 로드 (매번 DB 체크를 위해 캐시 무효화)
+        # 캐시 무효화 조건: 30초마다 또는 캐시가 없을 때 (DB 새 레시피 반영)
+        import time
+        cache_timeout = 30  # 30초
+        current_time = time.time()
+
+        if not hasattr(app, 'all_recipes_cache') or not hasattr(app, 'cache_time') or (current_time - app.cache_time > cache_timeout):
+            app.cache_time = current_time
             try:
                 import json
                 with open('recipes_clean.json', 'r', encoding='utf-8') as f:
@@ -3125,10 +3131,10 @@ async def search_recipes(request: Request):
                         # DB에서 썸네일 정보 조회
                         thumbnail_path = None
                         try:
-                            conn = sqlite3.connect(DB_PATH)
+                            conn = sqlite3.connect(DATABASE_PATH)
                             cursor = conn.cursor()
                             cursor.execute("""
-                                SELECT image_thumbnail FROM recipes
+                                SELECT image_thumbnail FROM menu_recipes
                                 WHERE recipe_name = ? AND is_active = 1
                                 ORDER BY created_at DESC
                                 LIMIT 1
@@ -3162,27 +3168,64 @@ async def search_recipes(request: Request):
                     {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
                 ]
 
+        # 데이터베이스에서 새로운 레시피 추가 조회 (JSON에 없는 것들)
+        db_recipes = []
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, recipe_code, recipe_name, category, total_cost,
+                       image_thumbnail, created_at
+                FROM menu_recipes
+                WHERE is_active = 1
+                ORDER BY created_at DESC
+                LIMIT 100
+            """)
+            db_rows = cursor.fetchall()
+
+            # DB의 모든 레시피를 추가 (중복 체크 제거)
+            for row in db_rows:
+                recipe_name = row[2]
+                # 모든 DB 레시피를 추가 (JSON과 중복되더라도 DB 버전을 우선)
+                db_recipes.append({
+                    "id": row[0] + 100000,  # DB ID와 JSON ID 충돌 방지
+                    "name": recipe_name,
+                    "category": row[3] or '기타',
+                    "price": row[4] or 3000,
+                    "color": '#ffebcd',  # 새 레시피는 연한 베이지색
+                    "method": '',
+                    "creator": 'DB',
+                    "thumbnail": row[5],
+                    "is_new": True  # 새 레시피 표시
+                })
+            conn.close()
+        except Exception as e:
+            print(f"Failed to load DB recipes: {e}")
+
+        # DB 레시피를 맨 앞에 추가
+        all_recipes = db_recipes + app.all_recipes_cache
+
         # 검색어가 있으면 필터링
         if keyword:
             filtered_recipes = [
-                recipe for recipe in app.all_recipes_cache
+                recipe for recipe in all_recipes
                 if keyword in recipe['name'].lower() or keyword in recipe['category'].lower()
             ]
         else:
-            filtered_recipes = app.all_recipes_cache
+            filtered_recipes = all_recipes
 
         # 실제 필터링된 전체 개수 저장
         total_filtered = len(filtered_recipes)
 
-        # 제한된 수만 반환 (최대 1000개)
-        max_limit = min(limit, 1000)
+        # 제한된 수만 반환 (최대 50000개로 증가)
+        max_limit = min(limit, 50000)
         limited_recipes = filtered_recipes[:max_limit]
 
         # 전체 개수 정보도 함께 반환
         return {
             "success": True,
             "data": limited_recipes,
-            "total": len(app.all_recipes_cache),
+            "total": len(all_recipes),  # DB 레시피 포함한 전체 개수
             "filtered": total_filtered  # 잘리기 전의 실제 검색 결과 수
         }
     except Exception as e:
@@ -3293,6 +3336,16 @@ async def get_menu_recipe_grid():
         return HTMLResponse(content=content)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="menu_recipe_grid.html not found")
+
+@app.get("/test_recipe_save.html")
+async def get_test_recipe_save():
+    """레시피 저장 테스트 페이지"""
+    try:
+        with open("test_recipe_save.html", "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="test_recipe_save.html not found")
 
 @app.get("/sample%20data/food_sample.xls")
 async def get_food_sample():
@@ -3466,15 +3519,49 @@ async def save_recipe(
 ):
     """레시피 저장 API"""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
-        # DB 테이블 생성 (없으면)
-        schema_path = Path('database/recipe_schema.sql')
-        if schema_path.exists():
-            with open(schema_path, 'r', encoding='utf-8') as f:
-                schema_sql = f.read()
-                cursor.executescript(schema_sql)
+        # DB 테이블 확인 및 생성 (없으면)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS menu_recipes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipe_code VARCHAR(50) UNIQUE NOT NULL,
+                recipe_name VARCHAR(200) NOT NULL,
+                category VARCHAR(50) NOT NULL,
+                food_color VARCHAR(30),
+                total_cost DECIMAL(10, 2),
+                serving_size INTEGER DEFAULT 1,
+                cooking_note TEXT,
+                image_path VARCHAR(500),
+                image_thumbnail VARCHAR(500),
+                created_by VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1,
+                supplier_id INTEGER,
+                business_location_id INTEGER
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS menu_recipe_ingredients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipe_id INTEGER NOT NULL,
+                ingredient_code VARCHAR(100),
+                ingredient_name VARCHAR(200) NOT NULL,
+                specification VARCHAR(100),
+                unit VARCHAR(50),
+                delivery_days INTEGER DEFAULT 0,
+                selling_price DECIMAL(10, 2),
+                quantity DECIMAL(10, 3),
+                amount DECIMAL(10, 2),
+                supplier_name VARCHAR(100),
+                sort_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (recipe_id) REFERENCES menu_recipes(id) ON DELETE CASCADE
+            )
+        """)
 
         # 레시피 코드 생성
         recipe_code = f"RCP_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -3506,7 +3593,7 @@ async def save_recipe(
 
         # 레시피 저장
         cursor.execute("""
-            INSERT INTO recipes (
+            INSERT INTO menu_recipes (
                 recipe_code, recipe_name, category, food_color,
                 total_cost, cooking_note, image_path, image_thumbnail,
                 created_by
@@ -3523,7 +3610,7 @@ async def save_recipe(
         for idx, item in enumerate(ingredients_data):
             if item.get('ingredient_name'):  # 빈 행 제외
                 cursor.execute("""
-                    INSERT INTO recipe_ingredients (
+                    INSERT INTO menu_recipe_ingredients (
                         recipe_id, ingredient_code, ingredient_name,
                         specification, unit, delivery_days,
                         selling_price, quantity, amount,
@@ -3571,7 +3658,7 @@ async def get_recipe_list(
 ):
     """레시피 목록 조회 API"""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -3592,7 +3679,7 @@ async def get_recipe_list(
         # 전체 개수
         count_query = f"""
             SELECT COUNT(*) as total
-            FROM recipes r
+            FROM menu_recipes r
             WHERE {where_clause}
         """
         total = cursor.execute(count_query, params).fetchone()['total']
@@ -3607,8 +3694,8 @@ async def get_recipe_list(
                 r.food_color, r.total_cost, r.image_thumbnail,
                 r.created_at,
                 COUNT(ri.id) as ingredient_count
-            FROM recipes r
-            LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+            FROM menu_recipes r
+            LEFT JOIN menu_recipe_ingredients ri ON r.id = ri.recipe_id
             WHERE {where_clause}
             GROUP BY r.id
             ORDER BY r.created_at DESC
@@ -3636,13 +3723,13 @@ async def get_recipe_list(
 async def get_recipe_detail(recipe_id: int):
     """레시피 상세 조회 API"""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         # 레시피 기본 정보
         recipe = cursor.execute("""
-            SELECT * FROM recipes
+            SELECT * FROM menu_recipes
             WHERE id = ? AND is_active = 1
         """, (recipe_id,)).fetchone()
 
@@ -3651,7 +3738,7 @@ async def get_recipe_detail(recipe_id: int):
 
         # 재료 목록
         ingredients = cursor.execute("""
-            SELECT * FROM recipe_ingredients
+            SELECT * FROM menu_recipe_ingredients
             WHERE recipe_id = ?
             ORDER BY sort_order
         """, (recipe_id,)).fetchall()
