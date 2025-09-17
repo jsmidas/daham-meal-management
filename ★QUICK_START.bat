@@ -39,7 +39,7 @@ goto :eof
 :START_CONTROL_TOWER
 echo.
 echo 🎛️ 통합 컨트롤 타워를 시작합니다... (포트 8080)
-start "통합 컨트롤 타워" cmd /c "python unified_control_tower.py"
+start "통합 컨트롤 타워" cmd /c "python ★unified_control_tower.py"
 echo.
 echo ✅ 통합 컨트롤 타워가 시작되었습니다!
 echo.
@@ -55,7 +55,7 @@ goto END
 :START_API_SERVER
 echo.
 echo 🔗 API 서버를 시작합니다... (포트 8010)
-start "API 서버" cmd /c "set API_PORT=8010 && python test_samsung_api.py"
+start "API 서버" cmd /c "set API_PORT=8010 && python ★test_samsung_api.py"
 echo.
 echo ✅ API 서버가 시작되었습니다!
 echo    URL: http://localhost:8010/api/admin/
@@ -66,7 +66,7 @@ goto END
 :START_WEB_SERVER
 echo.
 echo 🌐 웹 서버를 시작합니다... (포트 9000)
-start "웹 서버" cmd /c "python simple_server.py"
+start "웹 서버" cmd /c "python ★simple_server.py"
 echo.
 echo ✅ 웹 서버가 시작되었습니다!
 echo    URL: http://localhost:9000/
@@ -79,15 +79,15 @@ echo.
 echo 🚀 모든 서버를 시작합니다...
 echo.
 echo [1/3] 통합 컨트롤 타워 시작...
-start "통합 컨트롤 타워" cmd /c "python unified_control_tower.py"
+start "통합 컨트롤 타워" cmd /c "python ★unified_control_tower.py"
 timeout /t 2 /nobreak >nul
 
 echo [2/3] API 서버 시작...
-start "API 서버" cmd /c "set API_PORT=8010 && python test_samsung_api.py"
+start "API 서버" cmd /c "set API_PORT=8010 && python ★test_samsung_api.py"
 timeout /t 2 /nobreak >nul
 
 echo [3/3] 웹 서버 시작...
-start "웹 서버" cmd /c "python simple_server.py"
+start "웹 서버" cmd /c "python ★simple_server.py"
 echo.
 echo ✅ 모든 서버가 시작되었습니다!
 echo.

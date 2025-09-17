@@ -730,10 +730,16 @@
                                 <button class="btn btn-success" onclick="exportToExcel()" style="padding: 8px 20px; background: #4CAF50;">
                                     <i class="fas fa-file-excel"></i> 엑셀 다운로드
                                 </button>
+                                <button class="btn btn-info" onclick="loadAllData()" style="padding: 8px 20px; background: #17a2b8;">
+                                    <i class="fas fa-database"></i> 전체 데이터 로드
+                                </button>
                             </div>
                         </div>
                         <div id="searchResult" style="margin-top: 10px; font-size: 13px; color: #666; display: none;">
                             검색 결과: <span id="searchResultCount" style="font-weight: bold;"></span>개
+                        </div>
+                        <div id="dataLoadStatus" style="margin-top: 10px; font-size: 13px; color: #666;">
+                            현재 로드된 데이터: <span id="loadedDataCount" style="font-weight: bold;">0</span>개
                         </div>
                     </div>
                     
@@ -999,14 +1005,20 @@
                 const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked ?? false;
                 const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked ?? false;
 
-                // 페이지당 10,000개씩 가져오기
+                // 초기 로딩은 10,000개, 추가 로딩도 10,000개씩
                 const perPageLoad = 10000;
-                const response = await fetch(`http://127.0.0.1:8010/ingredients?page=${pageNum}&per_page=${perPageLoad}`);
+                const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${pageNum}&per_page=${perPageLoad}`);
                 const data = await response.json();
                 
                 if (data.success) {
+                    console.log('Raw API response sample:', data.ingredients[0]); // 디버깅: 원본 데이터 확인
                     // API 응답의 영어 필드를 한글로 매핑
-                    const newIngredients = (data.ingredients || []).map(item => ({
+                    const newIngredients = (data.ingredients || []).map(item => {
+                        console.log('Processing item with id:', item.id); // 디버깅: 각 아이템의 id 확인
+                        return {
+                            // ID 필드 추가
+                            'ID': item.id,
+                            'id': item.id,
                         // 한글 필드명
                         '분류(대분류)': item.category,
                         '기본식자재(세분류)': item.sub_category,
@@ -1037,7 +1049,8 @@
                         // 영어 필드명도 보존 (엑셀 다운로드용)
                         // 원본 데이터 별도 프로퍼티로 저장
                         _original: item
-                    }));
+                        };
+                    });
 
                     if (appendData) {
                         // 추가 로딩인 경우 기존 데이터에 병합
@@ -1115,7 +1128,10 @@
             document.getElementById('loadingDiv').style.display = 'none';
             document.getElementById('ingredientsTable').style.display = 'table';
             document.querySelector('.table-container').style.display = 'block';
-            
+
+            // 로드된 데이터 개수 업데이트
+            document.getElementById('loadedDataCount').textContent = allIngredients.length.toLocaleString();
+
             const tbody = document.getElementById('ingredientsTableBody');
             tbody.innerHTML = '';
             
@@ -1137,7 +1153,11 @@
             pageIngredients.forEach(ingredient => {
                     const row = document.createElement('tr');
                     row.style.cursor = 'pointer';
-                    row.onclick = () => openIngredientModal(ingredient);
+                    row.onclick = () => {
+                        console.log('Clicked ingredient full object:', ingredient);
+                        console.log('ID field:', ingredient.ID, ingredient.id, ingredient['ID'], ingredient['id']);
+                        openIngredientModal(ingredient);
+                    };
                     
                     // 텍스트 줄이기 함수
                     const truncate = (text, maxLength = 10) => {
@@ -1151,13 +1171,54 @@
                         return Number(price).toLocaleString();
                     };
                     
-                    // 단위당 단가 포매팅 함수
-                    const formatPricePerUnit = (pricePerUnit) => {
+                    // 단위당 단가 포매팅 함수 (디버깅 정보 포함)
+                    const formatPricePerUnit = (pricePerUnit, ingredient) => {
+                        const spec = ingredient['규격'] || '';
+                        const purchasePrice = ingredient['입고가'] || 0;
+                        const ingredientId = ingredient['ID'] || ingredient['id'];
+                        const safeSpec = spec.replace(/'/g, "\\'").replace(/"/g, "\\'");
+
                         if (!pricePerUnit || pricePerUnit === 0) {
-                            return '<span style="color: #999; font-style: italic;">미계산</span>';
+                            // 계산 실패 시 재계산 버튼 표시
+                            const debugInfo = `규격: ${spec}\n입고가: ${purchasePrice}원\n계산 실패 (패턴 미매칭)`;
+                            return `
+                                <div style="display: flex; align-items: center; gap: 3px; justify-content: flex-end;">
+                                    <span style="color: #999; font-style: italic; cursor: help; font-size: 11px;"
+                                          title="${debugInfo}">미계산</span>
+                                    <button onclick="recalculateUnitPrice(${ingredientId}, '${safeSpec}', ${purchasePrice})"
+                                            style="padding: 1px 4px; font-size: 10px; background: #ff6b6b; color: white;
+                                                   border: none; border-radius: 3px; cursor: pointer;"
+                                            title="재계산 요청 및 패턴 리포트">↻</button>
+                                </div>`;
                         }
+
                         const price = Number(pricePerUnit);
-                        return `<span style="color: #007bff; font-weight: 600;">${price.toFixed(1)}</span>`;
+
+                        // 가격 표시 포맷 결정 (1원 미만은 소수점 표시, 그 이상은 정수로)
+                        let displayPrice;
+                        if (price < 1) {
+                            displayPrice = price.toFixed(2) + '원';
+                        } else if (price < 100) {
+                            displayPrice = price.toFixed(1) + '원';
+                        } else {
+                            displayPrice = Math.round(price).toLocaleString() + '원';
+                        }
+
+                        const debugInfo = `규격: ${spec}\n입고가: ${purchasePrice}원\n단위당단가: ${price.toLocaleString()}원\n클릭: 재계산`;
+
+                        // 계산된 값도 재계산 가능하도록 버튼 추가 (더 subtle한 디자인)
+                        return `
+                            <div style="display: flex; align-items: center; gap: 3px; justify-content: flex-end;">
+                                <span style="color: #007bff; font-weight: 600; cursor: help; font-size: 11px;"
+                                      title="${debugInfo}"
+                                      onclick="if(confirm('현재 단가: ${price.toLocaleString()}원\\n재계산하시겠습니까?')) recalculateUnitPrice(${ingredientId}, '${safeSpec}', ${purchasePrice})"
+                                      onmouseover="this.style.textDecoration='underline'"
+                                      onmouseout="this.style.textDecoration='none'">${displayPrice}</span>
+                                ${price > 100 ?
+                                    `<span style="color: #ffa500; font-size: 9px; cursor: pointer;"
+                                           onclick="recalculateUnitPrice(${ingredientId}, '${safeSpec}', ${purchasePrice})"
+                                           title="단가가 높음 - 재검토 필요">⚠</span>` : ''}
+                            </div>`;
                     };
                     
                     // 검색어 하이라이팅 함수
@@ -1234,7 +1295,7 @@
                         <td>${truncate(ingredient['단위'], 3)}</td>
                         <td>${truncate(ingredient['면세'] || '과세', 2)}</td>
                         <td title="${ingredient['선발주일'] || ''}">${ingredient['선발주일'] || '-'}</td>
-                        <td class="price-per-unit">${formatPricePerUnit(ingredient['g당단가'])}</td>
+                        <td class="price-per-unit">${formatPricePerUnit(ingredient['g당단가'] || ingredient['단위당 단가'], ingredient)}</td>
                         <td class="price" title="₩${formatPrice(ingredient['입고가'])}">${formatPrice(ingredient['입고가'])}</td>
                         <td class="price" title="₩${formatPrice(ingredient['판매가'])}">${formatPrice(ingredient['판매가'])}</td>
                         <td title="${ingredient['거래처명'] || ''}">${supplierDisplay}</td>
@@ -1483,8 +1544,24 @@
         }
         
         function openIngredientModal(ingredient) {
+            console.log('Opening modal for ingredient:', ingredient); // 디버깅
             document.getElementById('modalTitle').textContent = '식자재 수정';
-            document.getElementById('ingredientId').value = ingredient.id;
+            const ingredientId = ingredient.ID || ingredient.id || ingredient['ID'] || ingredient['id'];
+            console.log('Setting ingredientId to:', ingredientId); // 디버깅
+
+            // ID 설정 전 input 요소 확인
+            const idInput = document.getElementById('ingredientId');
+            console.log('ID input element:', idInput);
+            console.log('ID input before setting:', idInput.value);
+
+            idInput.value = ingredientId || '';
+
+            console.log('ID input after setting:', idInput.value);
+
+            // 다시 한번 확인
+            setTimeout(() => {
+                console.log('ID input value after timeout:', document.getElementById('ingredientId').value);
+            }, 100);
             document.getElementById('ingredientCategory').value = ingredient['분류(대분류)'] || '';
             document.getElementById('ingredientSubcategory').value = ingredient['기본식자재(세분류)'] || '';
             document.getElementById('ingredientCode').value = ingredient['고유코드'] || '';
@@ -1508,7 +1585,14 @@
         }
         
         async function saveIngredient() {
-            const id = document.getElementById('ingredientId').value;
+            let id = document.getElementById('ingredientId').value;
+            console.log('Saving ingredient with ID:', id); // 디버깅
+
+            // ID가 undefined거나 빈 문자열인 경우 null로 처리 (새 항목 추가)
+            if (id === 'undefined' || id === '' || !id) {
+                id = null;
+            }
+
             const data = {
                 category: document.getElementById('ingredientCategory').value,
                 subcategory: document.getElementById('ingredientSubcategory').value,
@@ -1530,7 +1614,7 @@
                 let response;
                 if (id) {
                     // 수정
-                    response = await fetch(`/api/admin/ingredients/${id}`, {
+                    response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients/${id}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1539,7 +1623,7 @@
                     });
                 } else {
                     // 새로 추가
-                    response = await fetch('/api/admin/ingredients', {
+                    response = await fetch('http://127.0.0.1:8010/api/admin/ingredients', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1549,9 +1633,60 @@
                 }
                 
                 if (response.ok) {
+                    const result = await response.json();
                     closeIngredientModal();
-                    loadIngredients(); // 목록 새로고침
-                    alert(id ? '식자재가 수정되었습니다.' : '식자재가 추가되었습니다.');
+
+                    if (id) {
+                        // 수정인 경우: 현재 데이터에서 해당 항목만 업데이트
+                        const index = allIngredients.findIndex(item =>
+                            (item.ID === parseInt(id)) || (item.id === parseInt(id))
+                        );
+
+                        if (index !== -1) {
+                            // 기존 데이터 업데이트
+                            allIngredients[index] = {
+                                ...allIngredients[index],
+                                '분류(대분류)': data.category,
+                                '기본식자재(세분류)': data.subcategory,
+                                '고유코드': data.code,
+                                '식자재명': data.name,
+                                '원산지': data.origin,
+                                '게시유무': data.calculation,
+                                '규격': data.specification,
+                                '단위': data.base_unit,
+                                '면세': data.tax_free,
+                                '선발주일': data.selective_order,
+                                '입고가': data.purchase_price,
+                                '판매가': data.price,
+                                '거래처명': data.supplier_name,
+                                '비고': data.memo
+                            };
+
+                            // 검색 결과도 업데이트
+                            if (isSearching && filteredIngredients.length > 0) {
+                                const filteredIndex = filteredIngredients.findIndex(item =>
+                                    (item.ID === parseInt(id)) || (item.id === parseInt(id))
+                                );
+                                if (filteredIndex !== -1) {
+                                    filteredIngredients[filteredIndex] = allIngredients[index];
+                                }
+                            }
+                        }
+
+                        // 검색 상태 유지하면서 화면 다시 그리기
+                        if (isSearching) {
+                            // 검색 상태일 때는 검색 결과 유지
+                            displayPage();
+                        } else {
+                            // 일반 상태일 때는 현재 페이지 유지
+                            displayIngredients();
+                        }
+                        alert('식자재가 수정되었습니다.');
+                    } else {
+                        // 추가인 경우: 전체 새로고침
+                        loadIngredients();
+                        alert('식자재가 추가되었습니다.');
+                    }
                 } else {
                     const result = await response.json();
                     alert('저장 실패: ' + (result.error || '알 수 없는 오류'));
@@ -1574,7 +1709,7 @@
             }
             
             try {
-                const response = await fetch(`/api/admin/ingredients/${id}`, {
+                const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients/${id}`, {
                     method: 'DELETE'
                 });
                 
@@ -1596,6 +1731,9 @@
             const supplierSearch = document.getElementById('searchSupplier').value.toLowerCase().trim();
             const nameSearch = document.getElementById('searchName').value.toLowerCase().trim();
             const codeSearch = document.getElementById('searchCode').value.toLowerCase().trim();
+
+            console.log('검색 시작 - 전체 데이터:', allIngredients.length, '개');
+            console.log('검색어 - 이름:', nameSearch, ', 거래처:', supplierSearch, ', 코드:', codeSearch);
 
             // 디버깅: 검색 대상 데이터 확인
             // console.log('=== 검색 범위 디버깅 ===');
@@ -1802,11 +1940,13 @@
             // alert(`${count.toLocaleString()}개의 식자재 데이터를 다운로드했습니다 ${searchStatus}\n파일명: ${fileName}\n\n포함된 필드: 총 25개 필드 (모든 데이터베이스 컬럼)`);
         }
 
-        function clearSearch() {
-            // 입력 필드 초기화
-            document.getElementById('searchSupplier').value = '';
-            document.getElementById('searchName').value = '';
-            document.getElementById('searchCode').value = '';
+        function clearSearch(keepSearchTerms = false) {
+            if (!keepSearchTerms) {
+                // 입력 필드 초기화
+                document.getElementById('searchSupplier').value = '';
+                document.getElementById('searchName').value = '';
+                document.getElementById('searchCode').value = '';
+            }
 
             // 검색 모드 비활성화
             isSearching = false;
@@ -1814,12 +1954,23 @@
 
             // 검색 결과 숨기기
             document.getElementById('searchResult').style.display = 'none';
-            
+
             // 총 개수 원래대로
             document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
-            
+
             // 페이지 다시 표시
             displayPage();
+        }
+
+        // 검색 재실행 함수 (업데이트 후 검색 상태 유지용)
+        function reapplySearch() {
+            const supplierSearch = document.getElementById('searchSupplier').value.trim();
+            const nameSearch = document.getElementById('searchName').value.trim();
+            const codeSearch = document.getElementById('searchCode').value.trim();
+
+            if (supplierSearch || nameSearch || codeSearch) {
+                searchIngredients();
+            }
         }
         
         // 필터링 카운트 업데이트 함수
@@ -1965,6 +2116,80 @@
             });
         }
 
+        // 전체 데이터 한번에 로드하기
+        async function loadAllData() {
+            document.getElementById('loadingDiv').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 전체 데이터를 로드하는 중... (잠시만 기다려주세요)';
+            document.getElementById('loadingDiv').style.display = 'block';
+
+            allIngredients = [];
+            let pageNum = 1;
+            let hasMore = true;
+
+            while (hasMore) {
+                const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${pageNum}&per_page=10000`);
+                const data = await response.json();
+
+                if (data.success && data.ingredients && data.ingredients.length > 0) {
+                    const newIngredients = data.ingredients.map(item => ({
+                        // ID 필드 추가 - 중요!
+                        'ID': item.id,
+                        'id': item.id,
+                        '분류(대분류)': item.category,
+                        '기본식자재(세분류)': item.sub_category,
+                        '고유코드': item.ingredient_code,
+                        '식자재명': item.ingredient_name,
+                        '원산지': item.origin,
+                        '게시유무': item.posting_status,
+                        '규격': item.specification,
+                        '단위': item.unit,
+                        '면세': item.tax_type,
+                        '선발주일': item.delivery_days,
+                        'g당단가': item.price_per_unit,
+                        '입고가': item.purchase_price,
+                        '판매가': item.selling_price,
+                        '거래처명': item.supplier_name,
+                        '비고': item.notes,
+                        '등록일': formatDate(item.created_at),
+                        '협력업체명': item.supplier_name,
+                        '단위당 단가': item.price_per_unit,
+                        '게시여부': item.posting_status,
+                        '과/면세': item.tax_type,
+                        '사용유무': item.is_active,
+                        '생성일': formatDate(item.created_date),
+                        '생성자': item.created_by,
+                        '수정일': formatDate(item.updated_at),
+                        '_original': item
+                    }));
+
+                    allIngredients = allIngredients.concat(newIngredients);
+
+                    document.getElementById('loadingDiv').innerHTML =
+                        `<i class="fas fa-spinner fa-spin"></i> 전체 데이터를 로드하는 중... (${allIngredients.length.toLocaleString()}개 로드됨)`;
+
+                    if (data.ingredients.length < 10000) {
+                        hasMore = false;
+                    } else {
+                        pageNum++;
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            totalItems = allIngredients.length;
+
+            document.getElementById('loadingDiv').innerHTML =
+                `<div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <i class="fas fa-check-circle"></i> 전체 ${allIngredients.length.toLocaleString()}개 데이터 로드 완료!
+                </div>`;
+
+            setTimeout(() => {
+                document.getElementById('loadingDiv').style.display = 'none';
+            }, 3000);
+
+            displayPage();
+        }
+
         // 추가 데이터 로드 함수들
         async function loadMoreData() {
             if (isLoadingMore) return;
@@ -1987,11 +2212,14 @@
             if (isLoadingMore) return;
             isLoadingMore = true;
 
-            const response = await fetch(`http://127.0.0.1:8010/ingredients?page=${pageNum}&per_page=10000`);
+            const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${pageNum}&per_page=10000`);
             const data = await response.json();
 
             if (data.success && data.ingredients && data.ingredients.length > 0) {
                 const newIngredients = data.ingredients.map(item => ({
+                    // ID 필드 추가 - 중요!
+                    'ID': item.id,
+                    'id': item.id,
                     '분류(대분류)': item.category,
                     '기본식자재(세분류)': item.sub_category,
                     '고유코드': item.ingredient_code,
@@ -2054,12 +2282,182 @@
             isLoadingMore = false;
         }
 
+        // 재계산 요청 함수
+        window.recalculateUnitPrice = async function(ingredientId, specification, purchasePrice) {
+            try {
+                // 문제 패턴 수집
+                const problemPattern = {
+                    id: ingredientId,
+                    specification: specification,
+                    purchase_price: purchasePrice,
+                    timestamp: new Date().toISOString(),
+                    page_url: window.location.href
+                };
+
+                // API로 문제 패턴 전송
+                const response = await fetch('http://127.0.0.1:8010/api/admin/report-calculation-issue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(problemPattern)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    // 재계산 시도 모달 표시
+                    showRecalculationModal(ingredientId, specification, purchasePrice, result);
+                } else {
+                    alert('재계산 요청 전송에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('재계산 요청 오류:', error);
+                alert('재계산 요청 중 오류가 발생했습니다.');
+            }
+        };
+
+        // 재계산 모달 표시
+        function showRecalculationModal(ingredientId, specification, purchasePrice, result) {
+            // 기존 모달 제거
+            const existingModal = document.querySelector('.recalc-modal');
+            if (existingModal) existingModal.remove();
+            const existingOverlay = document.getElementById('recalcModalOverlay');
+            if (existingOverlay) existingOverlay.remove();
+
+            const modal = document.createElement('div');
+            modal.className = 'recalc-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+                z-index: 10000;
+                max-width: 500px;
+                width: 90%;
+            `;
+
+            const attemptedCalculation = result?.attempted_calculation || {};
+
+            // 계산 성공 시 데이터 업데이트
+            if (attemptedCalculation.success && attemptedCalculation.unit_price) {
+                console.log('재계산 성공 - 업데이트 시작');
+                console.log('새로운 단가:', attemptedCalculation.unit_price);
+
+                // allIngredients에서 해당 항목 찾아서 업데이트
+                const index = allIngredients.findIndex(item =>
+                    (item.ID === parseInt(ingredientId)) || (item.id === parseInt(ingredientId))
+                );
+
+                if (index !== -1) {
+                    console.log('업데이트 전 값:', allIngredients[index]['g당단가']);
+
+                    allIngredients[index]['g당단가'] = attemptedCalculation.unit_price;
+                    allIngredients[index]['단위당 단가'] = attemptedCalculation.unit_price;
+                    allIngredients[index]['price_per_unit'] = attemptedCalculation.unit_price;
+
+                    console.log('업데이트 후 값:', allIngredients[index]['g당단가']);
+
+                    // 검색 결과도 업데이트
+                    if (isSearching && filteredIngredients.length > 0) {
+                        const filteredIndex = filteredIngredients.findIndex(item =>
+                            (item.ID === parseInt(ingredientId)) || (item.id === parseInt(ingredientId))
+                        );
+                        if (filteredIndex !== -1) {
+                            filteredIngredients[filteredIndex] = {...allIngredients[index]};
+                            console.log('필터링된 데이터 업데이트 완료');
+                        }
+                    }
+                }
+            }
+
+            const calculationHtml = attemptedCalculation.success
+                ? `<div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                     <strong>✅ 계산 성공!</strong><br>
+                     계산된 값: ${attemptedCalculation.unit_price?.toFixed(2)}원/${attemptedCalculation.unit || 'g'}<br>
+                     총량: ${attemptedCalculation.total_amount}${attemptedCalculation.unit || 'g'}
+                   </div>`
+                : `<div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                     <strong>⚠️ 자동 계산 실패</strong><br>
+                     이유: ${attemptedCalculation.error || '패턴 미매칭'}
+                   </div>`;
+
+            modal.innerHTML = `
+                <h3 style="margin: 0 0 15px 0; color: #333;">🔧 재계산 요청 완료</h3>
+                <div style="margin-bottom: 15px;">
+                    <p style="margin: 5px 0;"><strong>식자재 ID:</strong> ${ingredientId}</p>
+                    <p style="margin: 5px 0;"><strong>문제 규격:</strong></p>
+                    <div style="background: #f5f5f5; padding: 8px; border-radius: 3px; font-family: monospace; font-size: 12px;"
+                         >${specification}</div>
+                    <p style="margin: 10px 0 5px 0;"><strong>입고가:</strong> ${purchasePrice}원</p>
+                </div>
+                ${calculationHtml}
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 13px; color: #666;">
+                        📝 이 패턴이 수집되어 개발팀에 전달됩니다.<br>
+                        🔄 다음 업데이트에서 자동 계산이 개선됩니다.<br>
+                        💡 현재는 수동으로 단위당 가격을 계산해주세요.
+                    </p>
+                </div>
+                <button id="recalcConfirmBtn"
+                        style="background: #3498db; color: white; padding: 8px 20px; border: none;
+                               border-radius: 5px; cursor: pointer; width: 100%;">
+                        확인
+                </button>
+            `;
+
+            // 오버레이 추가
+            const overlay = document.createElement('div');
+            overlay.id = 'recalcModalOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 9999;
+            `;
+            overlay.onclick = () => {
+                modal.remove();
+                overlay.remove();
+            };
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+
+            // 확인 버튼 클릭 이벤트 설정
+            document.getElementById('recalcConfirmBtn').onclick = () => {
+                modal.remove();
+                overlay.remove();
+
+                // 계산 성공 시 화면 업데이트
+                if (attemptedCalculation.success) {
+                    // 현재 표시된 페이지를 다시 그리기
+                    if (isSearching) {
+                        displayPage();  // 검색 모드일 때
+                    } else {
+                        displayIngredients();  // 일반 모드일 때
+                    }
+                }
+            };
+        }
+
         // 모달 외부 클릭시 닫기
         window.onclick = function(event) {
             const ingredientModal = document.getElementById('ingredientModal');
+            const recalcModal = document.querySelector('.recalc-modal');
 
             if (event.target === ingredientModal) {
                 closeIngredientModal();
+            }
+            if (event.target.id === 'recalcModalOverlay') {
+                if (recalcModal) recalcModal.remove();
+                event.target.remove();
             }
         }
     </script>

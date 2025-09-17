@@ -101,7 +101,8 @@
       "Bash(then sed -i 's/cooking_instruction\\.html/cooking_instruction_management.html/g; s/portioning\\.html/portion_instruction_management.html/g' \"$file\")",
       "Bash(fi)",
       "Bash(awk:*)",
-      "Bash(do sed -i 's/<body>/<body>\\n    <!-- 사용자 페이지 표시 -->\\n    <div style=\"\"background: linear-gradient(90deg, #3498db, #2980b9); color: white; padding: 8px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);\"\">\\n        👤 사용자 페이지 - USER DASHBOARD\\n    <\\/div>/' \"$file\")"
+      "Bash(do sed -i 's/<body>/<body>\\n    <!-- 사용자 페이지 표시 -->\\n    <div style=\"\"background: linear-gradient(90deg, #3498db, #2980b9); color: white; padding: 8px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);\"\">\\n        👤 사용자 페이지 - USER DASHBOARD\\n    <\\/div>/' \"$file\")",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

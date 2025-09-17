@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>데이터 로드 테스트</title>
+</head>
+<body>
+    <h1>데이터 로드 테스트</h1>
+    <button onclick="loadData()">데이터 로드 (20개)</button>
+    <button onclick="loadAllData()">전체 데이터 로드</button>
+    <div id="status"></div>
+    <div id="result"></div>
+
+    <script>
+        async function loadData() {
+            document.getElementById('status').innerHTML = '로딩 중...';
+            try {
+                const response = await fetch('http://127.0.0.1:8010/api/admin/ingredients-new?page=1&per_page=20');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('status').innerHTML = `성공: ${data.ingredients.length}개 로드됨`;
+                    document.getElementById('result').innerHTML = `
+                        <h3>첫 5개 항목:</h3>
+                        <ul>
+                            ${data.ingredients.slice(0, 5).map(item =>
+                                `<li>${item.ingredient_name}</li>`
+                            ).join('')}
+                        </ul>
+                    `;
+                } else {
+                    document.getElementById('status').innerHTML = '실패: ' + (data.error || '알 수 없는 오류');
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = '오류: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadAllData() {
+            document.getElementById('status').innerHTML = '전체 데이터 로딩 중...';
+            let allData = [];
+            let page = 1;
+            let hasMore = true;
+
+            try {
+                while (hasMore) {
+                    const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${page}&per_page=10000`);
+                    const data = await response.json();
+
+                    if (data.success && data.ingredients && data.ingredients.length > 0) {
+                        allData = allData.concat(data.ingredients);
+                        document.getElementById('status').innerHTML = `로딩 중... ${allData.length}개`;
+
+                        if (data.ingredients.length < 10000) {
+                            hasMore = false;
+                        } else {
+                            page++;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                document.getElementById('status').innerHTML = `완료: 총 ${allData.length}개 로드됨`;
+
+                // 돈까스 검색
+                const donkkas = allData.filter(item => item.ingredient_name.includes('돈까스'));
+                document.getElementById('result').innerHTML = `
+                    <h3>돈까스 항목: ${donkkas.length}개</h3>
+                    <ul>
+                        ${donkkas.map(item =>
+                            `<li>${item.ingredient_name}</li>`
+                        ).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                document.getElementById('status').innerHTML = '오류: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

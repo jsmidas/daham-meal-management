@@ -868,67 +868,55 @@
             document.getElementById('ingredientModal').classList.remove('active');
         }
 
-        // 식자재 데이터 로드
+        // 식자재 데이터 로드 - 서버 사이드 검색 사용
         async function loadIngredients() {
+            searchIngredients(); // 초기 로드 시 바로 검색 실행
+        }
+
+        // 식자재 검색 - 서버 사이드 검색으로 변경
+        async function searchIngredients() {
+            const searchTerm = document.getElementById('ingredientSearch').value.trim();
+            const supplierFilter = document.getElementById('supplierFilter').value;
+
+            const tbody = document.getElementById('searchResultsBody');
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">검색 중...</td></tr>';
+
             try {
-                // 전체 식자재 데이터 가져오기 - 초기에는 5000개만 로드
-                const response = await fetch('http://127.0.0.1:8010/ingredients?page=1&per_page=5000');
+                // 서버에 검색 요청 - search 파라미터 사용
+                let url = 'http://127.0.0.1:8010/api/admin/ingredients-new?page=1&per_page=500';
+                if (searchTerm) {
+                    url += `&search=${encodeURIComponent(searchTerm)}`;
+                }
+                if (supplierFilter) {
+                    url += `&supplier=${encodeURIComponent(supplierFilter)}`;
+                }
+
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (data.success) {
-                    ingredientsData = data.ingredients || [];
+                    let filtered = data.ingredients || [];
+
+                    // 판매가가 없거나 0인 식자재만 제외
+                    filtered = filtered.filter(item => item.selling_price && item.selling_price > 0);
 
                     // 단위당 단가 계산 및 정렬
-                    ingredientsData = ingredientsData.map(item => {
-                        // 규격에서 수량 추출 (예: "1kg", "500g", "10개" 등)
+                    filtered = filtered.map(item => {
                         const specMatch = item.specification?.match(/(\d+(\.\d+)?)/);
                         const quantity = specMatch ? parseFloat(specMatch[1]) : 1;
                         item.unit_price = (item.selling_price || 0) / quantity;
                         return item;
                     }).sort((a, b) => (a.unit_price || 0) - (b.unit_price || 0));
 
-                    searchIngredients();
-                }
-            } catch (error) {
-                console.error('식자재 로드 실패:', error);
-            }
-        }
+                    // 전체 결과 수 저장
+                    const totalResults = filtered.length;
 
-        // 식자재 검색
-        function searchIngredients() {
-            const searchTerm = document.getElementById('ingredientSearch').value.toLowerCase();
-            const supplierFilter = document.getElementById('supplierFilter').value;
+                    // 결과 개수 표시
+                    if (totalResults > 0) {
+                        console.log(`${searchTerm ? searchTerm + ' 검색 결과: ' : ''}${totalResults}개 (단위당 단가 낮은 순)`);
+                    }
 
-            let filtered = ingredientsData.filter(item => {
-                // 미게시, 미입고, 판매가 없는 식자재 제외
-                if (item.is_published === false || item.is_stocked === false || !item.selling_price || item.selling_price <= 0) {
-                    return false;
-                }
-
-                const matchSearch = !searchTerm ||
-                    item.ingredient_name?.toLowerCase().includes(searchTerm) ||
-                    item.ingredient_code?.toLowerCase().includes(searchTerm);
-                const matchSupplier = !supplierFilter || item.supplier_name === supplierFilter;
-                return matchSearch && matchSupplier;
-            });
-
-            // 단위당 단가 낮은 순으로 재정렬
-            filtered.sort((a, b) => (a.unit_price || 0) - (b.unit_price || 0));
-
-            // 전체 결과 수 저장
-            const totalResults = filtered.length;
-
-            // 상위 500개만 표시 (성능 고려)
-            const displayLimit = 500;
-            const displayData = filtered.slice(0, displayLimit);
-
-            const tbody = document.getElementById('searchResultsBody');
-
-            // 결과 개수 표시
-            if (totalResults > displayLimit) {
-                console.log(`전체 ${totalResults}개 중 상위 ${displayLimit}개 표시 (단위당 단가 낮은 순)`);
-            }
-            tbody.innerHTML = displayData.map(item => `
+                    tbody.innerHTML = filtered.map(item => `
                 <tr onclick="selectIngredient(${JSON.stringify(item).replace(/"/g, '&quot;')})"
                     style="cursor: pointer;">
                     <td style="padding: 2px;">
@@ -954,6 +942,13 @@
                     </td>
                 </tr>
             `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">검색 결과가 없습니다.</td></tr>';
+                }
+            } catch (error) {
+                console.error('식자재 검색 실패:', error);
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: red;">검색 중 오류가 발생했습니다.</td></tr>';
+            }
         }
 
         // 식자재 선택
