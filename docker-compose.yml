@@ -9,7 +9,7 @@ services:
       - ./data:/app/data
       - ./backups:/app/backups
     environment:
-      - PORT=8080
+      - API_PORT=8080
       - API_HOST=0.0.0.0
       - DATABASE_PATH=/app/data/daham_meal.db
       - BACKUP_PATH=/app/backups/

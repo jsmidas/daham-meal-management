@@ -4554,7 +4554,7 @@ if __name__ == "__main__":
     import os
 
     # 환경 변수에서 포트 읽기, 기본값은 80
-    port = int(os.getenv("API_PORT", "80"))
+    port = int(os.getenv("API_PORT", "8080"))
     host = os.getenv("API_HOST", "0.0.0.0")  # 외부 접속 허용
 
     print(f"API 서버 시작: {host}:{port}")
