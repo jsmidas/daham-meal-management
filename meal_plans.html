@@ -11,6 +11,8 @@
 
     <!-- 공통 스타일 -->
     <link rel="stylesheet" href="static/css/user/dashboard-styles.css">
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
 </head>
 <body>
     <div class="container">
@@ -92,5 +94,16 @@
             </div>
         </main>
     </div>
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 브랜딩 시스템 적용
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('식단 계획');
+                console.log('✅ 브랜딩 시스템 적용 완료 (식단 계획)');
+            }
+        });
+    </script>
 </body>
 </html>

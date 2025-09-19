@@ -6,7 +6,7 @@ const CONFIG = {
     API: {
         BASE_URL: typeof process !== 'undefined' && process.env && process.env.API_BASE_URL
             ? process.env.API_BASE_URL
-            : 'http://127.0.0.1:80',
+            : 'http://dahamfood.kr:8080',
         ENDPOINTS: {
             // 대시보드 관련
             DASHBOARD_STATS: '/api/admin/dashboard-stats',

@@ -27,52 +27,36 @@ window.BusinessLocationsModule = {
     },
 
     async loadSiteStats() {
-        console.log('📊 loadSiteStats 함수 실행됨');
         try {
             // API에서 실제 통계 가져오기
             const response = await fetch(`${window.CONFIG.API_BASE_URL || 'http://127.0.0.1:8010'}/api/admin/business-locations`);
             const data = await response.json();
-            console.log('📊 API 응답 데이터:', data);
 
             if (data.success) {
                 const locations = data.locations || [];
 
                 // 통계 계산
-                const totalSites = locations.length;
-                const activeSites = locations.filter(l => l.is_active).length;
-                const regions = new Set(locations.map(l => l.region).filter(r => r && r !== '미지정')).size;
-
-                console.log(`📊 통계: 전체=${totalSites}, 활성=${activeSites}, 지역=${regions}`);
+                const stats = {
+                    'totalSites': locations.length,
+                    'lunchboxSites': locations.filter(l => l.site_type === '도시락업체').length,
+                    'transportSites': locations.filter(l => l.site_type === '운송업체').length,
+                    'schoolSites': locations.filter(l => l.site_type === '급식업체' || l.site_name === '학교').length,
+                    'careSites': locations.filter(l => l.site_type === '산업체' || l.site_type === '요양시설' || l.site_name === '요양원').length
+                };
 
                 // UI 업데이트
-                const totalElement = document.getElementById('totalSites');
-                if (totalElement) {
-                    totalElement.textContent = totalSites;
-                    console.log('✅ totalSites 업데이트:', totalSites);
-                } else {
-                    console.error('❌ totalSites 엘리먼트를 찾을 수 없음');
-                }
-
-                const activeElement = document.getElementById('activeSites');
-                if (activeElement) {
-                    activeElement.textContent = activeSites;
-                    console.log('✅ activeSites 업데이트:', activeSites);
-                } else {
-                    console.error('❌ activeSites 엘리먼트를 찾을 수 없음');
-                }
-
-                const regionElement = document.getElementById('regionCount');
-                if (regionElement) {
-                    regionElement.textContent = regions;
-                    console.log('✅ regionCount 업데이트:', regions);
-                } else {
-                    console.error('❌ regionCount 엘리먼트를 찾을 수 없음');
+                for (const [id, value] of Object.entries(stats)) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value;
+                    }
                 }
             }
         } catch (error) {
-            console.error('❌ 통계 데이터 로드 오류:', error);
+            console.error('통계 데이터 로드 오류:', error);
             // 오류 시 0으로 표시
-            ['totalSites', 'activeSites', 'regionCount'].forEach(id => {
+            const elements = ['totalSites', 'lunchboxSites', 'transportSites', 'schoolSites', 'careSites'];
+            elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.textContent = '0';
             });
@@ -141,7 +125,7 @@ window.editSite = function(siteId) {
     document.getElementById('editSiteCode').value = site.site_code;
     document.getElementById('editSiteName').value = site.site_name;
     document.getElementById('editSiteType').value = site.site_type;
-    document.getElementById('editSiteRegion').value = site.region || '서울';
+    document.getElementById('editSiteRegion').value = site.region || '대구';
     document.getElementById('editSiteManager').value = site.manager_name || '';
     document.getElementById('editSitePhone').value = site.manager_phone || '';
     document.getElementById('editSiteStatus').value = site.is_active ? 'true' : 'false';
@@ -199,7 +183,6 @@ window.saveSiteChanges = function() {
         type: document.getElementById('editSiteType').value,
         parent_id: document.getElementById('editSiteRegion').value,
         address: document.getElementById('editSiteRegion').value,
-        manager_name: document.getElementById('editSiteManager').value || null,
         contact_info: document.getElementById('editSitePhone').value || null,
         is_active: document.getElementById('editSiteStatus').value === 'true'
     };

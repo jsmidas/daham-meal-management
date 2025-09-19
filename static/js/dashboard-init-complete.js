@@ -273,6 +273,104 @@ async function initializePageModule(pageName) {
             if (window.initEnhancedMapping) {
                 await window.initEnhancedMapping();
             }
+        },
+        'menu-recipes': async () => {
+            console.log('🍽️ 메뉴/레시피 관리 모듈 초기화 시작');
+
+            // 템플릿 로드
+            const menuRecipesContent = document.getElementById('menu-recipes-content');
+            if (menuRecipesContent && menuRecipesContent.innerHTML.trim().length < 100) {
+                try {
+                    if (window.location.protocol.startsWith('http')) {
+                        const response = await fetch('static/templates/menu-recipes-section.html');
+                        if (response.ok) {
+                            const html = await response.text();
+                            menuRecipesContent.innerHTML = html;
+                            console.log('✅ 메뉴/레시피 템플릿 로드 완료');
+                        } else {
+                            console.error('❌ 템플릿 파일 로드 실패:', response.status);
+                            // 폴백 HTML
+                            menuRecipesContent.innerHTML = `
+                                <div class="page-header">
+                                    <h2>메뉴/레시피 관리</h2>
+                                    <p class="page-description">메뉴와 레시피를 관리하고 재료비를 계산합니다.</p>
+                                    <div style="color: #ff9800; margin: 20px 0;">
+                                        ⚠️ 템플릿 로드 실패 - 서버가 실행 중인지 확인해주세요.
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        // file:// 프로토콜에서는 폴백 HTML
+                        menuRecipesContent.innerHTML = `
+                            <div class="page-header">
+                                <h2>메뉴/레시피 관리</h2>
+                                <p class="page-description">file:// 프로토콜에서는 제한적 기능만 지원됩니다.</p>
+                                <div style="color: #666; margin: 20px 0;">
+                                    HTTP 서버를 통해 접속하면 전체 기능을 사용할 수 있습니다.
+                                </div>
+                            </div>
+                        `;
+                        console.log('✅ 메뉴/레시피 템플릿 폴백 삽입');
+                    }
+                } catch (err) {
+                    console.error('❌ 메뉴/레시피 템플릿 로드 실패:', err);
+                    menuRecipesContent.innerHTML = `
+                        <div class="page-header">
+                            <h2>메뉴/레시피 관리</h2>
+                            <div style="color: #dc3545; margin: 20px 0;">
+                                ❌ 시스템 오류가 발생했습니다: ${err.message}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // 메뉴/레시피 모듈 로드
+            if (!window.MenuRecipeManagement) {
+                try {
+                    await loadScript('/static/modules/menu-recipes/menu-recipes.js');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    console.log('📦 메뉴/레시피 스크립트 로드 완료');
+                } catch (err) {
+                    console.error('❌ 메뉴/레시피 스크립트 로드 실패:', err);
+                    return;
+                }
+            }
+
+            // 모듈 초기화
+            if (window.MenuRecipeManagement) {
+                try {
+                    console.log('🚀 MenuRecipeManagement.init 호출');
+                    await window.MenuRecipeManagement.init();
+                    console.log('✅ 메뉴/레시피 모듈 초기화 완료');
+                } catch (err) {
+                    console.error('❌ 메뉴/레시피 모듈 초기화 실패:', err);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.innerHTML = `
+                        <div style="background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin: 20px;">
+                            <h4>⚠️ 모듈 초기화 실패</h4>
+                            <p>메뉴/레시피 관리 기능을 로드할 수 없습니다.</p>
+                            <details>
+                                <summary>오류 세부사항</summary>
+                                <pre style="margin-top: 10px; background: #f8f9fa; padding: 10px; border-radius: 3px;">${err.toString()}</pre>
+                            </details>
+                        </div>
+                    `;
+                    menuRecipesContent.appendChild(errorDiv);
+                }
+            } else {
+                console.error('❌ MenuRecipeManagement 클래스를 찾을 수 없음');
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = `
+                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px;">
+                        <h4>❌ 모듈 로드 실패</h4>
+                        <p>MenuRecipeManagement 클래스를 찾을 수 없습니다.</p>
+                        <p>스크립트 파일이 올바르게 로드되었는지 확인해주세요.</p>
+                    </div>
+                `;
+                menuRecipesContent.appendChild(errorDiv);
+            }
         }
     };
 

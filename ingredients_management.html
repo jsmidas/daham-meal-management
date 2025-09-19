@@ -658,15 +658,11 @@
     </style>
 </head>
 <body>
-    <!-- 사용자 페이지 표시 -->
-    <div style="background: linear-gradient(90deg, #3498db, #2980b9); color: white; padding: 8px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        👤 사용자 페이지 - 식자재 관리
-    </div>
     <div class="container">
         <!-- 사이드바 -->
         <nav class="sidebar">
             <div class="logo">
-                <h1>테스트푸드 급식관리</h1>
+                <h1>급식관리</h1>
             </div>
             <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
             <a href="menu_recipe_management.html" class="nav-item"><i class="fas fa-utensils"></i>메뉴/레시피 관리</a>
@@ -936,6 +932,10 @@
         </div>
     </div>
     
+    <!-- 브랜딩 시스템 -->
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
+
     <script>
         // 페이지네이션 변수
         let currentPage = 1;
@@ -951,6 +951,12 @@
         
         // 페이지 로드 시 식자재 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
+            // 브랜딩 시스템 적용
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('식자재 관리');
+                console.log('✅ 브랜딩 시스템 적용 완료 (식자재 관리)');
+            }
+
             // 페이지당 항목 수 변경 이벤트
             document.getElementById('itemsPerPage').addEventListener('change', function() {
                 itemsPerPage = parseInt(this.value);

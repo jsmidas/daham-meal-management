@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>협력업체 관리 - 테스트푸드 급식관리 시스템 v3.0</title>
+    <title>협력업체 관리 - 급식관리 시스템 v3.0</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -803,6 +803,8 @@
             grid-column: 1 / -1;
         }
     </style>
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
 </head>
 <body>
     <!-- Top Navigation -->
@@ -1979,5 +1981,16 @@
         </div> <!-- main-container -->
         </div> <!-- main-content -->
     </div> <!-- dashboard-container -->
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 브랜딩 시스템 적용
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('급식관리');
+                console.log('✅ 브랜딩 시스템 적용 완료 (급식관리)');
+            }
+        });
+    </script>
 </body>
 </html>

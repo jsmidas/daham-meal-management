@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>협력업체 로그인 - 다함푸드 식단 프로그램</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2196F3 0%, #4CAF50 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-tagline {
+            color: #2196F3;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .logo-image {
+            width: 80px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .logo h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .supplier-badge {
+            background: linear-gradient(135deg, #2196F3, #4CAF50);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #2196F3 0%, #4CAF50 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .info-box {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            border-left: 4px solid #2196F3;
+        }
+
+        .link-box {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .link-box a {
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .link-box a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <div class="logo-tagline">맛있는 변화의 시작</div>
+            <img src="data:image/png;base64,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" alt="다함푸드 로고" class="logo-image">
+            <h1>다함푸드 식단 프로그램</h1>
+            <div class="supplier-badge">SUPPLIER PORTAL</div>
+        </div>
+
+        <form id="supplierLoginForm">
+            <div class="form-group">
+                <label for="supplierCode">협력업체</label>
+                <select id="supplierCode" name="supplierCode" required>
+                    <option value="">협력업체를 선택하세요</option>
+                    <option value="SAMSUNG">삼성웰스토리</option>
+                    <option value="HYUNDAI">현대그린푸드</option>
+                    <option value="CJ">CJ프레시웨이</option>
+                    <option value="PUDIST">푸디스트</option>
+                    <option value="DONGWON">동원홈푸드</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="supplierUsername">사용자 ID</label>
+                <input type="text" id="supplierUsername" name="supplierUsername" required placeholder="사용자 아이디를 입력하세요">
+            </div>
+
+            <div class="form-group">
+                <label for="supplierPassword">비밀번호</label>
+                <input type="password" id="supplierPassword" name="supplierPassword" required placeholder="비밀번호를 입력하세요">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label style="display: flex; align-items: center; font-size: 14px; color: #666; cursor: pointer;">
+                    <input type="checkbox" id="rememberSupplier" style="margin-right: 8px; transform: scale(1.1);">
+                    로그인 정보 저장
+                </label>
+            </div>
+
+            <button type="submit" class="login-btn">협력업체 로그인</button>
+
+            <div id="supplierErrorMessage" class="error-message"></div>
+        </form>
+
+        <div class="info-box">
+            <strong>협력업체 관리자님께</strong><br>
+            • 계정 관리 문의<br>
+            • 시스템 이용 문의<br>
+            • 발주 관련 지원<br>
+            • 기타 관리 업무문의
+        </div>
+
+        <div class="link-box">
+            <a href="/login.html">👤 직원 전용 로그인</a>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 저장된 협력업체 정보 불러오기
+        window.addEventListener('load', function() {
+            const savedSupplierCode = localStorage.getItem('saved_supplier_code');
+            const savedSupplierUsername = localStorage.getItem('saved_supplier_username');
+            const savedSupplierPassword = localStorage.getItem('saved_supplier_password');
+            const rememberSupplier = localStorage.getItem('remember_supplier') === 'true';
+
+            if (rememberSupplier) {
+                if (savedSupplierCode) {
+                    document.getElementById('supplierCode').value = savedSupplierCode;
+                }
+                if (savedSupplierUsername) {
+                    document.getElementById('supplierUsername').value = savedSupplierUsername;
+                    document.getElementById('rememberSupplier').checked = true;
+                }
+                if (savedSupplierPassword) {
+                    document.getElementById('supplierPassword').value = savedSupplierPassword;
+                }
+            }
+        });
+
+        document.getElementById('supplierLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const supplierCode = document.getElementById('supplierCode').value;
+            const supplierUsername = document.getElementById('supplierUsername').value;
+            const supplierPassword = document.getElementById('supplierPassword').value;
+            const rememberSupplier = document.getElementById('rememberSupplier').checked;
+            const errorDiv = document.getElementById('supplierErrorMessage');
+
+            // 입력 검증
+            if (!supplierCode) {
+                errorDiv.textContent = '협력업체를 선택하세요.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/supplier-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        supplier_code: supplierCode,
+                        username: supplierUsername,
+                        password: supplierPassword
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 토큰 저장
+                    localStorage.setItem('supplier_auth_token', result.token);
+                    localStorage.setItem('supplier_info', JSON.stringify(result.supplier));
+
+                    // 협력업체 정보 저장 기능
+                    if (rememberSupplier) {
+                        localStorage.setItem('saved_supplier_code', supplierCode);
+                        localStorage.setItem('saved_supplier_username', supplierUsername);
+                        localStorage.setItem('saved_supplier_password', supplierPassword);
+                        localStorage.setItem('remember_supplier', 'true');
+                    } else {
+                        localStorage.removeItem('saved_supplier_code');
+                        localStorage.removeItem('saved_supplier_username');
+                        localStorage.removeItem('saved_supplier_password');
+                        localStorage.removeItem('remember_supplier');
+                    }
+
+                    // 협력업체 대시보드로 리다이렉트
+                    window.location.href = '/supplier_dashboard.html';
+
+                } else {
+                    errorDiv.textContent = result.message || '로그인에 실패했습니다.';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('협력업체 로그인 오류:', error);
+                errorDiv.textContent = '서버 연결에 실패했습니다.';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // 이미 로그인된 경우 리다이렉트
+        if (localStorage.getItem('supplier_auth_token')) {
+            window.location.href = '/supplier_dashboard.html';
+        }
+    </script>
+</body>
+</html>

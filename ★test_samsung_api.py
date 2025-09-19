@@ -4,10 +4,11 @@
 삼성웰스토리 식자재 데이터 테스트 API
 """
 
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form, Query
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import sqlite3
 import json
@@ -19,14 +20,85 @@ from typing import Optional, List, Dict
 import sys
 import traceback
 from pathlib import Path
+import jwt
+import secrets
 sys.path.append('utils')
 try:
     from image_processor import ImageProcessor
 except ImportError:
     ImageProcessor = None  # 나중에 설치하면 사용
 from improved_unit_price_calculator import calculate_unit_price_improved, parse_specification_improved
+import httpx
 
 app = FastAPI()
+
+# ========== JWT 인증 시스템 ==========
+SECRET_KEY = "daham_meal_secret_key_2025_super_secure_change_in_production"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8시간
+
+security = HTTPBearer()
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class SupplierLogin(BaseModel):
+    supplier_code: str
+    username: str
+    password: str
+
+def create_access_token(data: dict):
+    """JWT 토큰 생성"""
+    to_encode = data.copy()
+    expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """토큰 검증"""
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return TokenData(username=username)
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def get_current_user(token_data: TokenData = Depends(verify_token)):
+    """현재 로그인된 사용자 정보 조회"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    user = cursor.execute("""
+        SELECT * FROM users WHERE username = ? AND is_active = 1
+    """, (token_data.username,)).fetchone()
+
+    conn.close()
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return dict(user)
+
+def require_admin(current_user: dict = Depends(get_current_user)):
+    """관리자 권한 필요"""
+    if current_user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+def require_nutritionist_or_admin(current_user: dict = Depends(get_current_user)):
+    """영양사 또는 관리자 권한 필요"""
+    if current_user['role'] not in ['admin', 'nutritionist']:
+        raise HTTPException(status_code=403, detail="Nutritionist or Admin access required")
+    return current_user
 
 # 정적 파일 서빙 설정
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -148,13 +220,166 @@ async def root():
     return {
         "message": "식자재 관리 API 서버가 정상 작동 중입니다",
         "status": "running",
-        "port": 8000,
+        "port": 8010,
         "endpoints": [
             "/test-samsung-welstory",
             "/all-ingredients-for-suppliers",
+            "/api/auth/login",
             "/api/users"
         ]
     }
+
+@app.get("/login.html")
+async def serve_login_page():
+    """로그인 페이지 제공"""
+    return FileResponse("login.html", media_type="text/html")
+
+@app.get("/supplier_login.html")
+async def serve_supplier_login_page():
+    """협력업체 로그인 페이지 제공"""
+    return FileResponse("supplier_login.html", media_type="text/html")
+
+# ========== 인증 API ==========
+
+@app.post("/api/auth/login")
+async def login(user_credentials: UserLogin):
+    """사용자 로그인"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 사용자 조회
+        user = cursor.execute("""
+            SELECT * FROM users WHERE username = ? AND is_active = 1
+        """, (user_credentials.username,)).fetchone()
+
+        if not user:
+            raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다")
+
+        # 비밀번호 검증 (해시된 비밀번호와 비교)
+        password_hash = hashlib.sha256(user_credentials.password.encode()).hexdigest()
+
+        if user['password_hash'] != password_hash:
+            raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다")
+
+        # JWT 토큰 생성
+        access_token = create_access_token(data={"sub": user['username']})
+
+        # 로그인 시간 업데이트
+        cursor.execute("""
+            UPDATE users SET last_login = datetime('now') WHERE id = ?
+        """, (user['id'],))
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "로그인 성공",
+            "token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user['id'],
+                "username": user['username'],
+                "role": user['role'],
+                "department": user['department'],
+                "position": user['position']
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"로그인 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="로그인 처리 중 오류가 발생했습니다")
+
+@app.get("/api/auth/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """현재 로그인된 사용자 정보 조회"""
+    return {
+        "success": True,
+        "user": {
+            "id": current_user['id'],
+            "username": current_user['username'],
+            "role": current_user['role'],
+            "department": current_user['department'],
+            "position": current_user['position'],
+            "last_login": current_user['last_login']
+        }
+    }
+
+@app.post("/api/auth/logout")
+async def logout(current_user: dict = Depends(get_current_user)):
+    """로그아웃 (클라이언트에서 토큰 삭제)"""
+    return {
+        "success": True,
+        "message": "로그아웃되었습니다"
+    }
+
+@app.post("/api/auth/supplier-login")
+async def supplier_login(supplier_credentials: SupplierLogin):
+    """협력업체 로그인"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 협력업체 정보 조회
+        supplier = cursor.execute("""
+            SELECT * FROM suppliers WHERE supplier_code = ? AND is_active = 1
+        """, (supplier_credentials.supplier_code,)).fetchone()
+
+        if not supplier:
+            raise HTTPException(status_code=401, detail="협력업체를 찾을 수 없습니다")
+
+        # 협력업체 담당자 정보 확인 (임시로 간단한 검증)
+        # 실제로는 별도의 supplier_users 테이블이 필요합니다
+        valid_suppliers = {
+            'SAMSUNG': {'admin': 'samsung123', 'manager': 'samsung456'},
+            'HYUNDAI': {'admin': 'hyundai123', 'manager': 'hyundai456'},
+            'CJ': {'admin': 'cj123', 'manager': 'cj456'},
+            'PUDIST': {'admin': 'pudist123', 'manager': 'pudist456'},
+            'DONGWON': {'admin': 'dongwon123', 'manager': 'dongwon456'}
+        }
+
+        supplier_code = supplier_credentials.supplier_code
+        username = supplier_credentials.username
+        password = supplier_credentials.password
+
+        if (supplier_code not in valid_suppliers or
+            username not in valid_suppliers[supplier_code] or
+            valid_suppliers[supplier_code][username] != password):
+            raise HTTPException(status_code=401, detail="담당자 정보가 일치하지 않습니다")
+
+        # JWT 토큰 생성 (협력업체용)
+        token_data = {
+            "sub": f"supplier_{supplier_code}_{username}",
+            "supplier_code": supplier_code,
+            "role": "supplier"
+        }
+        access_token = create_access_token(data=token_data)
+
+        # 로그인 기록 (향후 확장용)
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "협력업체 로그인 성공",
+            "token": access_token,
+            "token_type": "bearer",
+            "supplier": {
+                "supplier_code": supplier_code,
+                "supplier_name": supplier['name'],
+                "username": username,
+                "role": "supplier"
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"협력업체 로그인 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="로그인 처리 중 오류가 발생했습니다")
 
 @app.get("/test-samsung-welstory")
 async def test_samsung_welstory():
@@ -514,8 +739,13 @@ async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: s
         cursor.execute(count_query, params)
         total_count = cursor.fetchone()[0]
 
-        # 페이징 계산 - per_page가 너무 크면 제한 (최대 10000)
-        per_page = min(per_page, 10000)
+        # 페이징 계산 - 검색 시에는 제한 해제, 일반 조회 시에만 제한
+        if search or supplier or category:
+            # 검색/필터링 시에는 전체 결과 반환 (84,000개 모두 검색 가능)
+            per_page = min(per_page, 100000)  # 충분히 큰 값으로 설정
+        else:
+            # 일반 조회 시에만 제한 적용
+            per_page = min(per_page, 1000)
         total_pages = (total_count + per_page - 1) // per_page
         offset = (page - 1) * per_page
         
@@ -3107,129 +3337,76 @@ async def get_recipes():
 
 @app.post("/api/search_recipes")
 async def search_recipes(request: Request):
-    """레시피 검색 API - 9,447개의 실제 레시피 데이터"""
+    """메뉴 검색 API"""
     try:
         body = await request.json()
-        keyword = body.get('keyword', '').lower()
-        limit = body.get('limit', 50)
+        keyword = body.get('keyword', '').strip()
+        limit = body.get('limit', 1000)
 
-        # JSON 파일에서 레시피 로드 (매번 DB 체크를 위해 캐시 무효화)
-        # 캐시 무효화 조건: 30초마다 또는 캐시가 없을 때 (DB 새 레시피 반영)
-        import time
-        cache_timeout = 30  # 30초
-        current_time = time.time()
+        # 데이터베이스 연결
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
 
-        if not hasattr(app, 'all_recipes_cache') or not hasattr(app, 'cache_time') or (current_time - app.cache_time > cache_timeout):
-            app.cache_time = current_time
-            try:
-                import json
-                with open('recipes_clean.json', 'r', encoding='utf-8') as f:
-                    recipes_data = json.load(f)
-                    # 데이터 포맷 변환
-                    app.all_recipes_cache = []
-                    for idx, recipe in enumerate(recipes_data):
-                        # DB에서 썸네일 정보 조회
-                        thumbnail_path = None
-                        try:
-                            conn = sqlite3.connect(DATABASE_PATH)
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                                SELECT image_thumbnail FROM menu_recipes
-                                WHERE recipe_name = ? AND is_active = 1
-                                ORDER BY created_at DESC
-                                LIMIT 1
-                            """, (recipe.get('ri_name', ''),))
-                            result = cursor.fetchone()
-                            if result and result[0]:
-                                thumbnail_path = result[0]
-                            conn.close()
-                        except:
-                            pass
+        # 메뉴 테이블이 있는지 확인
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='menu_recipes'")
+        if not cursor.fetchone():
+            conn.close()
+            return {"success": True, "data": [], "recipes": [], "total": 0, "message": "메뉴 테이블이 없습니다"}
 
-                        app.all_recipes_cache.append({
-                            "id": int(recipe.get('ri_seq', idx + 1)),
-                            "name": recipe.get('ri_name', 'Unknown'),
-                            "category": recipe.get('ctg_name', '기타'),
-                            "price": 3000,  # 기본 가격
-                            "color": recipe.get('ri_color', '#ffffff'),
-                            "method": recipe.get('ri_standard_cooking_method', ''),
-                            "creator": recipe.get('mb_name', ''),
-                            "thumbnail": thumbnail_path
-                        })
-                print(f"Loaded {len(app.all_recipes_cache)} recipes from JSON file")
-            except Exception as e:
-                print(f"Failed to load recipes from JSON: {e}")
-                # 파일 로드 실패 시 기본 데이터 사용
-                app.all_recipes_cache = [
-                    {"id": 1, "name": "김치찌개", "category": "국/찌개", "price": 3000},
-                    {"id": 2, "name": "된장찌개", "category": "국/찌개", "price": 2800},
-                    {"id": 3, "name": "제육볶음", "category": "주찬", "price": 4500},
-                    {"id": 4, "name": "불고기", "category": "주찬", "price": 5000},
-                    {"id": 5, "name": "계란말이", "category": "부찬", "price": 2000},
-                ]
-
-        # 데이터베이스에서 새로운 레시피 추가 조회 (JSON에 없는 것들)
-        db_recipes = []
-        try:
-            conn = sqlite3.connect(DATABASE_PATH)
-            cursor = conn.cursor()
+        # 키워드가 있으면 검색, 없으면 전체 조회
+        if keyword:
             cursor.execute("""
-                SELECT id, recipe_code, recipe_name, category, total_cost,
-                       image_thumbnail, created_at
+                SELECT id, menu_name, category, created_by, total_cost, photo_path, created_at
+                FROM menu_recipes
+                WHERE menu_name LIKE ? AND is_active = 1
+                ORDER BY id DESC
+                LIMIT ?
+            """, (f'%{keyword}%', limit))
+        else:
+            cursor.execute("""
+                SELECT id, menu_name, category, created_by, total_cost, photo_path, created_at
                 FROM menu_recipes
                 WHERE is_active = 1
-                ORDER BY created_at DESC
-                LIMIT 100
-            """)
-            db_rows = cursor.fetchall()
+                ORDER BY id DESC
+                LIMIT ?
+            """, (limit,))
 
-            # DB의 모든 레시피를 추가 (중복 체크 제거)
-            for row in db_rows:
-                recipe_name = row[2]
-                # 모든 DB 레시피를 추가 (JSON과 중복되더라도 DB 버전을 우선)
-                db_recipes.append({
-                    "id": row[0] + 100000,  # DB ID와 JSON ID 충돌 방지
-                    "name": recipe_name,
-                    "category": row[3] or '기타',
-                    "price": row[4] or 3000,
-                    "color": '#ffebcd',  # 새 레시피는 연한 베이지색
-                    "method": '',
-                    "creator": 'DB',
-                    "thumbnail": row[5],
-                    "is_new": True  # 새 레시피 표시
-                })
-            conn.close()
-        except Exception as e:
-            print(f"Failed to load DB recipes: {e}")
+        menus = []
+        for row in cursor.fetchall():
+            menu_data = {
+                "id": row[0],
+                "name": row[1],  # JavaScript에서 찾는 필드명
+                "menu_name": row[1],  # 기존 필드명도 유지
+                "recipe_name": row[1],  # 실제 DB 필드명
+                "category": row[2] or "미분류",
+                "created_by": row[3] or "시스템",
+                "creator_organization": "테스트푸드",  # 기본값
+                "total_cost": row[4] or 0,
+                "photo_path": row[5] or "",
+                "image_path": row[5] or "",
+                "has_photo": bool(row[5]),
+                "created_at": row[6]
+            }
+            menus.append(menu_data)
 
-        # DB 레시피를 맨 앞에 추가
-        all_recipes = db_recipes + app.all_recipes_cache
+        conn.close()
 
-        # 검색어가 있으면 필터링
-        if keyword:
-            filtered_recipes = [
-                recipe for recipe in all_recipes
-                if keyword in recipe['name'].lower() or keyword in recipe['category'].lower()
-            ]
-        else:
-            filtered_recipes = all_recipes
-
-        # 실제 필터링된 전체 개수 저장
-        total_filtered = len(filtered_recipes)
-
-        # 제한된 수만 반환 (최대 50000개로 증가)
-        max_limit = min(limit, 50000)
-        limited_recipes = filtered_recipes[:max_limit]
-
-        # 전체 개수 정보도 함께 반환
-        return {
+        response_data = {
             "success": True,
-            "data": limited_recipes,
-            "total": len(all_recipes),  # DB 레시피 포함한 전체 개수
-            "filtered": total_filtered  # 잘리기 전의 실제 검색 결과 수
+            "data": menus,  # JavaScript에서 찾는 필드명
+            "recipes": menus,  # 기존 필드명도 유지
+            "total": len(menus),
+            "message": f"{len(menus)}개 메뉴 검색됨"
         }
+        print(f"[DEBUG] 응답 데이터: {response_data}")
+
+        return JSONResponse(content=response_data)
+
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"메뉴 검색 오류: {str(e)}"}
+        )
 
 @app.post("/api/admin/report-calculation-issue")
 async def report_calculation_issue(request: Request):
@@ -3508,146 +3685,181 @@ async def get_portioning():
 # ========== 레시피 관련 API ==========
 
 @app.post("/api/recipe/save")
-async def save_recipe(
-    recipe_name: str = Form(...),
-    category: str = Form(...),
-    food_color: str = Form(None),
-    cooking_note: str = Form(None),
-    ingredients: str = Form(...),  # JSON string
-    image: Optional[UploadFile] = File(None),
-    image_url: str = Form(None)  # 기존 이미지 링크
-):
-    """레시피 저장 API"""
+async def save_recipe_direct(request: Request, current_user: dict = Depends(require_nutritionist_or_admin)):
+    """레시피 저장 API - 직접 처리 (인증 필요)"""
     try:
+        # FormData 파싱
+        form = await request.form()
+
+        # 기본 정보 추출
+        recipe_name = form.get('recipe_name', '').strip()
+        category = form.get('category', '').strip()
+        cooking_note = form.get('cooking_note', '')
+        recipe_id = form.get('recipe_id')  # 수정 시에만 있음
+
+        print(f"[DEBUG] 저장 요청 - 이름: {recipe_name}, 카테고리: {category}, ID: {recipe_id}")
+
+        if not recipe_name:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "메뉴명을 입력해주세요."}
+            )
+
+        if not category:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "분류를 선택해주세요."}
+            )
+
+        # 재료 정보 파싱
+        ingredients_json = form.get('ingredients', '[]')
+        try:
+            ingredients = json.loads(ingredients_json)
+        except:
+            ingredients = []
+
+        print(f"[DEBUG] 재료 개수: {len(ingredients)}")
+
+        if not ingredients:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": "최소 1개 이상의 식자재를 추가해주세요."}
+            )
+
+        # 식자재 코드 유효성 검사
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
-        # DB 테이블 확인 및 생성 (없으면)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS menu_recipes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                recipe_code VARCHAR(50) UNIQUE NOT NULL,
-                recipe_name VARCHAR(200) NOT NULL,
-                category VARCHAR(50) NOT NULL,
-                food_color VARCHAR(30),
-                total_cost DECIMAL(10, 2),
-                serving_size INTEGER DEFAULT 1,
-                cooking_note TEXT,
-                image_path VARCHAR(500),
-                image_thumbnail VARCHAR(500),
-                created_by VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT 1,
-                supplier_id INTEGER,
-                business_location_id INTEGER
-            )
-        """)
+        for ingredient in ingredients:
+            ingredient_code = ingredient.get('ingredient_code', '').strip()
+            if not ingredient_code:
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": "모든 재료에 식자재 코드가 입력되어야 합니다."}
+                )
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS menu_recipe_ingredients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                recipe_id INTEGER NOT NULL,
-                ingredient_code VARCHAR(100),
-                ingredient_name VARCHAR(200) NOT NULL,
-                specification VARCHAR(100),
-                unit VARCHAR(50),
-                delivery_days INTEGER DEFAULT 0,
-                selling_price DECIMAL(10, 2),
-                quantity DECIMAL(10, 3),
-                amount DECIMAL(10, 2),
-                supplier_name VARCHAR(100),
-                sort_order INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (recipe_id) REFERENCES menu_recipes(id) ON DELETE CASCADE
-            )
-        """)
+            # 식자재 코드 존재 확인
+            cursor.execute("SELECT id FROM ingredients WHERE ingredient_code = ?", (ingredient_code,))
+            if not cursor.fetchone():
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": f'식자재 코드 "{ingredient_code}"를 찾을 수 없습니다.'}
+                )
 
-        # 레시피 코드 생성
-        recipe_code = f"RCP_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # 총 비용 계산
+        total_cost = sum(ingredient.get('amount', 0) for ingredient in ingredients)
 
-        # 재료 데이터 파싱
-        ingredients_data = json.loads(ingredients)
+        if recipe_id:
+            # 기존 메뉴 수정
+            print(f"[DEBUG] 기존 메뉴 수정: ID {recipe_id}")
 
-        # 총 재료비 계산
-        total_cost = sum(float(item.get('amount', 0)) for item in ingredients_data if item.get('ingredient_name'))
+            # 중복 메뉴명 체크 (자기 자신 제외)
+            cursor.execute("""
+                SELECT COUNT(*) FROM menu_recipes
+                WHERE recipe_name = ? AND is_active = 1 AND id != ?
+            """, (recipe_name, recipe_id))
 
-        # 이미지 처리
-        image_path = None
-        thumbnail_path = None
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": f'"{recipe_name}" 메뉴명이 이미 존재합니다.'}
+                )
 
-        # 기존 이미지 URL이 제공된 경우 (링크로 재사용)
-        if image_url:
-            # image_url은 이미 저장된 경로 (예: static/uploads/recipes/thumbnails/xxx.jpg)
-            image_path = image_url.replace('/thumbnails/', '/compressed/')
-            thumbnail_path = image_url
-        # 새로운 이미지가 업로드된 경우
-        elif image and image.filename and ImageProcessor:
-            processor = ImageProcessor()
-            file_data = await image.read()
-            result = processor.process_upload(file_data, image.filename)
+            # 메뉴 정보 업데이트
+            cursor.execute("""
+                UPDATE menu_recipes SET
+                    recipe_name = ?, category = ?, cooking_note = ?,
+                    total_cost = ?, updated_at = datetime('now')
+                WHERE id = ?
+            """, (recipe_name, category, cooking_note, total_cost, recipe_id))
 
-            if result['success']:
-                image_path = result['compressed']['path']
-                thumbnail_path = result['thumbnail']['path']
+            # 기존 재료 삭제
+            cursor.execute("DELETE FROM menu_recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
 
-        # 레시피 저장
-        cursor.execute("""
-            INSERT INTO menu_recipes (
-                recipe_code, recipe_name, category, food_color,
-                total_cost, cooking_note, image_path, image_thumbnail,
-                created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            recipe_code, recipe_name, category, food_color,
-            total_cost, cooking_note, image_path, thumbnail_path,
-            'admin'  # TODO: 실제 사용자로 변경
-        ))
+            result_recipe_id = int(recipe_id)
 
-        recipe_id = cursor.lastrowid
+        else:
+            # 새 메뉴 생성
+            print(f"[DEBUG] 새 메뉴 생성")
 
-        # 재료 저장
-        for idx, item in enumerate(ingredients_data):
-            if item.get('ingredient_name'):  # 빈 행 제외
-                cursor.execute("""
-                    INSERT INTO menu_recipe_ingredients (
-                        recipe_id, ingredient_code, ingredient_name,
-                        specification, unit, delivery_days,
-                        selling_price, quantity, amount,
-                        supplier_name, sort_order
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    recipe_id,
-                    item.get('ingredient_code', ''),
-                    item.get('ingredient_name'),
-                    item.get('specification', ''),
-                    item.get('unit', ''),
-                    int(item.get('delivery_days', 0)),
-                    float(item.get('selling_price', 0)),
-                    float(item.get('quantity', 0)),
-                    float(item.get('amount', 0)),
-                    item.get('supplier_name', ''),
-                    idx
-                ))
+            # 중복 메뉴명 체크
+            cursor.execute("""
+                SELECT COUNT(*) FROM menu_recipes
+                WHERE recipe_name = ? AND is_active = 1
+            """, (recipe_name,))
+
+            if cursor.fetchone()[0] > 0:
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": f'"{recipe_name}" 메뉴명이 이미 존재합니다.'}
+                )
+
+            # 레시피 코드 생성
+            import time
+            recipe_code = f"RECIPE_{int(time.time())}"
+
+            # 메뉴 생성
+            cursor.execute("""
+                INSERT INTO menu_recipes (
+                    recipe_code, recipe_name, category, cooking_note,
+                    total_cost, serving_size, is_active, created_by, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, 1, 1, ?, datetime('now'), datetime('now'))
+            """, (recipe_code, recipe_name, category, cooking_note, total_cost, current_user['username']))
+
+            result_recipe_id = cursor.lastrowid
+
+        # 재료 정보 저장
+        print(f"[DEBUG] 재료 {len(ingredients)}개 저장 시작")
+        for i, ingredient in enumerate(ingredients):
+            cursor.execute("""
+                INSERT INTO menu_recipe_ingredients (
+                    recipe_id, ingredient_code, ingredient_name, specification, unit,
+                    delivery_days, selling_price, quantity, amount, supplier_name, sort_order
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                result_recipe_id,
+                ingredient.get('ingredient_code', ''),
+                ingredient.get('ingredient_name', ''),
+                ingredient.get('specification', ''),
+                ingredient.get('unit', ''),
+                ingredient.get('delivery_days', 0),
+                ingredient.get('selling_price', 0),
+                ingredient.get('quantity', 0),
+                ingredient.get('amount', 0),
+                ingredient.get('supplier_name', ''),
+                i + 1
+            ))
 
         conn.commit()
+        print(f"[DEBUG] 저장 완료: 메뉴 ID {result_recipe_id}")
 
-        return {
-            'success': True,
-            'message': '레시피가 성공적으로 저장되었습니다.',
-            'recipe_id': recipe_id,
-            'recipe_code': recipe_code,
-            'image_path': image_path,
-            'thumbnail_path': thumbnail_path
-        }
+        # 저장 확인
+        cursor.execute("SELECT COUNT(*) FROM menu_recipe_ingredients WHERE recipe_id = ?", (result_recipe_id,))
+        ingredient_count = cursor.fetchone()[0]
+        print(f"[DEBUG] 저장된 재료 개수: {ingredient_count}")
+
+        conn.close()
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "레시피가 성공적으로 저장되었습니다.",
+                "recipe_id": result_recipe_id,
+                "recipe_code": recipe_code if not recipe_id else None
+            }
+        )
 
     except Exception as e:
-        conn.rollback()
-        print(f"레시피 저장 오류: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"레시피 저장 실패: {str(e)}")
-    finally:
-        conn.close()
+        print(f"[ERROR] 레시피 저장 오류: {str(e)}")
+        print(f"[ERROR] 스택: {traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"저장 실패: {str(e)}"}
+        )
 
 @app.get("/api/recipe/list")
 async def get_recipe_list(
@@ -3757,13 +3969,593 @@ async def get_recipe_detail(recipe_id: int):
     finally:
         conn.close()
 
+# =============================================================================
+# 관리자용 메뉴/레시피 API 엔드포인트
+# =============================================================================
+
+@app.get("/api/admin/menu-recipes")
+async def get_admin_menu_recipes(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    current_user: dict = Depends(require_nutritionist_or_admin)
+):
+    """메뉴/레시피 목록 조회 (인증 필요)"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # WHERE 조건 구성
+        conditions = ["r.is_active = 1"]
+        params = []
+
+        # 권한별 필터링
+        if current_user['role'] != 'admin':
+            # 관리자가 아닌 경우 자신의 메뉴만 조회
+            conditions.append("r.created_by = ?")
+            params.append(current_user['username'])
+
+        if search:
+            conditions.append("(r.recipe_name LIKE ? OR r.cooking_note LIKE ?)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param])
+
+        if category:
+            conditions.append("r.category = ?")
+            params.append(category)
+
+        where_clause = " AND ".join(conditions)
+
+        # 총 개수 조회
+        count_query = f"""
+            SELECT COUNT(DISTINCT r.id)
+            FROM menu_recipes r
+            WHERE {where_clause}
+        """
+        total = cursor.execute(count_query, params).fetchone()[0]
+
+        # 메뉴/레시피 목록 조회
+        offset = (page - 1) * limit
+        query = f"""
+            SELECT
+                r.id,
+                r.recipe_name as name,
+                r.category,
+                r.cooking_note as description,
+                r.serving_size as servings,
+                r.total_cost,
+                r.created_at,
+                r.updated_at,
+                r.image_path,
+                r.image_thumbnail,
+                COUNT(i.id) as ingredient_count
+            FROM menu_recipes r
+            LEFT JOIN menu_recipe_ingredients i ON r.id = i.recipe_id
+            WHERE {where_clause}
+            GROUP BY r.id
+            ORDER BY r.updated_at DESC
+            LIMIT ? OFFSET ?
+        """
+
+        params.extend([limit, offset])
+        recipes = cursor.execute(query, params).fetchall()
+
+        return {
+            'success': True,
+            'data': {
+                'recipes': [dict(row) for row in recipes],
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total': total,
+                    'total_pages': (total + limit - 1) // limit
+                }
+            }
+        }
+
+    except Exception as e:
+        print(f"관리자 메뉴/레시피 목록 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"메뉴/레시피 목록 조회 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.get("/api/admin/menu-recipes/categories")
+async def get_menu_categories():
+    """메뉴 카테고리 목록 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        categories = cursor.execute("""
+            SELECT DISTINCT category, COUNT(*) as count
+            FROM menu_recipes
+            WHERE is_active = 1 AND category IS NOT NULL AND category != ''
+            GROUP BY category
+            ORDER BY category
+        """).fetchall()
+
+        return {
+            'success': True,
+            'data': {
+                'categories': [{'name': row[0], 'count': row[1]} for row in categories]
+            }
+        }
+
+    except Exception as e:
+        print(f"메뉴 카테고리 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"카테고리 조회 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.get("/api/admin/menu-recipes/{recipe_id}")
+async def get_admin_menu_recipe_detail(recipe_id: int):
+    """관리자용 메뉴/레시피 상세 조회"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # 레시피 기본 정보
+        recipe = cursor.execute("""
+            SELECT * FROM menu_recipes
+            WHERE id = ?
+        """, (recipe_id,)).fetchone()
+
+        if not recipe:
+            raise HTTPException(status_code=404, detail="레시피를 찾을 수 없습니다.")
+
+        # 재료 목록
+        ingredients = cursor.execute("""
+            SELECT * FROM menu_recipe_ingredients
+            WHERE recipe_id = ?
+            ORDER BY sort_order
+        """, (recipe_id,)).fetchall()
+
+        return {
+            'success': True,
+            'data': {
+                'recipe': dict(recipe),
+                'ingredients': [dict(row) for row in ingredients]
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"관리자 메뉴/레시피 상세 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"메뉴/레시피 상세 조회 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.post("/api/admin/menu-recipes")
+async def create_admin_menu_recipe(recipe_data: dict):
+    """관리자용 메뉴/레시피 생성"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 중복 메뉴명 체크
+        menu_name = recipe_data.get('name', '').strip()
+        if not menu_name:
+            return {
+                'success': False,
+                'error': '메뉴명은 필수입니다.'
+            }
+
+        cursor.execute("""
+            SELECT COUNT(*) FROM menu_recipes
+            WHERE recipe_name = ? AND is_active = 1
+        """, (menu_name,))
+
+        if cursor.fetchone()[0] > 0:
+            return {
+                'success': False,
+                'error': f'"{menu_name}" 메뉴명이 이미 존재합니다. 다른 이름을 사용해주세요.'
+            }
+
+        # 레시피 코드 생성
+        import datetime
+        recipe_code = f"RCP_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # 레시피 기본 정보 삽입
+        recipe_insert = """
+            INSERT INTO menu_recipes (
+                recipe_code, recipe_name, category, cooking_note,
+                serving_size, total_cost, image_path,
+                created_at, updated_at, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 1)
+        """
+
+        cursor.execute(recipe_insert, (
+            recipe_code,
+            recipe_data.get('name'),
+            recipe_data.get('category'),
+            recipe_data.get('description', ''),
+            recipe_data.get('servings', 1),
+            recipe_data.get('total_cost', 0),
+            recipe_data.get('image_path', '')
+        ))
+
+        recipe_id = cursor.lastrowid
+
+        # 재료 정보 삽입
+        ingredients = recipe_data.get('ingredients', [])
+        if not ingredients:
+            return {
+                'success': False,
+                'error': '메뉴에는 최소 1개 이상의 식자재가 필요합니다.'
+            }
+
+        # 식자재 코드 검증
+        for i, ingredient in enumerate(ingredients):
+            ingredient_code = ingredient.get('ingredient_code', '').strip()
+            ingredient_name = ingredient.get('ingredient_name', '').strip()
+
+            if not ingredient_code:
+                return {
+                    'success': False,
+                    'error': f'{i+1}번째 재료: 식자재 코드는 필수입니다.'
+                }
+
+            if not ingredient_name:
+                return {
+                    'success': False,
+                    'error': f'{i+1}번째 재료: 식자재명은 필수입니다.'
+                }
+
+            # ingredients 테이블에서 해당 코드가 존재하는지 확인
+            cursor.execute("""
+                SELECT COUNT(*) FROM ingredients
+                WHERE ingredient_code = ? AND supplier_name IS NOT NULL
+            """, (ingredient_code,))
+
+            if cursor.fetchone()[0] == 0:
+                return {
+                    'success': False,
+                    'error': f'{i+1}번째 재료: 식자재 코드 "{ingredient_code}"가 시스템에 등록되지 않았습니다.'
+                }
+
+        # 재료 정보 삽입
+        ingredient_insert = """
+            INSERT INTO menu_recipe_ingredients (
+                recipe_id, ingredient_code, ingredient_name, quantity, unit,
+                amount, supplier_name, specification, sort_order
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        for i, ingredient in enumerate(ingredients):
+            cursor.execute(ingredient_insert, (
+                recipe_id,
+                ingredient.get('ingredient_code', ''),
+                ingredient.get('ingredient_name', ''),
+                ingredient.get('quantity', 0),
+                ingredient.get('unit', ''),
+                ingredient.get('amount', 0),
+                ingredient.get('supplier_name', ''),
+                ingredient.get('specification', ''),
+                i + 1
+            ))
+
+        conn.commit()
+
+        return {
+            'success': True,
+            'data': {'recipe_id': recipe_id},
+            'message': '메뉴/레시피가 성공적으로 생성되었습니다.'
+        }
+
+    except Exception as e:
+        conn.rollback()
+        print(f"관리자 메뉴/레시피 생성 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"메뉴/레시피 생성 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.put("/api/admin/menu-recipes/{recipe_id}")
+async def update_admin_menu_recipe(recipe_id: int, recipe_data: dict):
+    """관리자용 메뉴/레시피 수정"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 레시피 존재 확인
+        existing = cursor.execute("SELECT id FROM menu_recipes WHERE id = ?", (recipe_id,)).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="레시피를 찾을 수 없습니다.")
+
+        # 중복 메뉴명 체크 (수정 시 자기 자신 제외)
+        menu_name = recipe_data.get('name', '').strip()
+        if menu_name:
+            cursor.execute("""
+                SELECT COUNT(*) FROM menu_recipes
+                WHERE recipe_name = ? AND is_active = 1 AND id != ?
+            """, (menu_name, recipe_id))
+
+            if cursor.fetchone()[0] > 0:
+                return {
+                    'success': False,
+                    'error': f'"{menu_name}" 메뉴명이 이미 존재합니다. 다른 이름을 사용해주세요.'
+                }
+
+        # 레시피 기본 정보 수정
+        recipe_update = """
+            UPDATE menu_recipes SET
+                recipe_name = ?, category = ?, cooking_note = ?,
+                serving_size = ?, total_cost = ?, image_path = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+        """
+
+        cursor.execute(recipe_update, (
+            recipe_data.get('name'),
+            recipe_data.get('category'),
+            recipe_data.get('description', ''),
+            recipe_data.get('servings', 1),
+            recipe_data.get('total_cost', 0),
+            recipe_data.get('image_path', ''),
+            recipe_id
+        ))
+
+        # 기존 재료 삭제
+        cursor.execute("DELETE FROM menu_recipe_ingredients WHERE recipe_id = ?", (recipe_id,))
+
+        # 재료 유효성 검사
+        ingredients = recipe_data.get('ingredients', [])
+        if not ingredients:
+            return {
+                'success': False,
+                'error': '메뉴 수정을 위해서는 최소 1개 이상의 재료가 필요합니다.'
+            }
+
+        # 식자재 코드 유효성 검사
+        for ingredient in ingredients:
+            ingredient_code = ingredient.get('ingredient_code', '').strip()
+            if not ingredient_code:
+                return {
+                    'success': False,
+                    'error': '모든 재료에 식자재 코드가 입력되어야 합니다.'
+                }
+
+            # 식자재 코드가 실제 DB에 존재하는지 확인
+            cursor.execute("""
+                SELECT id FROM ingredients WHERE ingredient_code = ?
+            """, (ingredient_code,))
+
+            if not cursor.fetchone():
+                return {
+                    'success': False,
+                    'error': f'식자재 코드 "{ingredient_code}"를 찾을 수 없습니다. 올바른 식자재를 선택해주세요.'
+                }
+
+        # 새 재료 정보 삽입
+        if ingredients:
+            ingredient_insert = """
+                INSERT INTO menu_recipe_ingredients (
+                    recipe_id, ingredient_name, quantity, unit,
+                    amount, supplier_name, specification, sort_order, ingredient_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            for i, ingredient in enumerate(ingredients):
+                cursor.execute(ingredient_insert, (
+                    recipe_id,
+                    ingredient.get('ingredient_name', ''),
+                    ingredient.get('quantity', 0),
+                    ingredient.get('unit', ''),
+                    ingredient.get('amount', 0),
+                    ingredient.get('supplier_name', ''),
+                    ingredient.get('specification', ''),
+                    i + 1,
+                    ingredient.get('ingredient_code', '')
+                ))
+
+        conn.commit()
+
+        return {
+            'success': True,
+            'message': '메뉴/레시피가 성공적으로 수정되었습니다.'
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"관리자 메뉴/레시피 수정 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"메뉴/레시피 수정 실패: {str(e)}")
+    finally:
+        conn.close()
+
+@app.delete("/api/admin/menu-recipes/{recipe_id}")
+async def delete_admin_menu_recipe(recipe_id: int):
+    """관리자용 메뉴/레시피 삭제 (소프트 삭제)"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 레시피 존재 확인
+        existing = cursor.execute("SELECT id FROM menu_recipes WHERE id = ?", (recipe_id,)).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="레시피를 찾을 수 없습니다.")
+
+        # 소프트 삭제 (is_active = 0)
+        cursor.execute("""
+            UPDATE menu_recipes
+            SET is_active = 0, updated_at = datetime('now')
+            WHERE id = ?
+        """, (recipe_id,))
+
+        conn.commit()
+
+        return {
+            'success': True,
+            'message': '메뉴/레시피가 성공적으로 삭제되었습니다.'
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"관리자 메뉴/레시피 삭제 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"메뉴/레시피 삭제 실패: {str(e)}")
+    finally:
+        conn.close()
+
+# ========== 협력업체 대시보드 관련 API ==========
+
+@app.get("/supplier_dashboard.html")
+async def serve_supplier_dashboard():
+    """협력업체 대시보드 페이지 제공"""
+    return FileResponse("supplier_dashboard.html")
+
+@app.get("/sample data/{file_name}")
+async def serve_sample_data(file_name: str):
+    """샘플 데이터 파일 제공"""
+    import os
+    file_path = os.path.join("sample data", file_name)
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    else:
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
+
+@app.get("/api/supplier/dashboard-stats")
+async def get_supplier_dashboard_stats():
+    """협력업체 대시보드 통계 데이터"""
+    try:
+        # 임시 통계 데이터 (실제 구현 시 DB에서 조회)
+        import random
+        stats = {
+            "today_orders": random.randint(5, 25),
+            "pending_orders": random.randint(3, 18),
+            "weekly_confirmed": random.randint(20, 70),
+            "monthly_total": f"{random.randint(200, 700)}만원"
+        }
+
+        return {
+            "success": True,
+            "stats": stats
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/supplier/orders")
+async def get_supplier_orders(status: str = None, date: str = None):
+    """협력업체 발주 목록 조회"""
+    try:
+
+        # 임시 발주 데이터 생성 (실제 구현 시 DB에서 조회)
+        import random
+        from datetime import datetime, timedelta
+
+        sites = ['테스트푸드 본사', '서울지점', '부산지점', '대구지점']
+        statuses = ['pending', 'confirmed', 'rejected']
+        status_names = {'pending': '처리대기', 'confirmed': '확정', 'rejected': '반려'}
+
+        orders = []
+        for i in range(1, 16):
+            order_date = datetime.now() - timedelta(days=random.randint(0, 7))
+            order_status = random.choice(statuses)
+
+            order = {
+                "id": f"ORD-{str(i).zfill(4)}",
+                "site": random.choice(sites),
+                "date": order_date.strftime('%Y-%m-%d'),
+                "items": random.randint(5, 25),
+                "amount": f"{random.randint(100, 600)}만원",
+                "status": order_status,
+                "status_name": status_names[order_status],
+                "supplier_code": supplier_code
+            }
+            orders.append(order)
+
+        # 필터링
+        if status:
+            orders = [o for o in orders if o['status'] == status]
+        if date:
+            orders = [o for o in orders if o['date'] == date]
+
+        # 날짜순 정렬
+        orders.sort(key=lambda x: x['date'], reverse=True)
+
+        return {
+            "success": True,
+            "orders": orders
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/supplier/orders/{order_id}/confirm")
+async def confirm_supplier_order(order_id: str):
+    """협력업체 발주 확정"""
+    try:
+        # 실제 구현 시 DB 업데이트
+        # 여기서는 임시로 성공 응답
+
+        return {
+            "success": True,
+            "message": f"발주 {order_id}가 확정되었습니다."
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/supplier/orders/{order_id}/reject")
+async def reject_supplier_order(order_id: str, reason_data: dict):
+    """협력업체 발주 반려"""
+    try:
+        reason = reason_data.get('reason', '')
+
+        # 실제 구현 시 DB 업데이트
+        # 여기서는 임시로 성공 응답
+
+        return {
+            "success": True,
+            "message": f"발주 {order_id}가 반려되었습니다.",
+            "reason": reason
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/supplier/orders/{order_id}/detail")
+async def get_supplier_order_detail(order_id: str):
+    """협력업체 발주 상세 조회"""
+    try:
+
+        # 임시 상세 데이터 (실제 구현 시 DB에서 조회)
+        detail = {
+            "id": order_id,
+            "site": "테스트푸드 본사",
+            "date": "2025-09-19",
+            "status": "pending",
+            "status_name": "처리대기",
+            "items": [
+                {"name": "쌀", "quantity": "10kg", "unit_price": "2,500원", "total": "25,000원"},
+                {"name": "김치", "quantity": "5kg", "unit_price": "8,000원", "total": "40,000원"},
+                {"name": "돼지고기", "quantity": "3kg", "unit_price": "15,000원", "total": "45,000원"}
+            ],
+            "total_amount": "110,000원",
+            "notes": "급한 주문입니다. 빠른 처리 부탁드립니다."
+        }
+
+        return {
+            "success": True,
+            "detail": detail
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import os
 
-    # 환경 변수에서 포트 읽기, 기본값은 8015
-    port = int(os.getenv("API_PORT", "8010"))
-    host = os.getenv("API_HOST", "127.0.0.1")
+    # 환경 변수에서 포트 읽기, 기본값은 80
+    port = int(os.getenv("API_PORT", "80"))
+    host = os.getenv("API_HOST", "0.0.0.0")  # 외부 접속 허용
 
     print(f"API 서버 시작: {host}:{port}")
     uvicorn.run(app, host=host, port=port)

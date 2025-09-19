@@ -553,8 +553,12 @@
         </div>
     </div>
 
+    <!-- 중앙 설정 파일 로드 -->
+    <script src="config.js"></script>
+
     <script>
-        const API_BASE_URL = 'http://127.0.0.1:8013';
+        // CONFIG 파일 사용하거나 기본값을 8010으로 설정
+        const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
         let currentPage = 1;
         let currentUserId = null;
         let isEditMode = false;

@@ -6,7 +6,7 @@
 (function() {
     'use strict';
 
-    const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8013';
+    const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
     let currentPage = 1;
     let currentSort = { field: 'created_at', order: 'desc' };
     let selectedSuppliers = new Set();
