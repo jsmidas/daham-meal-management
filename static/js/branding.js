@@ -32,19 +32,19 @@ const BrandingManager = {
         const branding = this.getBranding();
 
         if (isCompact) {
-            // 컴팩트 버전 (어드민용) - 은색 배경에 검정 글씨
+            // 컴팩트 버전 (어드민용) - 은색 배경에 검정 글씨, 더 큰 사이즈
             return `
                 <div class="sidebar-header branded-header" style="background: linear-gradient(135deg, #e8e8e8, #f5f5f5); border-bottom: 1px solid #d0d0d0;">
-                    <div style="display: flex; align-items: center; gap: 8px; padding: 15px 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 18px 15px;">
                         <img src="${branding.LOGO_PATH}"
                              alt="${branding.COMPANY_NAME} 로고"
-                             style="height: 24px; width: auto; flex-shrink: 0;"
+                             style="height: 32px; width: auto; flex-shrink: 0;"
                              onerror="this.style.display='none'">
                         <div style="overflow: hidden; flex: 1;">
-                            <h2 style="margin: 0; font-size: 13px; font-weight: 700; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <h2 style="margin: 0; font-size: 16px; font-weight: 700; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${branding.COMPANY_NAME}
                             </h2>
-                            <p style="margin: 0; font-size: 10px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <p style="margin: 0; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${branding.SYSTEM_NAME}
                             </p>
                         </div>

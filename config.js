@@ -49,7 +49,7 @@ const CONFIG = {
     BRANDING: {
         COMPANY_NAME: '다함푸드',
         SYSTEM_NAME: '급식관리',
-        LOGO_PATH: 'static/images/logo.svg',
+        LOGO_PATH: 'static/images/daham_logo.png',
         SIDEBAR_TITLE: '급식관리',
         FAVICON: 'static/images/favicon.ico',
         COLORS: {
