@@ -4,9 +4,7 @@
 const CONFIG = {
     // API 서버 설정
     API: {
-        BASE_URL: typeof process !== 'undefined' && process.env && process.env.API_BASE_URL
-            ? process.env.API_BASE_URL
-            : 'http://dahamfood.kr:8080',
+        BASE_URL: 'http://dahamfood.kr',
         ENDPOINTS: {
             // 대시보드 관련
             DASHBOARD_STATS: '/api/admin/dashboard-stats',
