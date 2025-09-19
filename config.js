@@ -6,7 +6,7 @@ const CONFIG = {
     API: {
         BASE_URL: typeof process !== 'undefined' && process.env && process.env.API_BASE_URL
             ? process.env.API_BASE_URL
-            : 'http://127.0.0.1:8015',
+            : 'http://127.0.0.1:80',
         ENDPOINTS: {
             // 대시보드 관련
             DASHBOARD_STATS: '/api/admin/dashboard-stats',
@@ -18,7 +18,11 @@ const CONFIG = {
             ADMIN_BUSINESS_LOCATIONS: '/api/admin/business-locations',
             ADMIN_INGREDIENTS_SUMMARY: '/api/admin/ingredients-summary',
             ADMIN_INGREDIENTS_NEW: '/api/admin/ingredients-new',
-            
+
+            // 메뉴/레시피 관련
+            ADMIN_MENU_RECIPES: '/api/admin/menu-recipes',
+            ADMIN_MENU_CATEGORIES: '/api/admin/menu-recipes/categories',
+
             // 기존 엔드포인트 (호환성)
             TEST_SAMSUNG: '/test-samsung-welstory',
             ALL_INGREDIENTS: '/all-ingredients-for-suppliers',
@@ -41,6 +45,19 @@ const CONFIG = {
         MOCK_DATA: false
     },
     
+    // 브랜딩 설정 (화이트라벨링)
+    BRANDING: {
+        COMPANY_NAME: '다함푸드',
+        SYSTEM_NAME: '급식관리',
+        LOGO_PATH: 'static/images/logo.svg',
+        SIDEBAR_TITLE: '급식관리',
+        FAVICON: 'static/images/favicon.ico',
+        COLORS: {
+            PRIMARY: '#2a5298',
+            SECONDARY: '#667eea'
+        }
+    },
+
     // UI 설정
     UI: {
         ITEMS_PER_PAGE: 50,

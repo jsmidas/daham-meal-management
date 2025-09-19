@@ -10,25 +10,58 @@
     <link rel="stylesheet" href="static/css/admin-dashboard-main.css">
     <link rel="stylesheet" href="static/css/admin-dashboard-inline.css">
 
-    <!-- 최소 폴백 CSS (file:// 프로토콜용) -->
+    <!-- 공통 사이드바 CSS (마지막에 로드하여 기존 스타일 덮어쓰기) -->
+    <link rel="stylesheet" href="static/css/common-sidebar.css">
+
+    <!-- 어드민 전용 은색 사이드바 스타일 -->
     <style>
         /* file:// 프로토콜에서 외부 CSS 로드 실패시 최소한의 레이아웃 유지 */
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; }
         .container { display: flex; height: 100vh; }
-        .sidebar { width: 280px; background: #2a5298; color: white; }
+
+        /* 어드민 사이드바 은색 테마 */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f8f8f8, #e8e8e8);
+            color: #333;
+            border-right: 2px solid #d0d0d0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
         .main-content { flex: 1; overflow-y: auto; }
         .header { background: white; padding: 10px; }
         .page-content { display: none; }
         .page-content.active { display: block; }
-        .nav-item { display: block; padding: 12px 20px; color: white; text-decoration: none; }
-        .nav-item.active { background: rgba(255,255,255,0.2); }
+
+        /* 네비게이션 아이템 어드민 스타일 */
+        .nav-item {
+            display: block;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(0,0,0,0.05);
+            color: #000;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            font-weight: 600;
+            border-left: 4px solid #28a745;
+        }
+
+        .nav-item .icon {
+            margin-right: 8px;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
-    <!-- 관리자 페이지 표시 -->
-    <div style="background: linear-gradient(90deg, #e74c3c, #c0392b); color: white; padding: 8px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        🔐 관리자 전용 페이지 - ADMIN ONLY
-    </div>
     <!-- 메인 컨테이너 -->
     <div class="container">
         <!-- 사이드바 -->
@@ -60,6 +93,9 @@
                 <a href="#" class="nav-item" data-page="ingredients">
                     <span class="icon">📦</span>식자재 관리
                 </a>
+                <a href="#" class="nav-item" data-page="menu-recipes">
+                    <span class="icon">🍽️</span>메뉴/레시피 관리
+                </a>
             </div>
             
             <div class="sidebar-footer" style="margin-top: auto; padding: 20px;">
@@ -73,15 +109,10 @@
 
         <!-- 메인 컨텐츠 -->
         <main class="main-content">
-            <!-- 헤더 -->
+            <!-- 깔끔한 헤더 -->
             <div class="header">
-                <h1 id="page-title">관리자 대시보드</h1>
                 <div class="header-info">
-                    <div class="user-info">
-                        관리자님, 안녕하세요! | 오늘: <span id="current-date"></span>
-                    </div>
-                    <button class="server-btn" onclick="startServer()" style="margin-right: 10px; background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">서버 시작</button>
-                    <button class="logout-btn" onclick="logout()">로그아웃</button>
+                    <span id="current-date"></span>
                 </div>
             </div>
 
@@ -175,6 +206,10 @@
                     <!-- 식자재 관리 모듈이 여기에 로드됩니다 -->
                 </div>
 
+                <div id="menu-recipes-content" class="page-content" style="display: none;">
+                    <!-- 메뉴/레시피 관리 모듈이 여기에 동적 로드됩니다 -->
+                </div>
+
             </div>
         </main>
     </div>
@@ -186,7 +221,7 @@
     <script>
         // 최소한의 CONFIG 설정 (폴백용)
         window.CONFIG = {
-            API_BASE_URL: 'http://127.0.0.1:8010',
+            API_BASE_URL: 'http://127.0.0.1:80',
             API_TIMEOUT: 30000
         };
 
@@ -225,8 +260,25 @@
         }
     </script>
 
+    <!-- 브랜딩 시스템 -->
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
+
     <!-- 메인 초기화 스크립트 -->
     <script src="static/js/dashboard-init-complete.js"></script>
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        // 페이지 로드 완료 후 브랜딩 적용
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('관리자 대시보드');
+                console.log('✅ 브랜딩 시스템 적용 완료');
+            } else {
+                console.warn('⚠️ BrandingManager를 찾을 수 없습니다.');
+            }
+        });
+    </script>
 
     <!-- 개선된 사용자 관리 모듈은 dashboard-init-complete.js에서 자동 로드됨 -->
 

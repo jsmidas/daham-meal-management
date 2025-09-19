@@ -6,6 +6,8 @@
     <title>📓 각종 일지 - 급식관리 시스템</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="static/css/user/dashboard-styles.css">
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
 </head>
 <body>
     <div class="container">
@@ -72,5 +74,16 @@
             </div>
         </main>
     </div>
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 브랜딩 시스템 적용
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('일일 로그');
+                console.log('✅ 브랜딩 시스템 적용 완료 (일일 로그)');
+            }
+        });
+    </script>
 </body>
 </html>
