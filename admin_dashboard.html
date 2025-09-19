@@ -100,9 +100,12 @@
             
             <div class="sidebar-footer" style="margin-top: auto; padding: 20px;">
                 <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
-                    <a href="dashboard.html" style="display: block; padding: 12px 20px; background: #e8f5e8; color: #4caf50; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600;">
+                    <a href="dashboard.html" style="display: block; padding: 12px 20px; background: #e8f5e8; color: #4caf50; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 10px;">
                         <span class="icon">🍽️</span>급식관리로 이동
                     </a>
+                    <button onclick="logout()" style="display: block; width: 100%; padding: 12px 20px; background: #ff6b6b; color: white; border: none; border-radius: 8px; text-align: center; font-weight: 600; cursor: pointer;">
+                        <span class="icon">🚪</span>로그아웃
+                    </button>
                 </div>
             </div>
         </nav>
@@ -263,6 +266,58 @@
     <!-- 브랜딩 시스템 -->
     <script src="config.js"></script>
     <script src="static/js/branding.js"></script>
+
+    <!-- 로그인 검증 스크립트 -->
+    <script>
+        // 페이지 로드 시 로그인 상태 확인
+        function checkAuth() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                // 토큰이 없으면 로그인 페이지로 리다이렉트
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login.html';
+                return false;
+            }
+
+            // JWT 토큰 만료 확인 (간단한 체크)
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const now = Math.floor(Date.now() / 1000);
+                if (payload.exp < now) {
+                    localStorage.removeItem('auth_token');
+                    alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/login.html';
+                    return false;
+                }
+            } catch (e) {
+                localStorage.removeItem('auth_token');
+                alert('유효하지 않은 토큰입니다. 다시 로그인해주세요.');
+                window.location.href = '/login.html';
+                return false;
+            }
+
+            return true;
+        }
+
+        // 페이지 로드 즉시 실행 (임시 비활성화)
+        // if (!checkAuth()) {
+        //     document.body.style.display = 'none'; // 깜빡임 방지
+        // }
+        console.log('admin_dashboard.html 로드됨 - 인증 체크 임시 비활성화');
+
+        // 로그아웃 함수
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_info');
+                localStorage.removeItem('saved_username');
+                localStorage.removeItem('saved_password');
+                localStorage.removeItem('remember_me');
+                alert('로그아웃되었습니다.');
+                window.location.href = 'http://127.0.0.1:8010/login.html';
+            }
+        }
+    </script>
 
     <!-- 메인 초기화 스크립트 -->
     <script src="static/js/dashboard-init-complete.js"></script>

@@ -214,8 +214,8 @@ async def favicon():
     """Return empty favicon to avoid 404 errors"""
     return Response(content=b"", media_type="image/x-icon")
 
-@app.get("/")
-async def root():
+@app.get("/api/status")
+async def api_status():
     """API 서버 상태 확인"""
     return {
         "message": "식자재 관리 API 서버가 정상 작동 중입니다",
@@ -3572,14 +3572,14 @@ async def get_config():
 
 @app.get("/")
 async def root():
-    """루트 경로에서 admin_dashboard.html로 리다이렉트"""
+    """루트 경로에서 login.html로 리다이렉트"""
     return HTMLResponse(content="""
         <html>
         <head>
-            <meta http-equiv="refresh" content="0; url=/admin_dashboard.html">
+            <meta http-equiv="refresh" content="0; url=/login.html">
         </head>
         <body>
-            <p>Redirecting to <a href="/admin_dashboard.html">Admin Dashboard</a>...</p>
+            <p>Redirecting to <a href="/login.html">Login</a>...</p>
         </body>
         </html>
     """)
@@ -4553,8 +4553,8 @@ if __name__ == "__main__":
     import uvicorn
     import os
 
-    # 환경 변수에서 포트 읽기, 기본값은 80
-    port = int(os.getenv("API_PORT", "8080"))
+    # 환경 변수에서 포트 읽기, 기본값은 8010
+    port = int(os.getenv("API_PORT", "8010"))
     host = os.getenv("API_HOST", "0.0.0.0")  # 외부 접속 허용
 
     print(f"API 서버 시작: {host}:{port}")
