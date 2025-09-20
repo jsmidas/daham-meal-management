@@ -123,7 +123,9 @@
       "Bash(docker-compose:*)",
       "Bash(scp:*)",
       "Bash(where git)",
-      "Bash(git --version)"
+      "Bash(git --version)",
+      "Bash(ssh-keygen:*)",
+      "Bash(PYTHONIOENCODING=utf-8 API_PORT=8012 python ★test_samsung_api.py)"
     ],
     "deny": [],
     "ask": []

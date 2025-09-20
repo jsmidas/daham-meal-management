@@ -3,10 +3,12 @@
  * admin_dashboard.html의 인라인 JavaScript에서 분리
  */
 
-// CONFIG 설정
+// CONFIG 설정 (config.js와 호환 구조)
 window.CONFIG = window.CONFIG || {
-    API_BASE_URL: window.location.protocol + '//' + window.location.host,
-    API_TIMEOUT: 30000
+    API: {
+        BASE_URL: window.location.protocol + '//' + window.location.host,
+        TIMEOUT: 30000
+    }
 };
 
 // 스크립트 동적 로드 헬퍼 함수
@@ -36,7 +38,12 @@ function setupNavigation() {
     switchToPage('dashboard');
 
     // 초기 대시보드 통계 로드
-    fetch(`${window.CONFIG.API_BASE_URL}/api/admin/dashboard-stats`)
+    console.log('DEBUG: window.CONFIG =', window.CONFIG);
+    console.log('DEBUG: window.CONFIG.API =', window.CONFIG.API);
+    console.log('DEBUG: window.CONFIG.API.BASE_URL =', window.CONFIG.API.BASE_URL);
+    const apiUrl = `${window.CONFIG.API.BASE_URL}/api/admin/dashboard-stats`;
+    console.log('DEBUG: Final API URL =', apiUrl);
+    fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -94,7 +101,7 @@ async function initializePageModule(pageName) {
     if (pageName === 'dashboard') {
         console.log('📊 대시보드 - 모듈 초기화 불필요');
         // 대시보드 통계 로드
-        fetch(`${window.CONFIG.API_BASE_URL}/api/admin/dashboard-stats`)
+        fetch(`${window.CONFIG.API.BASE_URL}/api/admin/dashboard-stats`)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -430,7 +437,7 @@ async function loadActivityLogs() {
     console.log('📝 최근 활동 로그 로딩...');
 
     try {
-        const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://127.0.0.1:8010';
+        const API_BASE_URL = window.CONFIG?.API?.BASE_URL || 'http://127.0.0.1:8010';
         const response = await fetch(`${API_BASE_URL}/api/admin/activity-logs?limit=15`);
 
         if (!response.ok) {
