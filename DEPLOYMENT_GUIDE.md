@@ -1,203 +1,272 @@
-# 🚀 다함푸드 클라우드 배포 가이드
+# 🚀 다함 식자재 관리 시스템 - GitHub 배포 가이드
 
-## 🎯 현재 상황 분석
-- ✅ 도메인 구매: `dahamfood.kr`
-- ✅ DNS A 레코드 설정 완료 (www.dahamfood.kr → 125.247.255.182)
-- ❌ 현재 로컬 개발환경 → 클라우드 환경으로 변경 필요
+## 🎯 GitHub 배포의 장점 (초보자 추천!)
+- ✅ **버전 관리**: 코드 변경 이력 자동 추적
+- ✅ **쉬운 배포**: 파일 업로드만으로 배포 완료
+- ✅ **협업 가능**: 팀원과 함께 개발 가능
+- ✅ **무료 사용**: GitHub 계정만 있으면 OK
+- ✅ **롤백 간편**: 문제 발생시 이전 버전으로 쉽게 복구
 
-## 📋 클라우드 배포 옵션
+## 📋 GitHub 배포 단계별 가이드 (초보자용)
 
-### 옵션 1: AWS EC2 (추천)
+### 🚀 방법 1: GitHub + 운영 서버 (추천!)
+
+#### 1단계: GitHub 저장소 생성
+```
+1. GitHub.com 접속 → 로그인
+2. "New Repository" 클릭
+3. Repository name: "daham-meal-management"
+4. Private 선택 (중요!)
+5. "Create repository" 클릭
+```
+
+#### 2단계: 로컬 코드를 GitHub에 업로드
 ```bash
-# 1. EC2 인스턴스 생성 (Ubuntu 20.04)
-# 2. 도메인 DNS 변경: 125.247.255.182 → EC2 퍼블릭 IP
+# Windows에서 실행 (Git Bash 또는 명령 프롬프트)
+cd C:\Dev\daham-meal-management
 
-# 3. 서버에 코드 업로드
-scp -r daham-meal-management/ ubuntu@your-ec2-ip:/home/ubuntu/
+# Git 초기화 (처음에만)
+git init
+git branch -M main
 
-# 4. 서버에서 실행
-ssh ubuntu@your-ec2-ip
-cd /home/ubuntu/daham-meal-management
-sudo apt update && sudo apt install docker.io docker-compose -y
-sudo docker-compose up -d
+# GitHub 저장소 연결
+git remote add origin https://github.com/당신의계정명/daham-meal-management.git
+
+# 파일 추가 및 커밋
+git add .
+git commit -m "다함 식자재 관리 시스템 - 최초 업로드"
+
+# GitHub에 업로드
+git push -u origin main
 ```
 
-### 옵션 2: DigitalOcean Droplet
+#### 3단계: 운영 서버에서 GitHub에서 다운로드
 ```bash
-# 1. Droplet 생성 ($6/월)
-# 2. DNS 변경: A 레코드를 Droplet IP로
-# 3. 동일한 Docker 배포 과정
+# 운영 서버 SSH 접속
+ssh sos1253@34.64.237.181
+
+# GitHub에서 코드 다운로드
+cd /home/daham
+git clone https://github.com/당신의계정명/daham-meal-management.git app
+
+# 애플리케이션 시작
+cd app
+python ★test_samsung_api.py
 ```
 
-### 옵션 3: 현재 서버 활용 (125.247.255.182)
+### 🔄 업데이트 및 재배포 (매우 간단!)
+
+#### 방법 1: 웹 브라우저에서 직접 수정
+```
+1. GitHub.com → 본인 저장소 접속
+2. 수정할 파일 클릭 (예: ★test_samsung_api.py)
+3. "Edit this file" (연필 아이콘) 클릭
+4. 코드 수정
+5. "Commit changes" 클릭
+6. 운영 서버에서 git pull 실행
+```
+
+#### 방법 2: 로컬에서 수정 후 업로드
 ```bash
-# 현재 IP가 이미 설정되어 있으므로 바로 사용 가능
-# 1. 해당 서버에 SSH 접속
-# 2. Python 환경 설정
-# 3. 애플리케이션 배포
+# 로컬에서 파일 수정 후
+git add .
+git commit -m "식자재 관리 기능 개선"
+git push
+
+# 운영 서버에서 업데이트
+ssh sos1253@34.64.237.181
+cd /home/daham/app
+git pull
+python ★test_samsung_api.py
 ```
 
-## 🔧 배포 전 필수 수정사항
+## 🛠️ GitHub 초보자 가이드
 
-### 1. API 서버 설정 변경
-현재 개발용 설정을 프로덕션용으로 변경:
-
-```python
-# ★test_samsung_api.py 수정 필요
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", "8080"))  # 8010 → 8080
-    host = os.getenv("API_HOST", "0.0.0.0")
-
-    print(f"🚀 다함푸드 API 서버 시작: {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+### Git 설치 (Windows)
+```
+1. https://git-scm.com/download/win 접속
+2. Git for Windows 다운로드 및 설치
+3. Git Bash 실행 (시작 메뉴에서 검색)
 ```
 
-### 2. 프론트엔드 설정 변경
-```html
-<!-- HTML 파일들에서 config.js → config_production.js 로 변경 -->
-<script src="config_production.js"></script>
-```
-
-### 3. 데이터베이스 경로 수정
-```python
-# 절대 경로로 변경
-DATABASE_PATH = os.getenv("DATABASE_PATH", "/app/data/daham_meal.db")
-```
-
-## 🐳 Docker 배포 (추천)
-
-### 1. Docker 이미지 빌드
+### GitHub 계정 설정
 ```bash
-docker build -t daham-food .
+# Git 사용자 정보 설정 (처음에만)
+git config --global user.name "당신의이름"
+git config --global user.email "당신의이메일@example.com"
 ```
 
-### 2. 컨테이너 실행
+## 🔧 프로젝트 설정 (중요!)
+
+### .gitignore 파일 생성
 ```bash
-docker run -d -p 80:8080 \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/backups:/app/backups \
-  --name daham-food \
-  daham-food
+# C:\Dev\daham-meal-management\.gitignore 파일 생성
+# 민감한 파일들을 GitHub에 업로드하지 않도록 설정
+
+# 백업 파일들
+backups/
+*.db-shm
+*.db-wal
+*_backup_*.db
+
+# 로그 파일들
+*.log
+server_log.txt
+
+# 임시 파일들
+*.tmp
+*.temp
+deploy_package/
+daham_deploy_*.zip
+
+# 개발 도구
+.vscode/
+__pycache__/
+*.pyc
+
+# 민감한 설정 파일 (있다면)
+.env
+secrets.txt
 ```
 
-### 3. Docker Compose 사용 (더 쉬운 방법)
+### README.md 파일 생성
+```markdown
+# 다함 식자재 관리 시스템
+
+## 🚀 빠른 시작
 ```bash
-docker-compose up -d
+# 코드 다운로드
+git clone https://github.com/당신의계정명/daham-meal-management.git
+
+# 실행
+cd daham-meal-management
+python ★test_samsung_api.py
 ```
 
-## 🌐 Nginx 리버스 프록시 설정
+## 📊 주요 기능
+- 84,215개 식자재 데이터 관리
+- AI 학습 기반 단가 계산
+- 실시간 검색 및 필터링
+- 협력업체 매핑 관리
+- 사용자 권한 관리
 
-### nginx.conf
-```nginx
-events {
-    worker_connections 1024;
-}
-
-http {
-    upstream daham_app {
-        server daham-app:8080;
-    }
-
-    server {
-        listen 80;
-        server_name dahamfood.kr www.dahamfood.kr;
-
-        location / {
-            proxy_pass http://daham_app;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-    }
-}
+## 🌐 접속 정보
+- 관리자 대시보드: http://localhost:8010/admin_dashboard.html
+- 식자재 관리: http://localhost:8010/ingredients_management.html
 ```
 
-## 🔒 SSL 인증서 설정 (HTTPS)
+## 🚨 자주 발생하는 문제들 (FAQ)
 
-### Let's Encrypt 무료 SSL
+### Q1: "git: command not found" 오류가 발생해요
 ```bash
-# Certbot 설치
-sudo apt install certbot python3-certbot-nginx
+# Windows: Git for Windows 설치 필요
+# https://git-scm.com/download/win 에서 다운로드
 
-# SSL 인증서 발급
-sudo certbot --nginx -d dahamfood.kr -d www.dahamfood.kr
-
-# 자동 갱신 설정
-sudo crontab -e
-# 추가: 0 12 * * * /usr/bin/certbot renew --quiet
+# 설치 후 Git Bash 또는 명령 프롬프트에서 확인
+git --version
 ```
 
-## 📊 배포 후 확인사항
-
-### 1. 웹사이트 접속 확인
-- http://dahamfood.kr
-- http://www.dahamfood.kr
-
-### 2. API 엔드포인트 확인
-- http://dahamfood.kr/api/admin/dashboard-stats
-
-### 3. 로그인 기능 확인
-- 관리자 로그인
-- 협력업체 로그인
-
-## 🚨 주의사항
-
-### 1. 환경 변수 설정
+### Q2: GitHub에 파일 업로드가 안 돼요
 ```bash
-# .env 파일 생성
-PORT=8080
-API_HOST=0.0.0.0
-DATABASE_PATH=/app/data/daham_meal.db
-SECRET_KEY=your-secret-key-here
+# 인증 설정 확인
+git config --global user.name "당신의이름"
+git config --global user.email "당신의이메일"
+
+# Personal Access Token 생성 (GitHub.com)
+# Settings → Developer settings → Personal access tokens → Generate new token
+# repo 권한 체크 후 생성된 토큰을 비밀번호 대신 사용
 ```
 
-### 2. 방화벽 설정
+### Q3: 서버에서 "python: command not found" 오류
 ```bash
-# Ubuntu/Debian
-sudo ufw allow 80
-sudo ufw allow 443
-sudo ufw enable
+# Python 설치 확인
+python3 --version
+pip3 --version
+
+# 필요시 Python 설치
+sudo apt update
+sudo apt install python3 python3-pip
 ```
 
-### 3. 데이터베이스 백업
+### Q4: 데이터베이스 오류가 발생해요
 ```bash
-# 정기 백업 스크립트
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-cp /app/data/daham_meal.db /app/backups/daham_meal_backup_$DATE.db
+# 데이터베이스 권한 설정
+chmod 644 daham_meal.db
+
+# 백업에서 복구
+cp daham_meal_backup_최신날짜.db daham_meal.db
 ```
 
-## 🎉 배포 완료 후
+## 🎯 GitHub 배포의 핵심 명령어 정리
 
-1. ✅ http://dahamfood.kr 접속 확인
-2. ✅ 로그인 기능 테스트
-3. ✅ 데이터 정상 로드 확인
-4. ✅ 모든 메뉴 기능 동작 확인
-
-## 🆘 문제 해결
-
-### 포트 80 권한 오류
+### 처음 설정할 때
 ```bash
-# 1. 포트 8080으로 변경 후 Nginx 프록시
-# 2. 또는 sudo로 실행
-sudo docker-compose up -d
+git init
+git remote add origin https://github.com/계정명/daham-meal-management.git
+git add .
+git commit -m "최초 업로드"
+git push -u origin main
 ```
 
-### DNS 전파 확인
+### 업데이트할 때 (매일 사용)
 ```bash
-# DNS 전파 상태 확인
-nslookup dahamfood.kr
+# 로컬에서 수정 후
+git add .
+git commit -m "수정사항 설명"
+git push
+
+# 서버에서 업데이트
+git pull
 ```
 
-### 로그 확인
+### 문제 발생 시 복구
 ```bash
-# Docker 로그 확인
-docker logs daham-food
+# 이전 버전으로 되돌리기
+git log --oneline  # 커밋 이력 확인
+git reset --hard 커밋ID  # 특정 커밋으로 복구
+git push --force  # 강제 푸시 (주의!)
+```
 
-# Nginx 로그 확인
-docker logs nginx_container_name
+## 🎉 배포 완료 확인 체크리스트
+
+- [ ] ✅ GitHub 저장소 생성 완료
+- [ ] ✅ 로컬 코드 GitHub 업로드 완료
+- [ ] ✅ 운영 서버에서 git clone 완료
+- [ ] ✅ Python 서버 정상 실행
+- [ ] ✅ 웹 브라우저에서 접속 확인
+- [ ] ✅ 로그인 기능 테스트 완료
+- [ ] ✅ 식자재 검색 기능 확인
+- [ ] ✅ 단가 계산 기능 확인
+
+## 💡 초보자를 위한 추가 팁
+
+### Visual Studio Code 확장 프로그램 (추천)
+- **Git Graph**: 커밋 이력을 시각적으로 확인
+- **GitLens**: Git 관련 기능 강화
+- **Python**: Python 개발 지원
+
+### GitHub Desktop (GUI 도구)
+```
+명령어가 어려우면 GitHub Desktop 사용:
+1. https://desktop.github.com/ 에서 다운로드
+2. GUI로 쉽게 commit, push, pull 가능
+3. 초보자에게 매우 편리함
+```
+
+### 백업 전략
+```bash
+# 정기적으로 데이터베이스 백업
+# 운영 서버에서 실행
+cp daham_meal.db daham_meal_backup_$(date +%Y%m%d).db
+
+# GitHub에도 정기적으로 백업 업로드
+git add daham_meal_backup_*.db
+git commit -m "데이터베이스 백업"
+git push
 ```
 
 ---
 
-**다음 단계**: 위 옵션 중 하나를 선택하여 배포를 진행하세요. AWS EC2를 추천하며, Docker를 사용하면 배포가 매우 간단해집니다.
+**🎉 축하합니다!** 이제 GitHub를 활용한 전문적인 배포 시스템을 구축했습니다!
+
+**📞 도움이 필요하면**: GitHub Issues 탭을 활용하여 문제점을 기록하고 관리하세요.

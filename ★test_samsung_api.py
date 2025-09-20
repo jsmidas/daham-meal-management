@@ -27,7 +27,8 @@ try:
     from image_processor import ImageProcessor
 except ImportError:
     ImageProcessor = None  # 나중에 설치하면 사용
-from improved_unit_price_calculator import calculate_unit_price_improved, parse_specification_improved
+from improved_unit_price_calculator import calculate_unit_price_improved as original_calculate_unit_price_improved, parse_specification_improved
+from learning_price_calculator import calculate_unit_price_with_learning, record_manual_correction, get_calculation_stats
 import httpx
 
 app = FastAPI()
@@ -709,7 +710,7 @@ async def get_admin_suppliers():
         return {"success": False, "error": str(e)}
 
 @app.get("/api/admin/ingredients-new")
-async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: str = None, category: str = None, supplier: str = None):
+async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: str = None, category: str = None, supplier: str = None, sort_by: str = None, sort_order: str = "asc"):
     """관리자용 식자재 목록 (페이징, 검색, 필터링)"""
     try:
         conn = sqlite3.connect(DATABASE_PATH)
@@ -748,7 +749,19 @@ async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: s
             per_page = min(per_page, 1000)
         total_pages = (total_count + per_page - 1) // per_page
         offset = (page - 1) * per_page
-        
+
+        # 정렬 조건 설정
+        order_clause = "ORDER BY id DESC"  # 기본 정렬
+        if sort_by == "price_per_unit":
+            # 단위당 단가 정렬은 데이터 조회 후 Python에서 처리
+            order_clause = "ORDER BY purchase_price, specification"
+        elif sort_by == "purchase_price":
+            direction = "ASC" if sort_order.lower() == "asc" else "DESC"
+            order_clause = f"ORDER BY purchase_price {direction}"
+        elif sort_by == "ingredient_name":
+            direction = "ASC" if sort_order.lower() == "asc" else "DESC"
+            order_clause = f"ORDER BY ingredient_name {direction}"
+
         # 데이터 조회
         data_query = f"""
             SELECT
@@ -770,7 +783,7 @@ async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: s
                 created_at
             FROM ingredients
             {where_clause}
-            ORDER BY id DESC
+            {order_clause}
             LIMIT ? OFFSET ?
         """
 
@@ -778,11 +791,19 @@ async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: s
         ingredients = []
 
         for row in cursor.fetchall():
-            # 단위당 단가 계산
+            # 단위당 단가 계산 - 대량 로딩시에는 학습 시스템 비활성화 (성능상 이유)
             purchase_price = row[11] or 0
             specification = row[7] or ""
             unit = row[8] or ""
-            price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+
+            # 성능상 이유로 모든 대량 조회에서 학습 시스템 비활성화
+            if per_page >= 100:  # 100개 이상일 때는 빠른 계산 사용
+                # 빠른 기본 계산만 수행
+                from improved_unit_price_calculator import calculate_unit_price_improved
+                price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+            else:
+                # 소량 조회시에만 학습 시스템 사용
+                price_per_unit = calculate_unit_price_with_learning(purchase_price, specification, unit, row[0])
 
             ingredients.append({
                 "id": row[0],
@@ -803,7 +824,12 @@ async def get_admin_ingredients_new(page: int = 1, per_page: int = 20, search: s
                 "created_at": row[15] or "",
                 "price_per_unit": price_per_unit  # 실시간 계산된 단위당 단가
             })
-        
+
+        # 단위당 단가로 정렬이 요청된 경우 Python에서 정렬
+        if sort_by == "price_per_unit":
+            reverse_order = sort_order.lower() == "desc"
+            ingredients.sort(key=lambda x: x["price_per_unit"] if x["price_per_unit"] is not None else float('inf'), reverse=reverse_order)
+
         conn.close()
         
         return {
@@ -832,7 +858,12 @@ async def create_ingredient(ingredient_data: dict):
         # 단위당 단가 자동 계산
         purchase_price = ingredient_data.get('purchase_price', 0)
         specification = ingredient_data.get('specification', '')
-        unit_price = calculate_unit_price(purchase_price, specification)
+        unit = ingredient_data.get('unit', '')
+        unit_price = calculate_unit_price_with_learning(purchase_price, specification, unit)
+
+        print(f"식자재 추가")
+        print(f"   입고가: {purchase_price}, 규격: {specification}, 단위: {unit}")
+        print(f"   계산된 단위당 단가: {unit_price}")
 
         # price_per_unit 컬럼 확인 및 추가
         cursor.execute("PRAGMA table_info(ingredients)")
@@ -878,11 +909,23 @@ async def create_ingredient(ingredient_data: dict):
 
 @app.put("/api/admin/ingredients/{ingredient_id}")
 async def update_ingredient(ingredient_id: int, ingredient_data: dict):
-    """관리자용 식자재 수정"""
+    """관리자용 식자재 수정 - 단위당 단가 자동 계산 및 저장"""
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
-        
+
+        # 단위당 단가 계산
+        purchase_price = ingredient_data.get('purchase_price', 0)
+        specification = ingredient_data.get('specification', '')
+        unit = ingredient_data.get('unit', '')
+
+        # 학습 기반 단위당 단가 계산 (ingredient_id 포함)
+        calculated_price_per_unit = calculate_unit_price_with_learning(purchase_price, specification, unit, ingredient_id)
+
+        print(f"식자재 수정 - ID: {ingredient_id}")
+        print(f"   입고가: {purchase_price}, 규격: {specification}, 단위: {unit}")
+        print(f"   계산된 단위당 단가: {calculated_price_per_unit}")
+
         cursor.execute("""
             UPDATE ingredients SET
                 ingredient_name = ?,
@@ -892,26 +935,34 @@ async def update_ingredient(ingredient_id: int, ingredient_data: dict):
                 selling_price = ?,
                 unit = ?,
                 origin = ?,
-                specification = ?
+                specification = ?,
+                price_per_unit = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (
             ingredient_data.get('name'),
             ingredient_data.get('category'),
             ingredient_data.get('supplier'),
-            ingredient_data.get('purchase_price'),
+            purchase_price,
             ingredient_data.get('selling_price'),
-            ingredient_data.get('unit'),
+            unit,
             ingredient_data.get('origin'),
-            ingredient_data.get('specification'),
+            specification,
+            calculated_price_per_unit,  # 계산된 단위당 단가 저장
             ingredient_id
         ))
-        
+
         conn.commit()
         conn.close()
-        
-        return {"success": True, "message": "식자재가 수정되었습니다."}
-        
+
+        return {
+            "success": True,
+            "message": "식자재가 수정되었습니다.",
+            "price_per_unit": calculated_price_per_unit  # 계산된 값을 응답에 포함
+        }
+
     except Exception as e:
+        print(f"식자재 수정 오류: {e}")
         return {"success": False, "error": str(e)}
 
 @app.post("/api/admin/ingredients/recalculate-unit-prices")
@@ -939,7 +990,7 @@ async def recalculate_all_unit_prices():
 
         for ing_id, spec, unit, price in ingredients:
             # 개선된 계산 로직 사용 - unit 정보도 함께 전달
-            unit_price = calculate_unit_price_improved(price, spec, unit)
+            unit_price = calculate_unit_price_with_learning(price, spec, unit, ing_id)
             if unit_price is not None:
                 cursor.execute("""
                     UPDATE ingredients
@@ -1054,7 +1105,7 @@ async def get_ingredients(page: int = 1, per_page: int = 20, search: str = None,
 
             # DB에 값이 없으면 계산
             if db_price_per_unit is None:
-                price_per_unit = calculate_unit_price_improved(purchase_price, specification, unit)
+                price_per_unit = calculate_unit_price_with_learning(purchase_price, specification, unit)
             else:
                 price_per_unit = db_price_per_unit
 
@@ -4549,6 +4600,90 @@ async def get_supplier_order_detail(order_id: str):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# ========== 학습 기반 단가 계산 API ==========
+
+@app.post("/api/admin/price-calculation/feedback")
+async def submit_price_calculation_feedback(feedback_data: dict):
+    """단가 계산 피드백 제출 - 수동 수정사항을 학습 시스템에 반영"""
+    try:
+        ingredient_id = feedback_data.get('ingredient_id')
+        specification = feedback_data.get('specification')
+        unit = feedback_data.get('unit')
+        original_price = feedback_data.get('original_price')
+        calculated_price = feedback_data.get('calculated_price')
+        corrected_price = feedback_data.get('corrected_price')
+
+        # 학습 시스템에 피드백 반영
+        record_manual_correction(
+            ingredient_id=ingredient_id,
+            specification=specification,
+            unit=unit,
+            original_price=original_price,
+            calculated_price=calculated_price,
+            corrected_price=corrected_price
+        )
+
+        return {
+            "success": True,
+            "message": "피드백이 성공적으로 반영되었습니다. 다음 계산부터 개선된 로직이 적용됩니다."
+        }
+
+    except Exception as e:
+        print(f"피드백 처리 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/admin/price-calculation/stats")
+async def get_price_calculation_stats():
+    """단가 계산 학습 통계 조회"""
+    try:
+        stats = get_calculation_stats()
+        return {
+            "success": True,
+            "data": stats
+        }
+    except Exception as e:
+        print(f"통계 조회 오류: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/admin/price-calculation/retrain")
+async def retrain_calculation_patterns():
+    """전체 식자재 대상으로 계산 패턴 재학습"""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 전체 식자재에 대해 재계산 및 학습
+        cursor.execute("""
+            SELECT id, specification, unit, purchase_price, price_per_unit
+            FROM ingredients
+            WHERE purchase_price > 0 AND specification IS NOT NULL
+            LIMIT 1000  -- 처음 1000개만 재학습
+        """)
+
+        ingredients = cursor.fetchall()
+        retrained_count = 0
+
+        for ing_id, spec, unit, price, existing_price in ingredients:
+            # 새로운 계산 실행
+            new_price = calculate_unit_price_with_learning(price, spec, unit, ing_id)
+
+            if new_price and existing_price and abs(new_price - existing_price) > 0.001:
+                # 기존값과 다르면 수동 수정으로 간주하여 학습
+                record_manual_correction(ing_id, spec, unit, price, new_price, existing_price)
+                retrained_count += 1
+
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"{retrained_count}개 식자재에 대해 패턴 재학습이 완료되었습니다.",
+            "retrained_count": retrained_count
+        }
+
+    except Exception as e:
+        print(f"재학습 오류: {e}")
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     import os
@@ -4557,5 +4692,5 @@ if __name__ == "__main__":
     port = int(os.getenv("API_PORT", "8010"))
     host = os.getenv("API_HOST", "0.0.0.0")  # 외부 접속 허용
 
-    print(f"API 서버 시작: {host}:{port}")
+    print(f"학습 기반 단가 계산 API 서버 시작: {host}:{port}")
     uvicorn.run(app, host=host, port=port)

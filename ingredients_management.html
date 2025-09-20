@@ -999,21 +999,52 @@
             return dateString;
         }
 
+        // 실제 DB 전체 개수 조회 함수
+        async function getTotalIngredientsCount() {
+            try {
+                // 전체 개수만 조회 (검색 없이)
+                const response = await fetch('http://127.0.0.1:8010/api/admin/ingredients-new?page=1&per_page=1');
+                const data = await response.json();
+
+                if (data.success) {
+                    const totalCount = data.pagination?.total_items || data.total || data.total_count || 0;
+                    console.log(`실제 DB 전체 개수: ${totalCount}개`);
+                    return totalCount;
+                }
+                return 0;
+            } catch (error) {
+                console.error('전체 개수 조회 실패:', error);
+                return 0;
+            }
+        }
+
         async function loadIngredients(pageNum = 1, appendData = false) {
             try {
                 if (!appendData) {
-                    // 초기 로딩 시 로딩 메시지 표시
+                    // 초기 로딩 시 로딩 메시지 표시 및 전체 개수 조회
                     document.getElementById('loadingDiv').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 식자재 목록을 불러오는 중...';
                     document.getElementById('loadingDiv').style.display = 'block';
+
+                    // 실제 DB 전체 개수 조회하여 즉시 표시
+                    const actualTotalCount = await getTotalIngredientsCount();
+                    if (actualTotalCount > 0) {
+                        totalDataCount = actualTotalCount;
+                        document.getElementById('totalCount').textContent = `총 ${actualTotalCount.toLocaleString()}개`;
+                        document.getElementById('loadedDataCount').textContent = '0';
+                        console.log(`🎯 전체 개수 설정: ${actualTotalCount}개`);
+                    }
                 }
 
                 // 필터링 파라미터 가져오기
                 const excludeUnpublished = document.getElementById('excludeUnpublished')?.checked ?? false;
                 const excludeNoPrice = document.getElementById('excludeNoPrice')?.checked ?? false;
 
-                // 초기 로딩은 10,000개, 추가 로딩도 10,000개씩
-                const perPageLoad = 10000;
-                const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${pageNum}&per_page=${perPageLoad}`);
+                // 초기 로딩은 1,000개만 빠르게, 검색은 전체 대상
+                const perPageLoad = appendData ? 10000 : 1000;  // 초기:1000개, 추가로딩:10000개
+
+                // 정렬 파라미터 추가
+                const sortParams = currentSort && sortDirection ? `&sort_by=${currentSort}&sort_order=${sortDirection}` : '';
+                const response = await fetch(`http://127.0.0.1:8010/api/admin/ingredients-new?page=${pageNum}&per_page=${perPageLoad}${sortParams}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1064,38 +1095,55 @@
                     } else {
                         // 초기 로딩인 경우 새로 설정
                         allIngredients = newIngredients;
-                        totalDataCount = data.total_count || newIngredients.length;
+                        totalDataCount = data.pagination?.total_items || data.total_count || newIngredients.length;
                     }
 
                     // 전체 데이터 수 업데이트
                     totalItems = allIngredients.length;
 
                     // 로딩 상태 표시 업데이트
+                    document.getElementById('loadedDataCount').textContent = allIngredients.length.toLocaleString();
+
                     if (totalDataCount > allIngredients.length && !appendData) {
-                        // 아직 더 로드할 데이터가 있는 경우
+                        // 빠른 시작: 1,000개만 로드하고 필요시 더 로드
+                        const percentage = Math.round((allIngredients.length / totalDataCount) * 100);
                         document.getElementById('loadingDiv').innerHTML =
-                            `<div style="background: #e8f4fd; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                                <i class="fas fa-info-circle"></i> ${allIngredients.length.toLocaleString()}개 로드 완료
-                                (전체: ${totalDataCount.toLocaleString()}개)
-                                <button onclick="loadMoreData()" class="btn btn-primary" style="margin-left: 10px; padding: 5px 10px;">
-                                    <i class="fas fa-download"></i> 나머지 데이터 로드
-                                </button>
+                            `<div style="background: #e8f4fd; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #3498db;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-rocket" style="color: #3498db;"></i>
+                                    <div>
+                                        <div style="font-weight: bold;">⚡ 빠른 시작: ${allIngredients.length.toLocaleString()}개 로드 완료!</div>
+                                        <div style="font-size: 12px; color: #666;">
+                                            전체 ${totalDataCount.toLocaleString()}개 중 ${percentage}% | 검색은 전체 DB 대상
+                                        </div>
+                                    </div>
+                                    <button onclick="loadMoreData()" class="btn btn-primary" style="margin-left: auto; padding: 6px 12px; font-size: 12px;">
+                                        <i class="fas fa-plus"></i> 더 많은 데이터 로드
+                                    </button>
+                                </div>
+                                <div style="background: #f8f9fa; height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden;">
+                                    <div style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: ${Math.min(percentage + 10, 100)}%; transition: width 0.3s ease;"></div>
+                                </div>
                             </div>`;
                         document.getElementById('loadingDiv').style.display = 'block';
-                    } else if (appendData) {
-                        // 추가 로딩 완료
+                    } else if (appendData || allIngredients.length >= totalDataCount) {
+                        // 추가 로딩 완료 또는 전체 로드 완료
                         document.getElementById('loadingDiv').innerHTML =
-                            `<div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                                <i class="fas fa-check-circle"></i> 전체 ${allIngredients.length.toLocaleString()}개 데이터 로드 완료!
+                            `<div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #28a745;">
+                                <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                <strong>전체 ${allIngredients.length.toLocaleString()}개 데이터 로드 완료!</strong>
                             </div>`;
                         setTimeout(() => {
                             document.getElementById('loadingDiv').style.display = 'none';
                         }, 3000);
                     }
 
-                    // 더 로드할 데이터가 있고 10,000개 이상인 경우 자동으로 계속 로드
-                    if (data.ingredients && data.ingredients.length === 10000 && !appendData) {
-                        // 다음 페이지 자동 로드
+                    // 초기 로딩에서는 자동 로드하지 않음 (1,000개만 빠르게 표시)
+                    // 사용자가 "추가 로드" 버튼을 클릭할 때만 더 로드
+                    if (data.ingredients && data.ingredients.length === 1000 && !appendData) {
+                        console.log('초기 1,000개 로드 완료. 추가 데이터는 버튼 클릭 시 로드됩니다.');
+                    } else if (data.ingredients && data.ingredients.length === 10000 && appendData) {
+                        // 추가 로딩 중일 때만 자동 계속 로드
                         setTimeout(() => {
                             loadMoreDataAutomatically(pageNum + 1);
                         }, 100);
@@ -1743,47 +1791,138 @@
                 alert('삭제 중 오류가 발생했습니다: ' + error.message);
             }
         }
-        // 검색 함수
-        function searchIngredients() {
-            const supplierSearch = document.getElementById('searchSupplier').value.toLowerCase().trim();
-            const nameSearch = document.getElementById('searchName').value.toLowerCase().trim();
-            const codeSearch = document.getElementById('searchCode').value.toLowerCase().trim();
+        // ⚠️ 중요: 검색 함수는 항상 API 기반 전체 84,215개 데이터에서 검색
+        // 절대로 로컬 allIngredients 배열에서 검색하지 않음!
+        async function searchIngredients() {
+            const supplierSearch = document.getElementById('searchSupplier').value.trim();
+            const nameSearch = document.getElementById('searchName').value.trim();
+            const codeSearch = document.getElementById('searchCode').value.trim();
 
-            console.log('검색 시작 - 전체 데이터:', allIngredients.length, '개');
-            console.log('검색어 - 이름:', nameSearch, ', 거래처:', supplierSearch, ', 코드:', codeSearch);
+            console.log('🔍 전체 DB 검색 시작 (84,215개 대상) - 이름:', nameSearch, ', 거래처:', supplierSearch, ', 코드:', codeSearch);
 
-            // 디버깅: 검색 대상 데이터 확인
-            // console.log('=== 검색 범위 디버깅 ===');
-            // console.log('전체 데이터(allIngredients) 개수:', allIngredients.length);
-            // console.log('현재 페이지:', currentPage);
-            // console.log('페이지당 항목:', itemsPerPage);
-            const currentPageStart = (currentPage - 1) * itemsPerPage;
-            const currentPageEnd = Math.min(currentPageStart + itemsPerPage, allIngredients.length);
-            // console.log('현재 페이지 데이터 범위:', currentPageStart, '~', currentPageEnd);
-            // console.log('현재 페이지 표시 데이터 수:', currentPageEnd - currentPageStart);
-            
             // 검색어가 하나도 없으면 전체 표시
             if (!supplierSearch && !nameSearch && !codeSearch) {
                 clearSearch();
                 return;
             }
-            
-            // 필터링 및 매치 점수 계산
-            // console.log('검색 대상 데이터:', allIngredients);
-            // console.log('검색 대상 데이터 개수:', allIngredients.length);
-            // console.log('첫 번째 데이터:', allIngredients[0]);
-            // console.log('1000번째 데이터(있다면):', allIngredients[999]);
+
+            try {
+                // 로딩 상태 표시 - 전체 DB 검색임을 명확히 표시
+                document.getElementById('ingredientsTableBody').innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 40px; background: #e8f4fd;"><div style="color: #2980b9; font-weight: bold;">🔍 전체 84,215개 데이터베이스에서 검색 중...</div><div style="color: #666; font-size: 12px; margin-top: 5px;">로컬 데이터가 아닌 전체 DB에서 검색합니다</div></td></tr>';
+
+                // API로 전체 검색 실행 (12만개 데이터 모두 검색)
+                let searchQuery = '';
+                let supplierParam = '';
+
+                // 검색 쿼리 구성
+                if (nameSearch && codeSearch) {
+                    searchQuery = `${nameSearch} ${codeSearch}`;
+                } else if (nameSearch) {
+                    searchQuery = nameSearch;
+                } else if (codeSearch) {
+                    searchQuery = codeSearch;
+                }
+
+                if (supplierSearch) {
+                    supplierParam = supplierSearch;
+                }
+
+                // API 요청 URL 구성
+                let apiUrl = `http://127.0.0.1:8010/api/admin/ingredients-new?page=1&per_page=100000`;
+                if (searchQuery) {
+                    apiUrl += `&search=${encodeURIComponent(searchQuery)}`;
+                }
+                if (supplierParam) {
+                    apiUrl += `&supplier=${encodeURIComponent(supplierParam)}`;
+                }
+                // 정렬 파라미터 추가
+                if (currentSort && sortDirection) {
+                    apiUrl += `&sort_by=${currentSort}&sort_order=${sortDirection}`;
+                }
+
+                console.log('API 요청:', apiUrl);
+
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data.success) {
+                    // 검색 결과를 전역 변수에 저장
+                    filteredIngredients = data.ingredients.map(item => ({
+                        // API 응답을 기존 형식으로 변환
+                        'ID': item.id,
+                        'id': item.id,
+                        '분류(대분류)': item.category,
+                        '기본식자재(세분류)': item.sub_category,
+                        '카테고리': item.category,
+                        '세부카테고리': item.sub_category,
+                        '고유코드': item.ingredient_code,
+                        '식자재명': item.ingredient_name,
+                        '원산지': item.origin,
+                        '게시유무': item.posting_status,
+                        '규격': item.specification,
+                        '단위': item.unit,
+                        '과세구분': item.tax_type,
+                        '선발주일': item.delivery_days,
+                        '납기일수': item.delivery_days,
+                        '입고가': item.purchase_price,
+                        '판매가': item.selling_price,
+                        '거래처명': item.supplier_name,
+                        '비고': item.notes,
+                        '등록일': item.created_at,
+                        'price_per_unit': item.price_per_unit,
+                        'g당단가': item.price_per_unit
+                    }));
+
+                    // 검색 모드 활성화
+                    isSearching = true;
+                    currentPage = 1;
+
+                    // 검색 결과 표시
+                    document.getElementById('searchResult').style.display = 'block';
+                    document.getElementById('searchResultCount').textContent = filteredIngredients.length.toLocaleString();
+
+                    // 총 개수 업데이트
+                    document.getElementById('totalCount').textContent = `검색 결과: ${filteredIngredients.length.toLocaleString()}개`;
+
+                    console.log(`✅ 전체 DB 검색 완료: ${filteredIngredients.length}개 결과 (총 84,215개에서 검색)`);
+
+                    // 페이지 다시 표시
+                    displayPage();
+                } else {
+                    throw new Error(data.error || '검색 실패');
+                }
+
+            } catch (error) {
+                console.error('검색 오류:', error);
+                alert('검색 중 오류가 발생했습니다: ' + error.message);
+
+                // 오류 시 기존 로컬 검색으로 폴백
+                console.log('로컬 검색으로 폴백 실행');
+                searchIngredientsLocal();
+            }
+        }
+
+        // 기존 로컬 검색 함수 (폴백용)
+        function searchIngredientsLocal() {
+            const supplierSearch = document.getElementById('searchSupplier').value.toLowerCase().trim();
+            const nameSearch = document.getElementById('searchName').value.toLowerCase().trim();
+            const codeSearch = document.getElementById('searchCode').value.toLowerCase().trim();
+
+            // 검색어가 하나도 없으면 전체 표시
+            if (!supplierSearch && !nameSearch && !codeSearch) {
+                clearSearch();
+                return;
+            }
 
             filteredIngredients = allIngredients.filter(ingredient => {
                 let match = true;
                 let score = 0;
-                
+
                 // 거래처명 검색
                 if (supplierSearch && ingredient['거래처명']) {
                     const supplierMatch = ingredient['거래처명'].toLowerCase().includes(supplierSearch);
                     match = match && supplierMatch;
                     if (supplierMatch) {
-                        // 정확히 일치하면 높은 점수
                         if (ingredient['거래처명'].toLowerCase() === supplierSearch) {
                             score += 100;
                         } else if (ingredient['거래처명'].toLowerCase().startsWith(supplierSearch)) {
@@ -1795,7 +1934,7 @@
                 } else if (supplierSearch && !ingredient['거래처명']) {
                     match = false;
                 }
-                
+
                 // 식자재명 검색
                 if (nameSearch && ingredient['식자재명']) {
                     const nameMatch = ingredient['식자재명'].toLowerCase().includes(nameSearch);
@@ -1972,8 +2111,16 @@
             // 검색 결과 숨기기
             document.getElementById('searchResult').style.display = 'none';
 
-            // 총 개수 원래대로
-            document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
+            // 총 개수 원래대로 (실제 DB 개수 표시)
+            if (totalDataCount > 0) {
+                if (allIngredients.length < totalDataCount) {
+                    document.getElementById('totalCount').textContent = `로드됨: ${allIngredients.length.toLocaleString()}개 / 전체: ${totalDataCount.toLocaleString()}개`;
+                } else {
+                    document.getElementById('totalCount').textContent = `총 ${totalDataCount.toLocaleString()}개`;
+                }
+            } else {
+                document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
+            }
 
             // 페이지 다시 표시
             displayPage();
@@ -1996,13 +2143,26 @@
             const totalCountElement = document.getElementById('totalCount');
             const unpublishedCountElement = document.getElementById('unpublishedCount');
             const noPriceCountElement = document.getElementById('noPriceCount');
-            
+
             if (filteredCountElement) {
                 filteredCountElement.textContent = filteredCount.toLocaleString();
             }
+
+            // totalCount 표시 로직 개선
             if (totalCountElement) {
-                totalCountElement.textContent = totalCount.toLocaleString();
+                // 실제 DB 전체 개수 vs 로드된 개수 구분하여 표시
+                if (totalDataCount > 0 && allIngredients.length < totalDataCount) {
+                    // 부분 로드 상태
+                    totalCountElement.textContent = `로드됨: ${allIngredients.length.toLocaleString()}개 / 전체: ${totalDataCount.toLocaleString()}개`;
+                } else if (totalDataCount > 0) {
+                    // 전체 로드 완료
+                    totalCountElement.textContent = `총 ${totalDataCount.toLocaleString()}개`;
+                } else {
+                    // 기본값
+                    totalCountElement.textContent = `총 ${totalCount.toLocaleString()}개`;
+                }
             }
+
             if (unpublishedCountElement && unpublishedCount > 0) {
                 unpublishedCountElement.textContent = `(${unpublishedCount.toLocaleString()}개)`;
             }
@@ -2045,7 +2205,16 @@
             // 검색 모드가 아닐 때만 전체 개수 표시
             if (!isSearching) {
                 totalItems = filteredIngredients.length;
-                document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
+                // 실제 DB 개수를 우선 표시
+                if (totalDataCount > 0) {
+                    if (allIngredients.length < totalDataCount) {
+                        document.getElementById('totalCount').textContent = `로드됨: ${allIngredients.length.toLocaleString()}개 / 전체: ${totalDataCount.toLocaleString()}개`;
+                    } else {
+                        document.getElementById('totalCount').textContent = `총 ${totalDataCount.toLocaleString()}개`;
+                    }
+                } else {
+                    document.getElementById('totalCount').textContent = `총 ${totalItems.toLocaleString()}개`;
+                }
             }
 
             currentPage = 1;
