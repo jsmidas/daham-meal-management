@@ -3443,7 +3443,7 @@ async def report_calculation_issue(request: Request):
 
                 # 계산 성공 시 데이터베이스에 업데이트
                 try:
-                    conn = sqlite3.connect('./backups/daham_meal.db')
+                    conn = sqlite3.connect(DATABASE_PATH)
                     cursor = conn.cursor()
                     cursor.execute('''
                         UPDATE ingredients
