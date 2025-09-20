@@ -224,7 +224,7 @@
     <script>
         // 최소한의 CONFIG 설정 (폴백용)
         window.CONFIG = {
-            API_BASE_URL: 'http://127.0.0.1:80',
+            API_BASE_URL: window.location.protocol + '//' + window.location.host,
             API_TIMEOUT: 30000
         };
 
@@ -314,7 +314,7 @@
                 localStorage.removeItem('saved_password');
                 localStorage.removeItem('remember_me');
                 alert('로그아웃되었습니다.');
-                window.location.href = 'http://127.0.0.1:8010/login.html';
+                window.location.href = window.location.protocol + '//' + window.location.host + '/login.html';
             }
         }
     </script>
