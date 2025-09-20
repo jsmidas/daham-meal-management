@@ -1,8 +1,60 @@
-nul
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+*.log
+
+# Database (보안상 중요)
+*.db-journal
 *.db-shm
 *.db-wal
-__pycache__/
-*.pyc
-*.pyo
-.env
+*.sqlite3-journal
+
+# Backup files
+*.bak
+*.backup
+*backup*.db
+daham_meal_backup_*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+nul
+
+# Deployment files
+*.zip
+deploy_*/
+cleanup_*/
+
+# Sample data images
+sample\ data/
+"sample data/"
+
+# Log files
+*.log
+server_manager.log
+
+# Node modules
 node_modules/
+
+# Config files with sensitive info
+config_production.js
+
+# Specific deployment scripts
+deploy_*.py
+simple_deploy.py

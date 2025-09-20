@@ -21,10 +21,11 @@ RUN mkdir -p /app/data /app/backups
 RUN if [ -f "backups/daham_meal.db" ]; then cp backups/daham_meal.db /app/data/daham_meal.db; fi
 
 # 포트 노출
-EXPOSE 8080
+EXPOSE 8010
 
 # 환경 변수 설정
-ENV PORT=8080
+ENV PORT=8010
+ENV API_PORT=8010
 ENV API_HOST=0.0.0.0
 ENV DATABASE_PATH=/app/data/daham_meal.db
 ENV BACKUP_PATH=/app/backups/

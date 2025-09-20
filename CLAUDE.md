@@ -282,4 +282,41 @@ curl http://127.0.0.1:8080/control
 
 **개발 환경**: Windows 10/11, Python 3.8+, 모던 브라우저
 
-**마지막 업데이트**: 2025-09-14
+## ⚠️ 메뉴/레시피 시스템 중요 주의사항
+
+### 재료 저장 문제 재발 방지
+```python
+# ❌ 절대 이렇게 하지 말 것 - 프록시 구조
+@app.post("/api/recipe/save")
+async def save_recipe_proxy(request: Request):
+    response = await client.post("http://127.0.0.1:8011/api/recipe/save", ...)
+
+# ✅ 반드시 이렇게 - 직접 구현
+@app.post("/api/recipe/save")
+async def save_recipe_direct(request: Request):
+    # FormData 파싱
+    form = await request.form()
+    # 직접 DB 저장
+    conn = sqlite3.connect(DATABASE_PATH)
+    # ...
+```
+
+### 테이블 구조 확인 필수
+```bash
+# 개발 전 반드시 확인
+python -c "
+import sqlite3
+conn = sqlite3.connect('daham_meal.db')
+cursor = conn.cursor()
+cursor.execute('PRAGMA table_info(menu_recipe_ingredients)')
+print(cursor.fetchall())
+"
+```
+
+### 자동 검증 실행
+```bash
+# 시스템 수정 후 반드시 실행
+python validate_system.py
+```
+
+**마지막 업데이트**: 2025-09-19

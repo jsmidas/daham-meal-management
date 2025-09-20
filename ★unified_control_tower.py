@@ -21,12 +21,12 @@ class UnifiedControlTower:
         self.servers = {
             'api_server': {
                 'name': 'API 서버',
-                'script': 'test_samsung_api.py',
-                'port': 8015,
+                'script': '★test_samsung_api.py',
+                'port': 8010,
                 'status': 'stopped',
                 'process': None,
                 'last_check': None,
-                'env': {'API_PORT': '8015'}
+                'env': {'API_PORT': '8010'}
             }
         }
         self.control_port = 8080
@@ -181,7 +181,7 @@ class UnifiedControlTower:
                             if 'test_samsung_api.py' in script_name:
                                 server_type = 'API Server'
                                 if not port:
-                                    port = '8015'  # 기본 포트
+                                    port = '8010'  # 기본 포트
                             elif 'simple_server.py' in script_name:
                                 server_type = 'Web Server'
                             elif 'unified_control_tower.py' in script_name:
@@ -206,7 +206,7 @@ class UnifiedControlTower:
 
             # 포트 사용 상황 확인
             port_usage = []
-            common_ports = [8005, 8006, 8007, 8010, 8013, 8014, 8015, 8080, 8090, 9000]
+            common_ports = [8005, 8006, 8007, 8010, 8013, 8014, 8080, 8090, 9000]
             for port in common_ports:
                 is_used = not self.check_port_available(port)
                 port_usage.append({

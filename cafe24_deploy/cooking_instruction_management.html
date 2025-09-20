@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테스트푸드 조리지시서 관리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 사이드바 */
+        .sidebar {
+            width: 180px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            text-align: center;
+            padding: 0 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-right: 3px solid #3498db;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            font-size: 14px;
+            width: 16px;
+        }
+        
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 15px;
+        }
+        
+        .admin-item {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .admin-item:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-right: 3px solid #e74c3c;
+        }
+        
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .date-selector input, .date-selector select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .meal-counts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .count-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .count-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .count-card .count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .count-card input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        /* 조리지시서 테이블 */
+        .cooking-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #3498db;
+            color: white;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .cooking-table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+        
+        .cooking-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        .cooking-table th {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .cooking-table td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .cooking-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .menu-name {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: left;
+            max-width: 150px;
+        }
+        
+        .ingredient-name {
+            text-align: left;
+            max-width: 200px;
+            font-size: 11px;
+        }
+        
+        .quantity-input, .yield-input {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .cooking-method {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+            resize: vertical;
+        }
+        
+        .cooking-order {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 11px;
+            resize: vertical;
+        }
+        
+        .total-row {
+            background: #e8f4f8;
+            font-weight: bold;
+        }
+        
+        .total-row td {
+            background: #e8f4f8;
+        }
+        
+        /* 액션 버튼들 */
+        .action-buttons {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* A3 출력 스타일 */
+        @media print {
+            body { 
+                background: white; 
+                font-size: 10px;
+            }
+            .sidebar { display: none; }
+            .action-buttons { display: none; }
+            .main-content { padding: 10px; }
+            .cooking-table { 
+                font-size: 8px; 
+                page-break-inside: avoid;
+            }
+            .cooking-table th, .cooking-table td {
+                padding: 4px 2px;
+            }
+            @page { 
+                size: A3 landscape; 
+                margin: 0.5in;
+            }
+            /* 영양사 업무지시 영역 출력 스타일 */
+            .instruction-area {
+                margin-top: 15px;
+                page-break-inside: avoid;
+            }
+            .instruction-area h4 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+            .instruction-area textarea {
+                font-size: 9px;
+                height: 60px;
+                border: 1px solid #333 !important;
+            }
+        }
+        
+        .yield-cell {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .per-person-cell {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .total-kg-cell {
+            background: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+        
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>급식관리</h1>
+            </div>
+            <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i>대시보드</a>
+            <a href="menu_recipe_management.html" class="nav-item"><i class="fas fa-utensils"></i>메뉴/레시피 관리</a>
+            <a href="meal_plan_management.html" class="nav-item"><i class="fas fa-calendar-alt"></i>식단 관리</a>
+            <a href="meal_count_management.html" class="nav-item"><i class="fas fa-users"></i>식수 관리</a>
+            <a href="ingredients_management.html" class="nav-item"><i class="fas fa-carrot"></i>식자재 관리</a>
+            <a href="ordering_management.html" class="nav-item"><i class="fas fa-shopping-cart"></i>발주 관리</a>
+            <a href="receiving_management.html" class="nav-item"><i class="fas fa-truck"></i>입고명세서 관리</a>
+            <a href="#" class="nav-item"><i class="fas fa-book"></i>각종 일지</a>
+            <a href="preprocessing_management.html" class="nav-item"><i class="fas fa-cut"></i>전처리지시서</a>
+            <a href="cooking_instruction_management.html" class="nav-item active"><i class="fas fa-fire"></i>조리지시서</a>
+            <a href="portion_instruction_management.html" class="nav-item"><i class="fas fa-chart-bar"></i>소분지시서</a>
+            <div class="nav-divider"></div>
+            <a href="admin_dashboard.html" class="nav-item admin-item"><i class="fas fa-cog"></i>ADMIN</a>
+        </nav>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-fire"></i> 조리지시서 관리</h1>
+                <p>조리사를 위한 상세 조리지시서 작성 및 관리</p>
+                
+                <div class="date-selector">
+                    <label>조리일자:</label>
+                    <input type="date" id="cookingDate" value="2024-08-14">
+                    <label>끼니:</label>
+                    <select id="mealType">
+                        <option value="breakfast">조식</option>
+                        <option value="lunch" selected>중식</option>
+                        <option value="dinner">석식</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadCookingData()">
+                        <i class="fas fa-search"></i> 조회
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 식수 현황 -->
+            <div class="meal-counts">
+                <div class="count-card">
+                    <h3>도시락</h3>
+                    <input type="number" id="lunchboxCount" value="120" class="count">
+                </div>
+                <div class="count-card">
+                    <h3>운반급식</h3>
+                    <input type="number" id="transportCount" value="80" class="count">
+                </div>
+                <div class="count-card">
+                    <h3>학교급식</h3>
+                    <input type="number" id="schoolCount" value="450" class="count">
+                </div>
+                <div class="count-card">
+                    <h3>요양원</h3>
+                    <input type="number" id="nursingCount" value="90" class="count">
+                </div>
+                <div class="count-card" style="border-left-color: #e74c3c;">
+                    <h3>총 식수</h3>
+                    <div class="count" id="totalCount">740</div>
+                </div>
+            </div>
+            
+            <!-- 조리지시서 테이블 -->
+            <div class="cooking-section">
+                <div class="section-header">
+                    <i class="fas fa-fire"></i> 조리지시서 - 2024년 8월 14일 중식
+                </div>
+                
+                <div class="cooking-table-container">
+                    <table class="cooking-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="3" style="width: 40px; background: #e3f2fd;">조리<br>순서</th>
+                                <th rowspan="3" style="width: 130px; background: #e3f2fd;">메뉴명<br>(식수)</th>
+                                <th rowspan="3" style="width: 120px; background: #e3f2fd;">재료명</th>
+                                <th rowspan="3" style="width: 50px; background: #e3f2fd;">단위</th>
+                                <th colspan="4" style="background: #fff3e0;">식단별 소요량</th>
+                                <th rowspan="3" style="width: 60px; background: #e8f5e8;">합계량</th>
+                                <th rowspan="3" style="width: 50px; background: #e3f2fd;">인당량<br>(재료별g)</th>
+                                <th rowspan="3" style="width: 50px; background: #fff8e1;">메뉴별<br>수율(%)</th>
+                                <th rowspan="3" style="width: 60px; background: #e1f5fe;">상용량<br>(인당g)</th>
+                                <th rowspan="3" style="width: 70px; background: #e8f5e8;">총량<br>(메뉴전체<br>kg)</th>
+                                <th rowspan="3" style="width: 200px; background: #e8f5e8;">조리방법/지시사항</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 50px; background: #fff3e0;">도시락</th>
+                                <th style="width: 50px; background: #fff3e0;">운반급식</th>
+                                <th style="width: 50px; background: #fff3e0;">학교급식</th>
+                                <th style="width: 50px; background: #fff3e0;">요양원</th>
+                            </tr>
+                            <tr>
+                                <th style="font-size: 11px; background: #fff3e0;">(120)</th>
+                                <th style="font-size: 11px; background: #fff3e0;">(80)</th>
+                                <th style="font-size: 11px; background: #fff3e0;">(450)</th>
+                                <th style="font-size: 11px; background: #fff3e0;">(90)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cookingTableBody">
+                            <!-- 김치찌개 -->
+                            <tr>
+                                <td rowspan="8" style="text-align: center; vertical-align: middle; font-weight: bold; font-size: 14px;">
+                                    <select style="width: 35px; padding: 2px; text-align: center; border: 1px solid #ccc;">
+                                        <option value="1" selected>1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </td>
+                                <td rowspan="8" class="menu-name" style="font-weight: bold; background: #f8f9fa; vertical-align: middle;">
+                                    <div style="font-size: 14px; margin-bottom: 8px;">김치찌개</div>
+                                    <div style="font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 5px;">
+                                        <div>도시락: 120</div>
+                                        <div>운반급식: 80</div>
+                                        <div>학교급식: 450</div>
+                                        <div>요양원: 90</div>
+                                        <div style="font-weight: bold; color: #333; margin-top: 3px;">총: 740명</div>
+                                    </div>
+                                </td>
+                                <td class="ingredient-name">돼지고기(목살), 국내산 1KG</td>
+                                <td style="text-align: center;">KG</td>
+                                <td style="text-align: center;">2.4</td>
+                                <td style="text-align: center;">1.6</td>
+                                <td style="text-align: center;">9.0</td>
+                                <td style="text-align: center;">1.8</td>
+                                <td style="background: #e8f5e8;"><strong>14.8</strong></td>
+                                <td style="background: #e3f2fd; text-align: center;">20</td>
+                                <td rowspan="8" style="background: #fff8e1; text-align: center; vertical-align: middle;">
+                                    <input type="number" class="yield-input" value="85" step="1" style="width: 40px; text-align: center; border: 1px solid #ccc;">
+                                </td>
+                                <td rowspan="8" class="standard-amount-cell" style="background: #e1f5fe; text-align: center; vertical-align: middle;">137</td>
+                                <td rowspan="8" class="total-kg-cell" style="background: #e8f5e8; text-align: center; vertical-align: middle;">101.48</td>
+                                <td rowspan="8" style="background: #e8f5e8; padding: 8px;">
+                                    <textarea class="cooking-method" style="width: 100%; height: 120px; border: 1px solid #ccc; padding: 5px; font-size: 11px;" placeholder="조리방법 및 지시사항을 입력하세요..."></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">김치, 포기김치 10KG</td>
+                                <td style="text-align: center;">KG</td>
+                                <td style="text-align: center;">1.8</td>
+                                <td style="text-align: center;">1.2</td>
+                                <td style="text-align: center;">6.8</td>
+                                <td style="text-align: center;">1.4</td>
+                                <td style="background: #e8f5e8;"><strong>11.2</strong></td>
+                                <td style="background: #e3f2fd; text-align: center;">15</td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">두부, 연두부 300G</td>
+                                <td>모</td>
+                                <td style="text-align: center;">8</td>
+                                <td style="text-align: center;">5</td>
+                                <td style="text-align: center;">30</td>
+                                <td style="text-align: center;">6</td>
+                                <td><strong>49</strong></td>
+                                <td class="per-person-cell">20</td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">대파, 국내산 1KG</td>
+                                <td>KG</td>
+                                <td style="text-align: center;">0.3</td>
+                                <td style="text-align: center;">0.2</td>
+                                <td style="text-align: center;">1.1</td>
+                                <td style="text-align: center;">0.2</td>
+                                <td><strong>1.8</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">양파, 국내산 10KG</td>
+                                <td>KG</td>
+                                <td>0.6</td>
+                                <td>0.4</td>
+                                <td>2.3</td>
+                                <td>0.5</td>
+                                <td><strong>3.8</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">마늘, 국내산 1KG</td>
+                                <td>KG</td>
+                                <td>0.1</td>
+                                <td>0.1</td>
+                                <td>0.3</td>
+                                <td>0.1</td>
+                                <td><strong>0.6</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">멸치육수, 1L</td>
+                                <td>L</td>
+                                <td>6</td>
+                                <td>4</td>
+                                <td>23</td>
+                                <td>5</td>
+                                <td><strong>38</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">참기름, 500ML</td>
+                                <td>ML</td>
+                                <td>30</td>
+                                <td>20</td>
+                                <td>113</td>
+                                <td>23</td>
+                                <td><strong>186</strong></td>
+                            </tr>
+                            
+                            <!-- 불고기 -->
+                            <tr style="border-top: 2px solid #3498db;">
+                                <td rowspan="6" style="text-align: center; vertical-align: middle; font-weight: bold; font-size: 14px;">
+                                    <select style="width: 35px; padding: 2px; text-align: center; border: 1px solid #ccc;">
+                                        <option value="1">1</option>
+                                        <option value="2" selected>2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </td>
+                                <td rowspan="6" class="menu-name" style="font-weight: bold; background: #f8f9fa; vertical-align: middle;">
+                                    <div style="font-size: 14px; margin-bottom: 8px;">불고기</div>
+                                    <div style="font-size: 11px; color: #666; border-top: 1px solid #ddd; padding-top: 5px;">
+                                        <div>도시락: -</div>
+                                        <div>운반급식: -</div>
+                                        <div>학교급식: 450</div>
+                                        <div>요양원: 90</div>
+                                        <div style="font-weight: bold; color: #333; margin-top: 3px;">총: 540명</div>
+                                    </div>
+                                </td>
+                                <td class="ingredient-name">소고기(불고기용), 국내산 1KG</td>
+                                <td>KG</td>
+                                <td style="text-align: center;">1.8</td>
+                                <td style="text-align: center;">1.2</td>
+                                <td style="text-align: center;">6.8</td>
+                                <td style="text-align: center;">1.4</td>
+                                <td style="background: #e8f5e8;"><strong>11.2</strong></td>
+                                <td style="background: #e3f2fd; text-align: center;">15</td>
+                                <td rowspan="6" style="background: #fff8e1; text-align: center; vertical-align: middle;">
+                                    <input type="number" class="yield-input" value="90" step="1" style="width: 40px; text-align: center; border: 1px solid #ccc;">
+                                </td>
+                                <td rowspan="6" class="standard-amount-cell" style="background: #e1f5fe; text-align: center; vertical-align: middle;">41</td>
+                                <td rowspan="6" class="total-kg-cell" style="background: #e8f5e8; text-align: center; vertical-align: middle;">21.98</td>
+                                <td rowspan="6" style="background: #e8f5e8; padding: 8px;">
+                                    <textarea class="cooking-method" style="width: 100%; height: 120px; border: 1px solid #ccc; padding: 5px; font-size: 11px;" placeholder="조리방법 및 지시사항을 입력하세요..."></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">양파, 국내산 10KG</td>
+                                <td>KG</td>
+                                <td>0.9</td>
+                                <td>0.6</td>
+                                <td>3.4</td>
+                                <td>0.7</td>
+                                <td><strong>5.6</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">당근, 국내산 10KG</td>
+                                <td>KG</td>
+                                <td>0.6</td>
+                                <td>0.4</td>
+                                <td>2.3</td>
+                                <td>0.5</td>
+                                <td><strong>3.8</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">대파, 국내산 1KG</td>
+                                <td>KG</td>
+                                <td>0.2</td>
+                                <td>0.1</td>
+                                <td>0.7</td>
+                                <td>0.1</td>
+                                <td><strong>1.1</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">불고기양념장, 1KG</td>
+                                <td>KG</td>
+                                <td>0.4</td>
+                                <td>0.3</td>
+                                <td>1.6</td>
+                                <td>0.3</td>
+                                <td><strong>2.6</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="ingredient-name">참기름, 500ML</td>
+                                <td>ML</td>
+                                <td>20</td>
+                                <td>15</td>
+                                <td>75</td>
+                                <td>15</td>
+                                <td><strong>125</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 액션 버튼들 -->
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="addMenuItem()">
+                        <i class="fas fa-plus"></i>
+                        메뉴 추가
+                    </button>
+                    <button class="btn btn-primary" onclick="saveCookingInstruction()">
+                        <i class="fas fa-save"></i>
+                        조리지시서 저장
+                    </button>
+                    <button class="btn btn-warning" onclick="printCookingInstruction()">
+                        <i class="fas fa-print"></i>
+                        A3 출력
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i>
+                        엑셀 출력
+                    </button>
+                    <button class="btn btn-danger" onclick="resetCookingInstruction()">
+                        <i class="fas fa-trash"></i>
+                        초기화
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>처리 중입니다...</p>
+        </div>
+    </div>
+    
+    <script>
+        // 전역 변수
+        let currentData = {
+            date: '2024-08-14',
+            mealType: 'lunch',
+            mealCounts: {
+                lunchbox: 120,
+                transport: 80,
+                school: 450,
+                nursing: 90
+            },
+            menus: []
+        };
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            calculateTotals();
+            
+            // 식수 입력 필드에 이벤트 리스너 추가
+            ['lunchboxCount', 'transportCount', 'schoolCount', 'nursingCount'].forEach(id => {
+                document.getElementById(id).addEventListener('input', calculateTotals);
+            });
+            
+            // 수율 입력 필드에 이벤트 리스너 추가
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('yield-input')) {
+                    calculateYieldValues(e.target);
+                }
+            });
+        });
+        
+        function initializePage() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('cookingDate').value = today;
+            currentData.date = today;
+        }
+        
+        function loadCookingData() {
+            showLoading(true);
+            
+            const date = document.getElementById('cookingDate').value;
+            const mealType = document.getElementById('mealType').value;
+            
+            currentData.date = date;
+            currentData.mealType = mealType;
+            
+            // 여기서 실제로는 서버에서 데이터를 로드
+            setTimeout(() => {
+                updateSectionHeader();
+                showLoading(false);
+            }, 1000);
+        }
+        
+        function updateSectionHeader() {
+            const header = document.querySelector('.section-header');
+            const mealTypeText = {
+                'breakfast': '조식',
+                'lunch': '중식',
+                'dinner': '석식'
+            };
+            
+            const dateStr = new Date(currentData.date).toLocaleDateString('ko-KR');
+            header.innerHTML = `<i class="fas fa-fire"></i> 조리지시서 - ${dateStr} ${mealTypeText[currentData.mealType]}`;
+        }
+        
+        function calculateTotals() {
+            const lunchbox = parseInt(document.getElementById('lunchboxCount').value) || 0;
+            const transport = parseInt(document.getElementById('transportCount').value) || 0;
+            const school = parseInt(document.getElementById('schoolCount').value) || 0;
+            const nursing = parseInt(document.getElementById('nursingCount').value) || 0;
+            
+            const total = lunchbox + transport + school + nursing;
+            document.getElementById('totalCount').textContent = total;
+            
+            currentData.mealCounts = { lunchbox, transport, school, nursing };
+            
+            // 테이블 헤더의 식수 업데이트
+            updateTableHeaders();
+        }
+        
+        function updateTableHeaders() {
+            const headers = document.querySelectorAll('.cooking-table thead tr:last-child th');
+            if (headers.length >= 4) {
+                headers[0].innerHTML = `도시락<br>(${currentData.mealCounts.lunchbox})`;
+                headers[1].innerHTML = `운반<br>(${currentData.mealCounts.transport})`;
+                headers[2].innerHTML = `학교<br>(${currentData.mealCounts.school})`;
+                headers[3].innerHTML = `요양원<br>(${currentData.mealCounts.nursing})`;
+            }
+        }
+        
+        function calculateYieldValues(yieldInput) {
+            const yieldPercent = parseFloat(yieldInput.value) || 0;
+            const menuRow = yieldInput.closest('tr');
+            
+            // 같은 메뉴 그룹의 모든 행을 찾기
+            const tableBody = menuRow.closest('tbody');
+            const allRows = Array.from(tableBody.querySelectorAll('tr'));
+            let menuStartIndex = -1;
+            let menuRowCount = 0;
+            
+            // 현재 메뉴의 시작 행과 행 수 찾기
+            for (let i = 0; i < allRows.length; i++) {
+                const menuNameCell = allRows[i].querySelector('.menu-name');
+                if (menuNameCell && allRows[i] === menuRow) {
+                    menuStartIndex = i;
+                    const rowspanAttr = menuNameCell.getAttribute('rowspan');
+                    menuRowCount = parseInt(rowspanAttr) || 1;
+                    break;
+                }
+            }
+            
+            if (menuStartIndex >= 0) {
+                // 메뉴 전체 식재료 합계량 계산
+                let totalMenuWeight = 0;
+                const totalMeals = Object.values(currentData.mealCounts).reduce((a, b) => a + b, 0);
+                
+                // 메뉴의 모든 재료 합계량을 합산하여 전체 식재료 총량 구하기
+                for (let i = menuStartIndex; i < menuStartIndex + menuRowCount; i++) {
+                    if (i < allRows.length) {
+                        const row = allRows[i];
+                        const totalCell = row.cells[8]; // 합계량 컬럼
+                        if (totalCell) {
+                            const totalText = totalCell.textContent.replace(/[^0-9.]/g, '');
+                            totalMenuWeight += parseFloat(totalText) || 0;
+                        }
+                    }
+                }
+                
+                // 수율을 전체 식재료 총량에 적용
+                const actualTotalWeight = totalMenuWeight * (yieldPercent / 100);
+                
+                // 상용량(인당g) = 실제 총량을 총 식수로 나눈 값
+                const standardAmountPerPerson = totalMeals > 0 ? Math.round((actualTotalWeight * 1000) / totalMeals) : 0;
+                
+                // 상용량(인당g) 업데이트
+                const standardAmountCell = menuRow.querySelector('.standard-amount-cell');
+                if (standardAmountCell) {
+                    standardAmountCell.textContent = standardAmountPerPerson;
+                }
+                
+                // 총량(메뉴전체kg) = 전체 식재료에 수율 적용한 실제 무게
+                const totalKgCell = menuRow.querySelector('.total-kg-cell');
+                if (totalKgCell) {
+                    totalKgCell.textContent = actualTotalWeight.toFixed(2);
+                }
+            }
+        }
+        
+        function addMenuItem() {
+            // 새 메뉴 추가 로직
+            const menuName = prompt('추가할 메뉴명을 입력하세요:');
+            if (menuName) {
+                // 여기서 새 메뉴 행들을 테이블에 추가
+                alert(`"${menuName}" 메뉴가 추가되었습니다.`);
+            }
+        }
+        
+        function saveCookingInstruction() {
+            showLoading(true);
+            
+            // 조리지시서 데이터 수집
+            const cookingData = {
+                date: currentData.date,
+                mealType: currentData.mealType,
+                mealCounts: currentData.mealCounts,
+                menus: []
+            };
+            
+            // 실제 저장 로직
+            setTimeout(() => {
+                showLoading(false);
+                alert('조리지시서가 저장되었습니다.');
+            }, 1500);
+        }
+        
+        function printCookingInstruction() {
+            window.print();
+        }
+        
+        function exportToExcel() {
+            showLoading(true);
+            
+            setTimeout(() => {
+                showLoading(false);
+                alert('엑셀 파일로 내보내기가 완료되었습니다.');
+            }, 2000);
+        }
+        
+        function resetCookingInstruction() {
+            if (confirm('모든 입력 내용을 초기화하시겠습니까?')) {
+                location.reload();
+            }
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        // 키보드 단축키
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveCookingInstruction();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printCookingInstruction();
+                        break;
+                }
+            }
+        });
+    </script>
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 브랜딩 시스템 적용
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('조리법 관리');
+                console.log('✅ 브랜딩 시스템 적용 완료 (조리법 관리)');
+            }
+        });
+    </script>
+</body>
+</html>

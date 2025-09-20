@@ -4,7 +4,7 @@
 const CONFIG = {
     // API 서버 설정
     API: {
-        BASE_URL: 'http://localhost:8010',
+        BASE_URL: window.location.protocol + '//' + window.location.host,
         ENDPOINTS: {
             // 대시보드 관련
             DASHBOARD_STATS: '/api/admin/dashboard-stats',

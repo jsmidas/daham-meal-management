@@ -36,7 +36,7 @@ function setupNavigation() {
     switchToPage('dashboard');
 
     // 초기 대시보드 통계 로드
-    fetch(`${window.CONFIG.API_BASE_URL}/api/admin/dashboard-stats`)
+    fetch(`${window.location.origin}/api/admin/dashboard-stats`)
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -94,7 +94,7 @@ async function initializePageModule(pageName) {
     if (pageName === 'dashboard') {
         console.log('📊 대시보드 - 모듈 초기화 불필요');
         // 대시보드 통계 로드
-        fetch(`${window.CONFIG.API_BASE_URL}/api/admin/dashboard-stats`)
+        fetch(`${window.location.origin}/api/admin/dashboard-stats`)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {

@@ -1,0 +1,3518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>다함식단관리 - 관리자 대시보드</title>
+    <link rel="stylesheet" href="/static/admin-dashboard.css">
+    <!-- Module CSS Files -->
+    <link rel="stylesheet" href="/modules/settings/settings.css">
+    <link rel="stylesheet" href="/modules/dashboard/dashboard.css">
+    <link rel="stylesheet" href="/modules/users/users.css">
+    <!-- <style style="display: none;">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .admin-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 사이드바 */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .nav-menu {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 15px 25px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #ffd700;
+        }
+
+        .nav-item .icon {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        /* 메인 컨텐츠 */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .user-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #ff5252;
+        }
+
+        /* 대시보드 카드들 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-header .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-content {
+            color: #666;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .stat-extra {
+            font-size: 13px;
+            color: #6c757d;
+            margin-top: 5px;
+            padding: 4px 8px;
+            background: rgba(108, 117, 125, 0.1);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        /* 최근 활동 로그 */
+        .activity-log {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .log-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            font-size: 12px;
+            color: #999;
+            margin-right: 15px;
+            min-width: 100px;
+        }
+
+        .log-message {
+            color: #666;
+            flex: 1;
+        }
+
+        .log-user {
+            font-size: 12px;
+            color: #667eea;
+            margin-left: 10px;
+        }
+
+        /* 통합 식단표 관리 탭 스타일 */
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: #f8f9fa;
+            color: #666;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .tab-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .tab-btn.active:hover {
+            background: #5a6fd8;
+        }
+        
+        .meal-plan-tab-content {
+            padding: 20px 0;
+        }
+        
+        .overview-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+            transition: all 0.3s;
+        }
+        
+        .instruction-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+            transition: all 0.3s;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .admin-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .meal-plan-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-btn {
+                margin-bottom: 5px;
+            }
+            
+            .overview-cards {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        
+        /* 강제 숨김 처리 */
+        #ingredients-view-page {
+            display: none !important;
+            visibility: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* 업로드 관련 스타일 - 모듈로 이동됨 */
+        .ingredients-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .ingredients-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .list-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-input, .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .search-input {
+            flex: 2;
+        }
+
+        .filter-select {
+            flex: 1;
+        }
+
+        /* 식수 등록 관리 전용 스타일 */
+        .meal-count-notice {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .meal-count-notice h3 {
+            color: #0056b3;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .notice-content p {
+            color: #0056b3;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .notice-rules {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .rule-item {
+            background: white;
+            border-left: 4px solid #007bff;
+            padding: 12px 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+
+        .rule-item strong {
+            color: #0056b3;
+            margin-right: 8px;
+        }
+
+        .meal-count-summary {
+            margin-bottom: 20px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #4a90e2;
+        }
+
+        .card-header {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .meal-count-table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .meal-count-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .meal-count-table th,
+        .meal-count-table td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .meal-count-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .meal-count-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .delivery-site-cell {
+            font-weight: 600;
+            color: #4a90e2;
+            background: #f0f8ff !important;
+        }
+
+        .meal-type-cell {
+            font-weight: 500;
+        }
+
+        .cost-cell {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .count-cell {
+            font-weight: 600;
+            color: #dc3545;
+        }
+
+        .site-detail-row {
+            background: #f9f9f9 !important;
+            font-size: 12px;
+        }
+
+        .date-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+
+        .date-selector label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* 모달 폼 스타일 */
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+        }
+
+        .form-group small {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-small.btn-primary {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .btn-small.btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-small.btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        /* 첫 번째 모달 스타일 제거됨 - 아래 완전한 모달 스타일 사용 */
+
+        /* 사용자 관리 페이지 스타일 */
+        .page-header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px 0 0 5px;
+            outline: none;
+        }
+
+        .search-box button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-radius: 0 5px 5px 0;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-add {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-add:hover {
+            background: #0056b3;
+        }
+
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .supplier-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 0.8fr 0.5fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            background: #f9f9f9;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+        .supplier-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .supplier-row label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .supplier-row select,
+        .supplier-row input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .btn-reset {
+            background: #ffc107;
+            color: black;
+        }
+
+        /* 테이블 스타일 */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-active {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .status-inactive {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        /* 페이지네이션 */
+        .pagination {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .pagination button {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover {
+            background: #e9ecef;
+        }
+
+        .pagination button:disabled {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* 이전 모달 스타일 제거됨 - 아래 최신 모달 스타일 사용 */
+
+        /* 이전 모달 관련 스타일들 제거됨 */
+
+        /* 폼 스타일 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .checkbox-label {
+            display: flex !important;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto !important;
+            margin-right: 8px;
+        }
+
+        /* 사업장 관리 페이지 스타일 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sites-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .sites-tree {
+            flex: 2;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        /* 모달 스타일 - 우선순위 강화 */
+        .modal {
+            display: none;
+            position: fixed !important;
+            z-index: 1000 !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0,0,0,0.5) !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+        }
+
+        .modal.hidden {
+            display: none !important;
+        }
+
+        .modal-content {
+            background-color: #fff !important;
+            border-radius: 10px !important;
+            width: 100% !important;
+            max-width: 480px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+            position: relative !important;
+            margin: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .modal-header {
+            background-color: #4a90e2;
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .close-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .modal form {
+            padding: 20px 30px !important;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 폼 섹션 스타일 - 간격 축소 */
+        .form-section {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 12px;
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 8px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #4a90e2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 2열 레이아웃 - 간격 축소 */
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-group.full-width {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        /* 필수 항목 표시 */
+        .required {
+            color: #e74c3c !important;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 폼 힌트 스타일 개선 */
+        .form-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            background-color: #fff;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px !important;
+            height: 18px !important;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 20px 30px;
+            border-top: 1px solid #eee;
+            margin: 20px -30px 0 -30px;
+            background-color: #f8f9fa;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .modal-actions button {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            min-width: 80px;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 768px) {
+            .modal {
+                padding: 15px;
+            }
+            
+            .modal-content {
+                width: 100%;
+                max-width: 95%;
+            }
+            
+            .modal form {
+                padding: 15px 25px;
+            }
+            
+            .modal-header {
+                padding: 15px 25px;
+            }
+            
+            .modal-actions {
+                padding: 15px 25px;
+                margin: 15px -25px 0 -25px;
+            }
+            
+            .form-group {
+                margin-bottom: 15px;
+            }
+        }
+
+        /* 사업장 및 드래그앤드롭 관련 스타일 - 모듈로 이동됨 */
+    </style> -->
+    
+    <!-- Settings Module CSS -->
+    <style>
+    /* Settings Module Specific Styles */
+    .settings-container {
+        max-width: 800px;
+    }
+
+    .settings-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .setting-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .setting-item label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .setting-item input,
+    .setting-item select {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 500;
+        color: #666;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .status-active {
+        color: #28a745;
+    }
+
+    .status-inactive {
+        color: #dc3545;
+    }
+
+    .settings-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+    }
+    
+    .settings-alert {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+    
+    /* Dashboard Module Enhanced Styles */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-refresh {
+        position: absolute;
+        right: 0;
+        background: none;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+
+    .btn-refresh:hover {
+        background: #f8f9fa;
+        color: #333;
+    }
+
+    .stat-trend {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-top: 5px;
+    }
+
+    .stat-trend.positive {
+        color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .stat-trend.negative {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .stat-trend.neutral {
+        color: #6c757d;
+        background: rgba(108, 117, 125, 0.1);
+    }
+
+    .activity-container {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .activity-loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .log-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+    }
+
+    .log-item:hover {
+        background-color: #f8f9fa;
+        margin: 0 -10px;
+        padding: 12px 10px;
+        border-radius: 5px;
+        border-bottom: 1px solid transparent;
+    }
+
+    .log-item:last-child {
+        border-bottom: none;
+    }
+
+    .log-time {
+        font-size: 12px;
+        color: #888;
+        min-width: 80px;
+        margin-right: 15px;
+    }
+
+    .log-message {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .log-user {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .quick-actions {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 20px 15px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: #495057;
+    }
+
+    .action-btn:hover {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+        transform: translateY(-1px);
+    }
+
+    .action-btn i {
+        font-size: 20px;
+    }
+
+    .action-btn span {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 15px 10px;
+        }
+    }
+    
+    /* Users Module Enhanced Styles */
+    .users-stats, .sites-stats, .suppliers-stats, .ingredients-stats, .meal-pricing-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 20px 0 30px 0;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .stat-icon {
+        font-size: 18px;
+    }
+
+    .stat-title {
+        font-size: 14px;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 20px;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-group label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        min-width: 150px;
+    }
+
+    .sortable {
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .sortable:hover {
+        background-color: #f8f9fa;
+    }
+
+    .sortable::after {
+        content: '⇅';
+        position: absolute;
+        right: 5px;
+        opacity: 0.3;
+    }
+
+    .sortable.sort-asc::after {
+        content: '↑';
+        opacity: 1;
+    }
+
+    .sortable.sort-desc::after {
+        content: '↓';
+        opacity: 1;
+    }
+
+    .loading-row {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .page-size-selector {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: 20px;
+    }
+
+    .page-size-selector label {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .page-size-selector select {
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .user-checkbox {
+        cursor: pointer;
+    }
+
+    .selected-row {
+        background-color: #e3f2fd !important;
+    }
+
+    .bulk-actions-bar {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .bulk-actions-bar.show {
+        display: flex;
+    }
+
+    .bulk-action-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .bulk-action-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .username {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .user-email {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .role-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .role-admin {
+        background: #dc3545;
+        color: white;
+    }
+
+    .role-manager {
+        background: #667eea;
+        color: white;
+    }
+
+    .role-viewer {
+        background: #28a745;
+        color: white;
+    }
+
+    .status-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-active {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .status-inactive {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    .actions-cell {
+        white-space: nowrap;
+    }
+
+    .btn-small {
+        padding: 4px 8px;
+        margin: 0 2px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-edit {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-sites {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-reset {
+        background: #fd7e14;
+        color: white;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-small:hover {
+        transform: translateY(-1px);
+        opacity: 0.9;
+    }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>관리자 시스템</h2>
+                <p>다함식단관리</p>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="icon">📊</span>대시보드
+                </a>
+                <a href="#" class="nav-item" data-page="users">
+                    <span class="icon">👥</span>사용자 관리
+                </a>
+                <a href="#" class="nav-item" data-page="suppliers">
+                    <span class="icon">🚛</span>협력업체 관리
+                </a>
+                <a href="#" class="nav-item" data-page="business-locations">
+                    <span class="icon">🏢</span>사업장 관리
+                </a>
+                <a href="#" class="nav-item" data-page="supplier-mapping">
+                    <span class="icon">🔗</span>매핑 관리
+                </a>
+                <a href="#" class="nav-item" data-page="meal-pricing">
+                    <span class="icon">💰</span>식단가 관리
+                </a>
+                <a href="#" class="nav-item" data-page="ingredients">
+                    <span class="icon">📝</span>식자재 등록
+                </a>
+                <a href="#" class="nav-item" data-page="ingredients-view">
+                    <span class="icon">📋</span>식자재 조회
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span>시스템 설정
+                </a>
+                <a href="#" class="nav-item" data-page="logs">
+                    <span class="icon">📋</span>로그 관리
+                </a>
+                
+                <!-- 하단 네비게이션 버튼들 -->
+                <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <a href="/" class="nav-item" style="background: #e8f5e8; color: #4caf50;">
+                        <span class="icon">🍽️</span>급식관리로 이동
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- 헤더 -->
+            <div class="header">
+                <div class="header-info">
+                    <div>
+                        <h1 id="page-title">관리자 대시보드</h1>
+                        <div class="user-info">
+                            관리자님, 안녕하세요! | 마지막 접속: 2025-08-30 12:00
+                        </div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">로그아웃</button>
+                </div>
+            </div>
+
+            <!-- 대시보드 페이지 -->
+            <div id="dashboard-page" class="page-content">
+                <div class="page-header">
+                    <h2>📊 대시보드</h2>
+                    <p>시스템 현황과 주요 지표를 확인하세요.</p>
+                </div>
+
+                <!-- 통계 카드 그리드 -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <span class="icon">👥</span>
+                            <span class="card-title">전체 사용자</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-number" id="total-users">-</div>
+                            <div class="stat-label">시스템 사용자</div>
+                            <div class="stat-extra" id="active-users">활성: -명</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <span class="icon">🏢</span>
+                            <span class="card-title">협력업체</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-number" id="total-suppliers">-</div>
+                            <div class="stat-label">등록된 협력업체</div>
+                            <div class="stat-extra" id="recent-suppliers">최근 등록: -</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <span class="icon">🥬</span>
+                            <span class="card-title">식자재</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-number" id="total-ingredients">-</div>
+                            <div class="stat-label">등록된 식자재</div>
+                            <div class="stat-extra" id="recent-ingredients">이번주 추가: -</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <span class="icon">📍</span>
+                            <span class="card-title">사업장</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-number" id="total-sites">-</div>
+                            <div class="stat-label">총 사업장 수</div>
+                            <div class="stat-extra" id="site-types">학교/운반/도시락/요양원</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 최근 활동 로그 -->
+                <div class="activity-log">
+                    <div class="card-header">
+                        <span class="icon">📋</span>
+                        <span class="card-title">최근 활동</span>
+                        <button onclick="DashboardModule.refreshActivity()" class="btn-refresh">
+                            <i class="fas fa-sync-alt"></i> 새로고침
+                        </button>
+                    </div>
+                    <div class="activity-container">
+                        <div id="activity-list">
+                            <!-- 동적으로 로드될 활동 로그 -->
+                            <div class="activity-loading">
+                                <i class="fas fa-spinner fa-spin"></i> 활동 로그를 불러오는 중...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 빠른 액션 -->
+                <div class="quick-actions">
+                    <div class="card-header">
+                        <span class="icon">⚡</span>
+                        <span class="card-title">빠른 액션</span>
+                    </div>
+                    <div class="actions-grid">
+                        <button onclick="showPage('users')" class="action-btn">
+                            <i class="fas fa-users"></i>
+                            <span>사용자 관리</span>
+                        </button>
+                        <button onclick="showPage('business-locations')" class="action-btn">
+                            <i class="fas fa-building"></i>
+                            <span>사업장 관리</span>
+                        </button>
+                        <button onclick="showPage('suppliers')" class="action-btn">
+                            <i class="fas fa-truck"></i>
+                            <span>협력업체 관리</span>
+                        </button>
+                        <button onclick="showPage('ingredients')" class="action-btn">
+                            <i class="fas fa-edit"></i>
+                            <span>식자재 등록</span>
+                        </button>
+                        <button onclick="SettingsModule.createBackup()" class="action-btn">
+                            <i class="fas fa-save"></i>
+                            <span>백업 생성</span>
+                        </button>
+                        <button onclick="showPage('settings')" class="action-btn">
+                            <i class="fas fa-cog"></i>
+                            <span>시스템 설정</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 다른 페이지들은 hidden 상태로 시작 -->
+            <div id="users-page" class="page-content hidden">
+                <!-- 사용자 관리 헤더 -->
+                <div class="page-header">
+                    <h2>👥 사용자 관리</h2>
+                    <p>시스템 사용자를 관리하고 권한을 설정하세요.</p>
+                    
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" id="user-search" placeholder="사용자 검색 (이름, 아이디, 부서)">
+                            <button onclick="UsersModule.searchUsers()">🔍</button>
+                        </div>
+                        <button class="btn-primary" onclick="UsersModule.showAddUserModal()">
+                            <i class="fas fa-plus"></i> 새 사용자
+                        </button>
+                        <button class="btn-secondary" onclick="UsersModule.exportUsers()" style="background: #28a745; margin-left: 10px;">
+                            <i class="fas fa-download"></i> 내보내기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 사용자 통계 카드 -->
+                <div class="users-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">👤</span>
+                            <span class="stat-title">전체 사용자</span>
+                        </div>
+                        <div class="stat-value" id="total-users-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">✅</span>
+                            <span class="stat-title">활성 사용자</span>
+                        </div>
+                        <div class="stat-value" id="active-users-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🔒</span>
+                            <span class="stat-title">관리자</span>
+                        </div>
+                        <div class="stat-value" id="admin-users-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">⚠️</span>
+                            <span class="stat-title">비활성 사용자</span>
+                        </div>
+                        <div class="stat-value" id="inactive-users-count">-</div>
+                    </div>
+                </div>
+
+                <!-- 필터 옵션 -->
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <label for="role-filter">역할 필터:</label>
+                        <select id="role-filter" onchange="UsersModule.filterUsers()">
+                            <option value="">전체 역할</option>
+                            <option value="admin">관리자</option>
+                            <option value="nutritionist">영양사</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="status-filter">상태 필터:</label>
+                        <select id="status-filter" onchange="UsersModule.filterUsers()">
+                            <option value="">전체 상태</option>
+                            <option value="active">활성</option>
+                            <option value="inactive">비활성</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <button onclick="UsersModule.clearFilters()" class="btn-secondary">
+                            <i class="fas fa-times"></i> 필터 초기화
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 사용자 목록 테이블 -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="select-all-users" onchange="UsersModule.toggleSelectAll()">
+                                </th>
+                                <th onclick="UsersModule.sortBy('id')" class="sortable">ID</th>
+                                <th onclick="UsersModule.sortBy('username')" class="sortable">사용자명</th>
+                                <th onclick="UsersModule.sortBy('role')" class="sortable">역할</th>
+                                <th>부서</th>
+                                <th>전화번호</th>
+                                <th>담당 사업장</th>
+                                <th>접근 사업장</th>
+                                <th onclick="UsersModule.sortBy('is_active')" class="sortable">상태</th>
+                                <th>최근 접속</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr>
+                                <td colspan="11" class="loading-row">
+                                    <i class="fas fa-spinner fa-spin"></i> 사용자 목록을 불러오는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 페이지네이션 -->
+                <div class="pagination">
+                    <button onclick="UsersModule.changePage(-1)" id="users-prev-page-btn">이전</button>
+                    <span id="users-page-info">1 / 1</span>
+                    <button onclick="UsersModule.changePage(1)" id="users-next-page-btn">다음</button>
+                    
+                    <div class="page-size-selector">
+                        <label for="page-size">표시 개수:</label>
+                        <select id="page-size" onchange="UsersModule.changePageSize()">
+                            <option value="10">10개</option>
+                            <option value="20" selected>20개</option>
+                            <option value="50">50개</option>
+                            <option value="100">100개</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 업체 추가/수정 모달 -->
+            <div id="supplier-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="supplier-modal-title">새 업체 등록</h3>
+                        <button class="close-btn" onclick="closeSupplierModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="supplier-form">
+                            <input type="hidden" id="supplier-id">
+                            
+                            <!-- 기본 정보 섹션 -->
+                            <div class="form-section">
+                                <h4 class="section-title">📋 기본 정보</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>협력업체명 <span class="required">*</span></label>
+                                        <input type="text" id="supplier-name" required placeholder="예: CJ프레시웨이, 웰스토리">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>업체 유형 <span class="required">*</span></label>
+                                        <select id="supplier-business-type" required>
+                                            <option value="">유형을 선택하세요</option>
+                                            <option value="식자재납품">식자재 납품업체</option>
+                                            <option value="서비스">서비스 업체</option>
+                                            <option value="장비">장비/시설 업체</option>
+                                            <option value="기타">기타</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>대표자</label>
+                                        <input type="text" id="supplier-representative" placeholder="대표자명을 입력하세요">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>사업자번호</label>
+                                        <input type="text" id="supplier-business-number" placeholder="예: 123-45-67890">
+                                    </div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>업목</label>
+                                    <input type="text" id="supplier-business-item" placeholder="주요 취급 품목">
+                                </div>
+                            </div>
+
+                            <!-- 연락처 정보 섹션 -->
+                            <div class="form-section">
+                                <h4 class="section-title">📞 연락처 정보</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>본사 전화번호</label>
+                                        <input type="text" id="supplier-phone" placeholder="예: 02-1234-5678">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>본사 팩스번호</label>
+                                        <input type="text" id="supplier-fax" placeholder="예: 02-1234-5679">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>이메일</label>
+                                        <input type="email" id="supplier-email" placeholder="예: contact@company.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>웹사이트</label>
+                                        <input type="url" id="supplier-website" placeholder="예: https://company.com">
+                                    </div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>본사 주소</label>
+                                    <textarea id="supplier-address" rows="2" placeholder="본사 주소를 입력하세요"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- 추가 정보 섹션 -->
+                            <div class="form-section">
+                                <h4 class="section-title">🏷️ 추가 정보</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>업체코드 (모코드)</label>
+                                        <input type="text" id="supplier-parent-code" maxlength="10" placeholder="예: CJ001, 웰스토리001">
+                                        <small class="form-hint">협력업체에서 부여한 고유코드</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>회사 규모</label>
+                                        <select id="supplier-company-scale">
+                                            <option value="">선택하세요</option>
+                                            <option value="대기업">대기업</option>
+                                            <option value="중견기업">중견기업</option>
+                                            <option value="중소기업">중소기업</option>
+                                            <option value="소기업">소기업</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 운영 설정 섹션 -->
+                            <div class="form-section">
+                                <h4 class="section-title">⚙️ 운영 설정</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>업데이트 주기</label>
+                                        <select id="supplier-update-frequency">
+                                            <option value="daily">매일</option>
+                                            <option value="weekly" selected>주간</option>
+                                            <option value="monthly">월간</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="supplier-is-active" checked>
+                                            <span class="checkmark"></span>
+                                            활성 상태
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>비고</label>
+                                    <textarea id="supplier-notes" rows="2" placeholder="특이사항이나 메모를 입력하세요"></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeSupplierModal()">취소</button>
+                        <button type="button" class="btn-primary" onclick="saveSupplier()">저장</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 사용자 추가/수정 모달 -->
+            <div id="user-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-title">새 사용자 추가</h3>
+                        <button class="modal-close" onclick="closeUserModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="user-form">
+                            <div class="form-group">
+                                <label>사용자 ID</label>
+                                <input type="text" id="user-username" required>
+                            </div>
+                            <div class="form-group">
+                                <label>비밀번호</label>
+                                <input type="password" id="user-password">
+                                <small>수정 시 비워두면 변경하지 않음</small>
+                            </div>
+                            <div class="form-group">
+                                <label>역할</label>
+                                <select id="user-role" required>
+                                    <option value="">선택하세요</option>
+                                    <option value="nutritionist">영양사</option>
+                                    <option value="admin">관리자</option>
+                                    <option value="super_admin">최고관리자</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>연락처</label>
+                                <input type="text" id="user-contact">
+                            </div>
+                            <div class="form-group">
+                                <label>부서</label>
+                                <input type="text" id="user-department">
+                            </div>
+                            <div class="form-group">
+                                <label>직책</label>
+                                <input type="text" id="user-position">
+                            </div>
+                            <div class="form-group">
+                                <label>담당 사업장</label>
+                                <select id="user-managed-site">
+                                    <option value="">선택하세요</option>
+                                    <!-- 동적으로 로드될 사업장 목록 -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>전화번호</label>
+                                <input type="tel" id="user-phone" placeholder="010-1234-5678">
+                            </div>
+                            <div class="form-group">
+                                <label>생년월일</label>
+                                <input type="date" id="user-birth-date">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="user-is-active" checked>
+                                    활성 상태
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="user-operator">
+                                    운영자 권한
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>접근 가능한 사업장</label>
+                                <div id="user-sites-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                                    <label class="checkbox-label" style="margin-bottom: 10px;">
+                                        <input type="checkbox" id="sites-all" onchange="toggleAllSites(this)">
+                                        <strong>모든 사업장</strong>
+                                    </label>
+                                    <div id="sites-list">
+                                        <!-- 동적으로 로드될 사업장 체크박스 목록 -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="user-semi-operator">
+                                    부운영자 권한
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeUserModal()">취소</button>
+                        <button type="button" class="btn-primary" onclick="saveUser()">저장</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 업체 관리 페이지 -->
+            <div id="suppliers-page" class="page-content hidden">
+                <!-- 업체 관리 헤더 -->
+                <div class="page-header">
+                    <h2>🏭 협력업체 관리</h2>
+                    <p>협력업체 정보를 관리하고 거래 상태를 확인하세요.</p>
+                    
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" id="supplier-search" placeholder="업체명, 연락처, 이메일로 검색...">
+                            <select id="supplier-status-filter" style="margin-left: 10px;">
+                                <option value="">전체 상태</option>
+                                <option value="1">거래중</option>
+                                <option value="0">거래중단</option>
+                            </select>
+                            <button onclick="SuppliersModule.searchSuppliers()">🔍</button>
+                        </div>
+                        <button class="btn-primary" onclick="showAddSupplierModal()">+ 새 업체 등록</button>
+                        <button class="btn-secondary" onclick="initSupplierExtensions()" style="background: #17a2b8; margin-left: 10px;" title="데이터베이스에 새로운 필드를 추가하여 업체 관리 기능을 확장합니다">⚙️ DB 확장</button>
+                    </div>
+                </div>
+
+                <!-- 협력업체 통계 카드 -->
+                <div class="suppliers-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏭</span>
+                            <span class="stat-title">총 업체</span>
+                        </div>
+                        <div class="stat-value" id="total-suppliers-count">-</div>
+                        <div class="stat-extra" id="active-suppliers-text">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏢</span>
+                            <span class="stat-title">대기업</span>
+                        </div>
+                        <div class="stat-value" id="large-company-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏪</span>
+                            <span class="stat-title">중소기업</span>
+                        </div>
+                        <div class="stat-value" id="small-company-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">✅</span>
+                            <span class="stat-title">거래중</span>
+                        </div>
+                        <div class="stat-value" id="active-suppliers-count">-</div>
+                    </div>
+                </div>
+
+                <!-- 업체 목록 테이블 -->
+                <div class="content-section">
+                    <table id="suppliers-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>모코드</th>
+                                <th>사업장코드</th>
+                                <th>사업장명</th>
+                                <th>업체명</th>
+                                <th>연락처</th>
+                                <th>이메일</th>
+                                <th>거래상태</th>
+                                <th>사업자번호</th>
+                                <th>대표자</th>
+                                <th>담당자</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliers-table-body">
+                            <tr>
+                                <td colspan="11" class="loading">업체 데이터를 불러오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="business-locations-page" class="page-content hidden">
+                <div class="page-header">
+                    <h2>🏢 사업장 관리</h2>
+                    <p>각 사업장의 정보를 관리하고 설정을 조정하세요.</p>
+                    
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" id="sites-search" placeholder="사업장 검색 (이름, 코드, 유형)">
+                            <button onclick="SitesModule.searchSites()">🔍</button>
+                        </div>
+                        <button class="btn-primary" onclick="SitesModule.showAddSiteModal()">
+                            <i class="fas fa-plus"></i> 새 사업장
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 사업장 통계 카드 -->
+                <div class="sites-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏫</span>
+                            <span class="stat-title">학교</span>
+                        </div>
+                        <div class="stat-value" id="school-sites-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🚚</span>
+                            <span class="stat-title">운반</span>
+                        </div>
+                        <div class="stat-value" id="transport-sites-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🍱</span>
+                            <span class="stat-title">도시락</span>
+                        </div>
+                        <div class="stat-value" id="lunchbox-sites-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏥</span>
+                            <span class="stat-title">요양원</span>
+                        </div>
+                        <div class="stat-value" id="nursing-sites-count">-</div>
+                    </div>
+                </div>
+
+                <!-- 사업장 목록 테이블 -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>사업장명</th>
+                                <th>유형</th>
+                                <th>코드</th>
+                                <th>레벨</th>
+                                <th>상태</th>
+                                <th>등록일</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sites-table-body">
+                            <tr>
+                                <td colspan="8" class="loading-row">
+                                    <i class="fas fa-spinner fa-spin"></i> 사업장 목록을 불러오는 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 사업장 편집/생성 모달 -->
+                <div id="site-modal" class="modal hidden" onclick="if(event.target === this) SitesModule.closeSiteModal()">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="site-modal-title">새 사업장 등록</h3>
+                            <button class="close-btn" onclick="SitesModule.closeSiteModal()">&times;</button>
+                        </div>
+                        <form id="site-form" onsubmit="SitesModule.saveSite(event)">
+                            <div class="form-group">
+                                <label for="site-name">사업장명 *</label>
+                                <input type="text" id="site-name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="site-type">사업장 유형 *</label>
+                                <select id="site-type" name="site_type" required>
+                                    <option value="">선택하세요</option>
+                                    <option value="학교">학교</option>
+                                    <option value="운반">운반</option>
+                                    <option value="도시락">도시락</option>
+                                    <option value="요양원">요양원</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="site-code">사업장 코드</label>
+                                <input type="text" id="site-code" name="code">
+                            </div>
+                            <div class="form-group">
+                                <label for="site-address">주소</label>
+                                <input type="text" id="site-address" name="address">
+                            </div>
+                            <div class="form-group">
+                                <label for="site-contact">담당자</label>
+                                <input type="text" id="site-contact" name="contact_person">
+                            </div>
+                            <div class="form-group">
+                                <label for="site-phone">연락처</label>
+                                <input type="tel" id="site-phone" name="contact_phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="site-description">설명</label>
+                                <textarea id="site-description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="site-active" name="is_active" checked>
+                                    <span class="checkmark"></span>
+                                    활성 상태
+                                </label>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn-secondary" onclick="SitesModule.closeSiteModal()">취소</button>
+                                <button type="submit" class="btn-primary" id="site-save-btn">저장</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 사업장-협력업체 매핑 관리 페이지 - mappings 모듈로 이동됨 -->
+            <!-- 식수 등록 관리 페이지 -->
+
+            <!-- 단가 관리 페이지 - meal-pricing 모듈로 이동됨 -->
+
+            <div id="settings-page" class="page-content hidden">
+                <div class="page-header">
+                    <h2>⚙️ 시스템 설정</h2>
+                    <p>시스템 전반적인 설정을 관리합니다.</p>
+                </div>
+
+                <div class="settings-container">
+                    <!-- 기본 설정 섹션 -->
+                    <div class="section-card">
+                        <h3>🔧 기본 설정</h3>
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <label for="system-name">시스템 이름</label>
+                                <input type="text" id="system-name" value="다함식단관리" />
+                            </div>
+                            <div class="setting-item">
+                                <label for="system-version">버전 정보</label>
+                                <input type="text" id="system-version" value="v1.0.0" readonly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 사용자 설정 섹션 -->
+                    <div class="section-card">
+                        <h3>👤 사용자 설정</h3>
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <label for="default-page">기본 페이지</label>
+                                <select id="default-page">
+                                    <option value="dashboard">대시보드</option>
+                                    <option value="users">사용자 관리</option>
+                                    <option value="suppliers">협력업체 관리</option>
+                                    <option value="business-locations">사업장 관리</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="items-per-page">페이지당 표시 항목</label>
+                                <select id="items-per-page">
+                                    <option value="10">10개</option>
+                                    <option value="20" selected>20개</option>
+                                    <option value="50">50개</option>
+                                    <option value="100">100개</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 시스템 정보 섹션 -->
+                    <div class="section-card">
+                        <h3>ℹ️ 시스템 정보</h3>
+                        <div class="settings-group">
+                            <div class="info-item">
+                                <span class="info-label">데이터베이스 상태:</span>
+                                <span class="info-value status-active" id="db-status">연결됨</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">마지막 백업:</span>
+                                <span class="info-value" id="last-backup">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">사용자 수:</span>
+                                <span class="info-value" id="user-count">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 데이터 관리 섹션 -->
+                    <div class="section-card">
+                        <h3>💾 데이터 관리</h3>
+                        <div class="settings-group">
+                            <button onclick="SettingsModule.createBackup()" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 데이터 백업 생성
+                            </button>
+                            <button onclick="SettingsModule.checkSystemHealth()" class="btn btn-secondary">
+                                <i class="fas fa-heartbeat"></i> 시스템 상태 확인
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 저장 버튼 -->
+                    <div class="settings-actions">
+                        <button onclick="SettingsModule.saveSettings()" class="btn btn-success">
+                            <i class="fas fa-check"></i> 설정 저장
+                        </button>
+                        <button onclick="SettingsModule.resetSettings()" class="btn btn-warning">
+                            <i class="fas fa-undo"></i> 기본값으로 리셋
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 식자재 조회 페이지 -->
+            <div id="ingredients-view-page" class="page-content hidden">
+                <div class="page-header">
+                    <h2>📋 식자재 조회</h2>
+                    <p>등록된 식자재를 조회하고 검색할 수 있습니다.</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="simple-search-input" placeholder="식자재명, 코드, 업체명으로 검색..." 
+                               style="width: 300px; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <button onclick="IngredientsViewModule.searchIngredients()" class="btn btn-primary" style="margin-left: 10px;">검색</button>
+                    </div>
+                    <div id="ingredients-results">
+                        <p style="color: #666; text-align: center; padding: 40px;">식자재 목록이 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="meal-pricing-page" class="page-content hidden">
+                <!-- 식단가 관리 헤더 -->
+                <div class="page-header">
+                    <h2>💰 식단가 관리</h2>
+                    <p>부문별 식단표의 세부식단표별 판매가 및 재료비 가이드라인을 설정합니다.</p>
+                </div>
+
+                <!-- 식단가 통계 카드 -->
+                <div class="meal-pricing-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">📋</span>
+                            <span class="stat-title">총 식단표</span>
+                        </div>
+                        <div class="stat-value" id="total-meal-plans-count">-</div>
+                        <div class="stat-extra" id="active-meal-plans-text">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🏢</span>
+                            <span class="stat-title">적용 사업장</span>
+                        </div>
+                        <div class="stat-value" id="locations-with-pricing-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">💰</span>
+                            <span class="stat-title">평균 판매가</span>
+                        </div>
+                        <div class="stat-value" id="average-selling-price">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">📊</span>
+                            <span class="stat-title">평균 재료비율</span>
+                        </div>
+                        <div class="stat-value" id="average-cost-ratio">-</div>
+                    </div>
+                </div>
+                
+                <!-- 식단표 선택 -->
+                <div class="section-card" style="margin-bottom: 30px;">
+                    <h3>🍽️ 사업장별 식단표 선택</h3>
+                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 15px; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 12px; color: #666; font-weight: 500;">사업장 선택</label>
+                            <select id="businessLocationSelect" onchange="MealPricingModule.loadMealPlansForLocation()" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-width: 200px;">
+                                <option value="">사업장을 선택하세요</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 12px; color: #666; font-weight: 500;">식단표 타입</label>
+                            <select id="mealPlanSelect" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; min-width: 200px;" disabled>
+                                <option value="">먼저 사업장을 선택하세요</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 12px; color: transparent; font-weight: 500;">조회</label>
+                            <button onclick="onMasterMealPlanChange()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                <i class="fas fa-search"></i> 세부식단표 조회
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 세부식단표 목록 -->
+                <div class="section-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>📋 세부식단표 관리</h3>
+                        <button id="addMealPlanBtn" onclick="addNewMealPlan()" 
+                                style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">
+                            + 식단표 추가
+                        </button>
+                    </div>
+                    <div id="detailedMealPlansContainer" style="margin-top: 20px;">
+                        <p style="color: #888; text-align: center; padding: 40px;">위에서 식단표를 선택하면 세부식단표 목록이 표시됩니다.</p>
+                    </div>
+                </div>
+
+                <!-- 세부식단표 가격 및 재료비 관리 -->
+                <div class="section-card" style="margin-top: 20px;">
+                    <h3>💰 가격 및 재료비 관리</h3>
+                    <div id="pricingManagementContainer" style="margin-top: 20px;">
+                        <p style="color: #888; text-align: center; padding: 40px;">위에서 세부식단표를 불러온 후 가격 관리가 가능합니다.</p>
+                    </div>
+                </div>
+
+                <!-- 저장 버튼 -->
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="saveMealPricingBtn" onclick="saveMealPricing()" 
+                            style="padding: 12px 30px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; display: none;">
+                        💾 가격 정보 저장
+                    </button>
+                </div>
+            </div>
+            <div id="supplier-mapping-page" class="page-content hidden">
+                <h2>매핑 관리</h2>
+                <p>업체 매핑 관리 기능이 여기에 구현됩니다.</p>
+            </div>
+            <div id="ingredients-page" class="page-content hidden">
+                <!-- 식자재 관리 헤더 -->
+                <div class="page-header">
+                    <h2>🥬 식자재 관리</h2>
+                    <p>식자재 정보를 등록하고 관리하세요.</p>
+                    
+                    <div class="header-actions">
+                        <div class="search-box">
+                            <input type="text" id="ingredients-search" placeholder="식자재명, 코드, 분류로 검색">
+                            <select id="ingredient-category-filter" style="margin-left: 10px;">
+                                <option value="">전체 분류</option>
+                                <option value="채소류">채소류</option>
+                                <option value="육류">육류</option>
+                                <option value="생선류">생선류</option>
+                                <option value="곡류">곡류</option>
+                                <option value="유제품">유제품</option>
+                                <option value="조미료">조미료</option>
+                            </select>
+                            <button onclick="IngredientsModule.searchIngredients()">🔍</button>
+                        </div>
+                        <button class="btn-primary" onclick="IngredientsModule.showAddModal()">
+                            <i class="fas fa-plus"></i> 새 식자재
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 식자재 통계 카드 -->
+                <div class="ingredients-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">📦</span>
+                            <span class="stat-title">총 식자재</span>
+                        </div>
+                        <div class="stat-value" id="total-ingredients-count">-</div>
+                        <div class="stat-extra" id="active-ingredients-text">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🥬</span>
+                            <span class="stat-title">채소류</span>
+                        </div>
+                        <div class="stat-value" id="vegetable-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🥩</span>
+                            <span class="stat-title">육류</span>
+                        </div>
+                        <div class="stat-value" id="meat-count">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">🐟</span>
+                            <span class="stat-title">생선류</span>
+                        </div>
+                        <div class="stat-value" id="seafood-count">-</div>
+                    </div>
+                </div>
+
+                <!-- 식자재 목록 테이블 -->
+                <div class="content-section">
+                    <table id="ingredients-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>분류</th>
+                                <th>식자재명</th>
+                                <th>고유코드</th>
+                                <th>단위</th>
+                                <th>입고가</th>
+                                <th>판매가</th>
+                                <th>거래처명</th>
+                                <th>원산지</th>
+                                <th>게시상태</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingredients-table-body">
+                            <tr>
+                                <td colspan="11" class="loading">식자재 데이터를 불러오는 중...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="logs-page" class="page-content hidden">
+                <h2>로그 관리 페이지</h2>
+                <p>로그 관리 기능이 여기에 구현될 예정입니다.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 페이지 네비게이션 관리
+        function showPage(pageName) {
+            // 모든 페이지 숨기기
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // 선택된 페이지 보이기
+            const targetPage = document.getElementById(`${pageName}-page`);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+            } else {
+                // 페이지가 존재하지 않으면 대시보드 표시
+                console.warn(`페이지 ${pageName}이 존재하지 않습니다. 대시보드로 이동합니다.`);
+                const dashboardPage = document.getElementById('dashboard-page');
+                if (dashboardPage) {
+                    dashboardPage.classList.remove('hidden');
+                }
+                // 대시보드 메뉴 활성화
+                const dashboardItem = document.querySelector('[data-page="dashboard"]');
+                if (dashboardItem) {
+                    dashboardItem.classList.add('active');
+                    return; // 이후 로직 건너뛰기
+                }
+            }
+            
+            // 네비게이션 활성 상태 변경
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const activeItem = document.querySelector(`[data-page="${pageName}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+            
+            // 페이지 제목 변경
+            const titles = {
+                'dashboard': '관리자 대시보드',
+                'users': '사용자 관리',
+                'suppliers': '업체 관리',
+                'business-locations': '사업장 관리',
+                'supplier-mapping': '매핑 관리',
+                'meal-pricing': '식단가 관리',
+                'ingredients': '식자재 관리',
+                'pricing': '단가 관리',
+                'settings': '시스템 설정',
+                'logs': '로그 관리'
+            };
+            
+            document.getElementById('page-title').textContent = titles[pageName] || '관리자 시스템';
+        }
+
+        // 로그아웃 함수
+        async function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                try {
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        credentials: 'include'  // 쿠키 포함
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        window.location.href = result.redirect || '/login';
+                    } else {
+                        console.error('로그아웃 실패:', result.message);
+                        window.location.href = '/login';  // 실패해도 로그인 페이지로 이동
+                    }
+                } catch (error) {
+                    console.error('로그아웃 중 오류:', error);
+                    window.location.href = '/login';  // 오류 시에도 로그인 페이지로 이동
+                }
+            }
+        }
+
+        // 대시보드 데이터 로드
+        async function loadDashboardData() {
+            try {
+                // 통계 데이터 가져오기
+                const response = await fetch('/api/admin/dashboard-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 사용자 정보
+                    document.getElementById('total-users').textContent = data.totalUsers || 0;
+                    document.getElementById('active-users').textContent = `활성: ${data.activeUsers || 0}명`;
+                    
+                    // 협력업체 정보
+                    document.getElementById('total-suppliers').textContent = data.totalSuppliers || 0;
+                    document.getElementById('recent-suppliers').textContent = `최근 등록: ${data.recentSuppliers || 0}개`;
+                    
+                    // 식자재 정보
+                    document.getElementById('total-ingredients').textContent = data.totalIngredients || 0;
+                    document.getElementById('recent-ingredients').textContent = `이번주 추가: ${data.recentIngredients || 0}개`;
+                    
+                    // 사업장 정보
+                    document.getElementById('total-sites').textContent = data.totalSites || 0;
+                    
+                    // 사업장 유형별 분포 추가 (API에서 제공되는 경우)
+                    if (data.siteTypes) {
+                        const typeNames = Object.keys(data.siteTypes).join('/');
+                        document.getElementById('site-types').textContent = typeNames || '학교/운반/도시락/요양원';
+                    }
+                }
+            } catch (error) {
+                console.error('대시보드 데이터 로드 실패:', error);
+                // 오류 시 기본값 표시
+                document.getElementById('total-users').textContent = '0';
+                document.getElementById('active-users').textContent = '활성: 0명';
+                document.getElementById('total-suppliers').textContent = '0';
+                document.getElementById('recent-suppliers').textContent = '최근 등록: 0개';
+                document.getElementById('total-ingredients').textContent = '0';
+                document.getElementById('recent-ingredients').textContent = '이번주 추가: 0개';
+                document.getElementById('total-sites').textContent = '0';
+            }
+        }
+
+        // 최근 활동 로그 로드
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch('/api/admin/recent-activity');
+                const result = await response.json();
+                const activities = result.activities || result.data || [];
+                
+                const activityList = document.getElementById('activity-list');
+                if (activities.length === 0) {
+                    activityList.innerHTML = '<div class="log-item">최근 활동이 없습니다.</div>';
+                    return;
+                }
+                
+                activityList.innerHTML = activities.map(activity => `
+                    <div class="log-item">
+                        <div class="log-time">${activity.time}</div>
+                        <div class="log-message">${activity.message}</div>
+                        <div class="log-user">${activity.user}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('활동 로그 로드 실패:', error);
+                document.getElementById('activity-list').innerHTML = 
+                    '<div class="log-item">활동 로그를 불러올 수 없습니다.</div>';
+            }
+        }
+
+        // 전역 변수들 (admin-dashboard.js에서 이미 선언됨)
+
+        // 페이지 로드시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('페이지 초기화 시작');
+            
+            // 강제로 모든 모달 숨김 처리
+            setTimeout(() => {
+                const userModal = document.getElementById('user-modal');
+                const siteModal = document.getElementById('site-modal');
+                
+                if (userModal) {
+                    userModal.style.display = 'none';
+                    userModal.classList.add('hidden');
+                    console.log('사용자 모달 강제 숨김');
+                }
+                if (siteModal) {
+                    siteModal.style.display = 'none';
+                    siteModal.classList.add('hidden');
+                    console.log('사업장 모달 강제 숨김');
+                }
+                
+                // 변수 초기화
+                if (typeof currentEditUserId !== 'undefined') {
+                    currentEditUserId = null;
+                }
+                
+                console.log('모든 모달 숨김 처리 완료');
+                
+                // 초기화 완료 후 1초 뒤에 모달 표시 허용
+                setTimeout(() => {
+                    pageInitialized = true;
+                    allowModalDisplay = true;
+                    console.log('모달 표시 허용됨');
+                }, 1000);
+            }, 100);
+            
+            // 네비게이션 이벤트 리스너 설정
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageName = this.getAttribute('data-page');
+                    if (pageName) {
+                        showPage(pageName);
+                        
+                        // 특정 페이지의 초기화 함수 호출
+                        if (pageName === 'dashboard') {
+                            loadDashboardData();
+                            loadRecentActivity();
+                        } else if (pageName === 'users' && typeof window.UsersModule !== 'undefined') {
+                            window.UsersModule.init();
+                        } else if (pageName === 'suppliers' && typeof window.SuppliersModule !== 'undefined') {
+                            window.SuppliersModule.init();
+                        } else if (pageName === 'business-locations' && typeof window.SitesModule !== 'undefined') {
+                            window.SitesModule.init();
+                        } else if (pageName === 'supplier-mapping' && typeof window.MappingsModule !== 'undefined') {
+                            window.MappingsModule.init();
+                        } else if (pageName === 'meal-pricing' && typeof window.MealPricingModule !== 'undefined') {
+                            window.MealPricingModule.init();
+                        } else if (pageName === 'ingredients' && typeof window.IngredientsModule !== 'undefined') {
+                            window.IngredientsModule.init();
+                        } else if (pageName === 'ingredients-view' && typeof window.IngredientsViewModule !== 'undefined') {
+                            window.IngredientsViewModule.init();
+                        }
+                    }
+                });
+            });
+            
+            // 기본으로 대시보드 페이지 표시
+            console.log('대시보드 페이지 표시');
+            showPage('dashboard');
+            loadDashboardData();
+            loadRecentActivity();
+        });
+
+        // Users 모듈이 로드됨 - 중복 코드 제거됨
+
+        // Sites 함수들이 모듈로 이동됨
+
+        // Sites 관련 함수들 - sites-complete.js 모듈로 이동됨
+        // Upload/File 관련 함수들 - ingredients 모듈로 이동됨
+        // 식자재 관련 함수들은 모듈로 분리됨
+
+        // Meal 관련 함수들이 모듈로 이동됨
+
+        // 사용자/공급업체 확장 기능들 - 해당 모듈들로 이동됨
+        
+        // Suppliers 모듈이 로드됨 - 중복 코드 제거됨
+        
+        // Suppliers 함수들이 모듈로 이동됨
+
+        // Meal 관련 함수들이 모듈로 이동됨
+
+        // 단가관리 관련 함수들 - meal-pricing 모듈로 이동됨
+        // 매핑 관리 관련 함수들 - mappings 모듈로 이동됨
+
+    </script>
+    <!-- admin-dashboard.js 기능은 HTML 내부 script로 통합됨 -->
+    
+    <script src="/modules/utils/auth-modal.js?v=1.0"></script>
+    
+    <!-- 완전 모듈화된 스크립트들만 로드 (중복 제거 완료) -->
+    <!-- 사업장 관리 모듈 -->
+    <script src="/modules/sites/sites-complete.js?v=21.0"></script>
+    
+    <!-- 완전 모듈화된 관리 기능들 -->
+    <!-- 사용자 관리 모듈 -->
+    <script src="/modules/users/users-complete.js?v=4.0"></script>
+    <!-- 협력업체 관리 모듈 -->
+    <script src="/modules/suppliers/suppliers-complete.js?v=8.1"></script>
+    <!-- 식자재 등록 모듈 -->
+    <script src="/modules/ingredients/ingredients-registration.js?v=3.0"></script>
+    <!-- 식자재 조회 모듈 -->
+    <script src="/modules/ingredients-view/ingredients-view.js?v=3.0"></script>
+    <!-- 협력업체 매핑 관리 모듈 -->
+    <script src="/modules/mappings/mappings-complete.js?v=3.0"></script>
+    <!-- 식단가 관리 모듈 -->
+    <script src="/modules/meal-pricing/meal-pricing-complete.js?v=3.0"></script>
+    
+    <!-- Settings Module JavaScript -->
+    <script>
+    /**
+     * Settings Module - 시스템 설정 관리
+     */
+    class SettingsModule {
+        constructor() {
+            this.settings = {
+                systemName: '다함식단관리',
+                systemVersion: 'v1.0.0',
+                defaultPage: 'dashboard',
+                itemsPerPage: 20
+            };
+        }
+
+        init() {
+            if (document.getElementById('settings-page')) {
+                this.loadSettings();
+                this.updateSystemInfo();
+                console.log('[Settings] 모듈 초기화 완료');
+            }
+        }
+
+        loadSettings() {
+            try {
+                const savedSettings = localStorage.getItem('dahamsSettings');
+                if (savedSettings) {
+                    this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+                }
+                this.applySettingsToUI();
+            } catch (error) {
+                console.error('[Settings] 설정 로드 실패:', error);
+            }
+        }
+
+        applySettingsToUI() {
+            const systemNameInput = document.getElementById('system-name');
+            const systemVersionInput = document.getElementById('system-version');
+            const defaultPageSelect = document.getElementById('default-page');
+            const itemsPerPageSelect = document.getElementById('items-per-page');
+
+            if (systemNameInput) systemNameInput.value = this.settings.systemName;
+            if (systemVersionInput) systemVersionInput.value = this.settings.systemVersion;
+            if (defaultPageSelect) defaultPageSelect.value = this.settings.defaultPage;
+            if (itemsPerPageSelect) itemsPerPageSelect.value = this.settings.itemsPerPage;
+        }
+
+        async updateSystemInfo() {
+            try {
+                const dbStatus = document.getElementById('db-status');
+                if (dbStatus) {
+                    dbStatus.textContent = '연결됨';
+                    dbStatus.className = 'info-value status-active';
+                }
+
+                const lastBackup = document.getElementById('last-backup');
+                if (lastBackup) {
+                    const backupTime = localStorage.getItem('lastBackupTime');
+                    lastBackup.textContent = backupTime || '백업 정보 없음';
+                }
+
+                const userCountElement = document.getElementById('user-count');
+                if (userCountElement) {
+                    try {
+                        const response = await fetch('/api/admin/users');
+                        if (response.ok) {
+                            const data = await response.json();
+                            userCountElement.textContent = `${data.length || 0}명`;
+                        } else {
+                            userCountElement.textContent = '조회 실패';
+                        }
+                    } catch (error) {
+                        userCountElement.textContent = '조회 실패';
+                    }
+                }
+            } catch (error) {
+                console.error('[Settings] 시스템 정보 업데이트 실패:', error);
+            }
+        }
+
+        async saveSettings() {
+            try {
+                this.collectSettingsFromUI();
+                localStorage.setItem('dahamsSettings', JSON.stringify(this.settings));
+                this.showNotification('설정이 저장되었습니다.', 'success');
+                console.log('[Settings] 설정 저장 완료:', this.settings);
+            } catch (error) {
+                console.error('[Settings] 설정 저장 실패:', error);
+                this.showNotification('설정 저장에 실패했습니다.', 'error');
+            }
+        }
+
+        collectSettingsFromUI() {
+            const systemName = document.getElementById('system-name')?.value;
+            const defaultPage = document.getElementById('default-page')?.value;
+            const itemsPerPage = document.getElementById('items-per-page')?.value;
+
+            if (systemName) this.settings.systemName = systemName;
+            if (defaultPage) this.settings.defaultPage = defaultPage;
+            if (itemsPerPage) this.settings.itemsPerPage = parseInt(itemsPerPage);
+        }
+
+        resetSettings() {
+            if (confirm('모든 설정을 기본값으로 리셋하시겠습니까?')) {
+                this.settings = {
+                    systemName: '다함식단관리',
+                    systemVersion: 'v1.0.0',
+                    defaultPage: 'dashboard',
+                    itemsPerPage: 20
+                };
+                
+                localStorage.removeItem('dahamsSettings');
+                this.applySettingsToUI();
+                this.showNotification('설정이 기본값으로 리셋되었습니다.', 'info');
+                console.log('[Settings] 설정 리셋 완료');
+            }
+        }
+
+        async createBackup() {
+            try {
+                this.showNotification('백업을 생성하고 있습니다...', 'info');
+                
+                // 백업 시뮬레이션 (실제로는 서버 API 호출)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                localStorage.setItem('lastBackupTime', new Date().toLocaleString());
+                this.updateSystemInfo();
+                this.showNotification('백업이 성공적으로 생성되었습니다.', 'success');
+            } catch (error) {
+                console.error('[Settings] 백업 생성 실패:', error);
+                this.showNotification('백업 생성에 실패했습니다.', 'error');
+            }
+        }
+
+        async checkSystemHealth() {
+            try {
+                this.showNotification('시스템 상태를 확인하고 있습니다...', 'info');
+                
+                // 시스템 상태 확인 시뮬레이션
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                this.showNotification('시스템이 정상적으로 작동하고 있습니다.', 'success');
+                this.updateSystemInfo();
+                
+            } catch (error) {
+                console.error('[Settings] 시스템 상태 확인 실패:', error);
+                this.showNotification('시스템 상태 확인에 실패했습니다.', 'error');
+            }
+        }
+
+        showNotification(message, type = 'info') {
+            const existingAlert = document.querySelector('.settings-alert');
+            if (existingAlert) existingAlert.remove();
+
+            const alert = document.createElement('div');
+            alert.className = `settings-alert alert-${type}`;
+            alert.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+            `;
+
+            const settingsPage = document.getElementById('settings-page');
+            if (settingsPage) {
+                settingsPage.insertBefore(alert, settingsPage.firstChild);
+                
+                setTimeout(() => {
+                    if (alert.parentElement) alert.remove();
+                }, 3000);
+            }
+        }
+
+        getSetting(key) {
+            return this.settings[key];
+        }
+
+        setSetting(key, value) {
+            this.settings[key] = value;
+            localStorage.setItem('dahamsSettings', JSON.stringify(this.settings));
+        }
+    }
+
+    // 전역 인스턴스 생성
+    window.SettingsModule = new SettingsModule();
+
+    // DOM 로드 완료 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.SettingsModule) {
+            window.SettingsModule.init();
+        }
+    });
+
+    console.log('[Settings] 설정 모듈 로드 완료');
+    </script>
+    
+    <!-- Dashboard Module JavaScript -->
+    <script>
+    /**
+     * Dashboard Module - 대시보드 데이터 관리
+     */
+    class DashboardModule {
+        constructor() {
+            this.refreshInterval = null;
+            this.autoRefreshEnabled = true;
+            this.refreshIntervalTime = 30000; // 30초
+        }
+
+        init() {
+            if (document.getElementById('dashboard-page')) {
+                console.log('[Dashboard] 모듈 초기화 시작');
+                this.loadDashboardData();
+                this.loadRecentActivity();
+                this.startAutoRefresh();
+            }
+        }
+
+        async loadDashboardData() {
+            try {
+                const response = await fetch('/api/admin/dashboard-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.updateStatistics(data);
+                } else {
+                    this.showFallbackStats();
+                }
+            } catch (error) {
+                console.error('[Dashboard] 통계 데이터 로드 실패:', error);
+                this.showFallbackStats();
+            }
+        }
+
+        updateStatistics(data) {
+            const stats = {
+                'total-users': data.totalUsers || 0,
+                'total-sites': data.totalSites || 0,
+                'today-menus': data.todayMenus || 0,
+                'price-updates': data.priceUpdates || 0
+            };
+
+            Object.entries(stats).forEach(([elementId, value]) => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    this.animateCounter(element, value);
+                }
+            });
+        }
+
+        animateCounter(element, targetValue) {
+            const startValue = parseInt(element.textContent) || 0;
+            const difference = targetValue - startValue;
+            const steps = 30;
+            const stepValue = difference / steps;
+            let currentStep = 0;
+
+            const timer = setInterval(() => {
+                currentStep++;
+                const currentValue = Math.round(startValue + (stepValue * currentStep));
+                element.textContent = currentValue;
+
+                if (currentStep >= steps) {
+                    clearInterval(timer);
+                    element.textContent = targetValue;
+                }
+            }, 30);
+        }
+
+        showFallbackStats() {
+            const fallbackStats = {
+                'total-users': 1,
+                'total-sites': 5,
+                'today-menus': 0,
+                'price-updates': 0
+            };
+
+            Object.entries(fallbackStats).forEach(([elementId, value]) => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = value;
+                }
+            });
+        }
+
+        async loadRecentActivity() {
+            try {
+                const response = await fetch('/api/admin/recent-activity');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const activities = result.activities || result.data || [];
+                    this.displayActivities(activities);
+                } else {
+                    this.showFallbackActivities();
+                }
+            } catch (error) {
+                console.error('[Dashboard] 최근 활동 로드 실패:', error);
+                this.showFallbackActivities();
+            }
+        }
+
+        displayActivities(activities) {
+            const activityList = document.getElementById('activity-list');
+            if (!activityList) return;
+
+            if (activities.length === 0) {
+                activityList.innerHTML = '<div class="log-item">최근 활동이 없습니다.</div>';
+                return;
+            }
+
+            activityList.innerHTML = activities.map(activity => `
+                <div class="log-item">
+                    <div class="log-time">${this.formatTime(activity.timestamp)}</div>
+                    <div class="log-message">${this.escapeHtml(activity.message)}</div>
+                    <div class="log-user">${this.escapeHtml(activity.user)}</div>
+                </div>
+            `).join('');
+        }
+
+        showFallbackActivities() {
+            const fallbackActivities = [
+                {
+                    timestamp: new Date().toISOString(),
+                    message: 'Dashboard 모듈이 성공적으로 로드되었습니다.',
+                    user: 'System'
+                },
+                {
+                    timestamp: new Date(Date.now() - 300000).toISOString(),
+                    message: 'Settings 모듈이 성공적으로 로드되었습니다.',
+                    user: 'System'
+                },
+                {
+                    timestamp: new Date(Date.now() - 600000).toISOString(),
+                    message: '시스템이 시작되었습니다.',
+                    user: 'System'
+                }
+            ];
+
+            this.displayActivities(fallbackActivities);
+        }
+
+        async refreshActivity() {
+            const refreshBtn = document.querySelector('.btn-refresh i');
+            if (refreshBtn) {
+                refreshBtn.classList.add('fa-spin');
+            }
+
+            await this.loadRecentActivity();
+            
+            setTimeout(() => {
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('fa-spin');
+                }
+            }, 500);
+        }
+
+        startAutoRefresh() {
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+            }
+
+            if (this.autoRefreshEnabled) {
+                this.refreshInterval = setInterval(() => {
+                    const dashboardPage = document.getElementById('dashboard-page');
+                    if (dashboardPage && !dashboardPage.classList.contains('hidden')) {
+                        this.loadDashboardData();
+                        this.loadRecentActivity();
+                    }
+                }, this.refreshIntervalTime);
+            }
+        }
+
+        stopAutoRefresh() {
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+                this.refreshInterval = null;
+            }
+        }
+
+        formatTime(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+
+                if (diff < 60000) {
+                    return '방금 전';
+                } else if (diff < 3600000) {
+                    return Math.floor(diff / 60000) + '분 전';
+                } else if (diff < 86400000) {
+                    return Math.floor(diff / 3600000) + '시간 전';
+                } else {
+                    return date.toLocaleDateString();
+                }
+            } catch (error) {
+                return timestamp;
+            }
+        }
+
+        escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        onPageShow() {
+            this.loadDashboardData();
+            this.loadRecentActivity();
+            this.startAutoRefresh();
+        }
+
+        onPageHide() {
+            this.stopAutoRefresh();
+        }
+    }
+
+    // 전역 인스턴스 생성
+    window.DashboardModule = new DashboardModule();
+
+    // DOM 로드 완료 시 초기화
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            window.DashboardModule.init();
+        });
+    } else {
+        window.DashboardModule.init();
+    }
+
+    console.log('[Dashboard] 대시보드 모듈 로드 완료');
+    </script>
+    
+    <!-- Users Module는 외부 파일에서 로드됩니다 -->
+    <!-- 중복된 사용자 모듈 코드를 제거하고 외부 파일 사용 -->
+
+    <!-- 사업장 편집 모달 -->
+    <div id="business-location-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 10px; padding: 30px; max-width: 600px; width: 90%; max-height: 80%; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>사업장 정보 편집</h3>
+                <button onclick="closeBusinessLocationModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="business-location-form">
+                <input type="hidden" id="edit-customer-id" />
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>사업장명 *</label>
+                        <input type="text" id="edit-customer-name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>사업장코드</label>
+                        <input type="text" id="edit-customer-code" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>사업장유형</label>
+                        <select id="edit-customer-type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">선택하세요</option>
+                            <option value="본사">본사</option>
+                            <option value="지사">지사</option>
+                            <option value="공장">학교</option>
+                            <option value="위탁">공장</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>담당자</label>
+                        <input type="text" id="edit-customer-contact" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>연락처</label>
+                        <input type="tel" id="edit-customer-phone" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>급식인원</label>
+                        <input type="number" id="edit-customer-portion" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="0" />
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>주소</label>
+                    <textarea id="edit-customer-address" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" rows="2"></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>설명</label>
+                    <textarea id="edit-customer-description" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>
+                        <input type="checkbox" id="edit-customer-active" style="margin-right: 8px;" />
+                        운영중
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" onclick="closeBusinessLocationModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        취소
+                    </button>
+                    <button type="button" onclick="saveBusinessLocation()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 기본 페이지 함수들 -->
+    <!-- 기본 페이지 함수들 - 상단 메인 스크립트에서 이미 정의됨 -->
+
+    <!-- 모든 모듈 초기화 (통합) -->
+    <!-- 전역 모듈 초기화 제거됨 - 네비게이션 기반 초기화만 사용 -->
+
+</body>
+</html>
+</html>

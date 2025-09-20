@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 식자재 관리 시스템 - 관리자 대시보드</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+    <!-- 외부 CSS -->
+    <link rel="stylesheet" href="static/css/admin-dashboard-main.css">
+    <link rel="stylesheet" href="static/css/admin-dashboard-inline.css">
+
+    <!-- 공통 사이드바 CSS (마지막에 로드하여 기존 스타일 덮어쓰기) -->
+    <link rel="stylesheet" href="static/css/common-sidebar.css">
+
+    <!-- 어드민 전용 은색 사이드바 스타일 -->
+    <style>
+        /* file:// 프로토콜에서 외부 CSS 로드 실패시 최소한의 레이아웃 유지 */
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; }
+        .container { display: flex; height: 100vh; }
+
+        /* 어드민 사이드바 은색 테마 */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f8f8f8, #e8e8e8);
+            color: #333;
+            border-right: 2px solid #d0d0d0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .main-content { flex: 1; overflow-y: auto; }
+        .header { background: white; padding: 10px; }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        /* 네비게이션 아이템 어드민 스타일 */
+        .nav-item {
+            display: block;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(0,0,0,0.05);
+            color: #000;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            font-weight: 600;
+            border-left: 4px solid #28a745;
+        }
+
+        .nav-item .icon {
+            margin-right: 8px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <!-- 사이드바 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>🍽️ 식자재 관리</h2>
+                <p>관리자 시스템</p>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="icon">📊</span>대시보드
+                </a>
+                <a href="#" class="nav-item" data-page="users">
+                    <span class="icon">👥</span>사용자 관리
+                </a>
+                <a href="#" class="nav-item" data-page="suppliers">
+                    <span class="icon">🚛</span>협력업체 관리
+                </a>
+                <a href="#" class="nav-item" data-page="business-locations">
+                    <span class="icon">🏢</span>사업장 관리
+                </a>
+                <a href="#" class="nav-item" data-page="supplier-mapping">
+                    <span class="icon">🔗</span>협력업체 매칭
+                </a>
+                <a href="#" class="nav-item" data-page="meal-pricing">
+                    <span class="icon">💰</span>식단가 관리
+                </a>
+                <a href="#" class="nav-item" data-page="ingredients">
+                    <span class="icon">📦</span>식자재 관리
+                </a>
+                <a href="#" class="nav-item" data-page="menu-recipes">
+                    <span class="icon">🍽️</span>메뉴/레시피 관리
+                </a>
+            </div>
+            
+            <div class="sidebar-footer" style="margin-top: auto; padding: 20px;">
+                <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
+                    <a href="dashboard.html" style="display: block; padding: 12px 20px; background: #e8f5e8; color: #4caf50; text-decoration: none; border-radius: 8px; text-align: center; font-weight: 600;">
+                        <span class="icon">🍽️</span>급식관리로 이동
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- 깔끔한 헤더 -->
+            <div class="header">
+                <div class="header-info">
+                    <span id="current-date"></span>
+                </div>
+            </div>
+
+            <!-- 페이지별 컨텐츠 영역 -->
+            <div id="content-area">
+                <!-- 대시보드 기본 컨텐츠 -->
+                <div id="dashboard-content" class="page-content active">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="icon">👥</span>
+                                <h3 class="card-title">전체 사용자</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-number" id="total-users">-</div>
+                                <div class="stat-label">등록된 사용자 수</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="icon">🏢</span>
+                                <h3 class="card-title">사업장</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-number" id="total-sites">-</div>
+                                <div class="stat-label">관리 중인 사업장</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="icon">📦</span>
+                                <h3 class="card-title">식자재</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-number" id="total-ingredients">-</div>
+                                <div class="stat-label">등록된 식자재</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <span class="icon">🚛</span>
+                                <h3 class="card-title">협력업체</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-number" id="total-suppliers">-</div>
+                                <div class="stat-label">등록된 협력업체</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 최근 활동 로그 -->
+                    <div class="activity-log">
+                        <h3 style="margin-bottom: 20px;">📈 최근 활동</h3>
+                        <div id="activity-list">
+                            <div class="log-item">
+                                <div class="log-time">로딩 중...</div>
+                                <div class="log-message">시스템 데이터를 불러오고 있습니다.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 다른 페이지 컨텐츠들은 동적으로 로드 -->
+                <div id="users-content" class="page-content">
+                    <!-- 템플릿으로 동적 로드 (static/templates/users-section.html) -->
+                </div>
+
+                <!-- 사용자 모달은 동적으로 로드됨 (user-modal.html) -->
+                <div id="userModalContainer"></div>
+                
+                <div id="suppliers-content" class="page-content">
+                    <!-- 템플릿으로 동적 로드 (static/templates/suppliers-section.html) -->
+                </div>
+                
+                <div id="business-locations-content" class="page-content">
+                    <!-- 템플릿으로 동적 로드 (static/templates/sites-section.html) -->
+                </div>
+
+                <div id="supplier-mapping-content" class="page-content" style="display: none;">
+                    <!-- 협력업체 매칭 모듈이 여기에 로드됩니다 -->
+                </div>
+
+                <div id="meal-pricing-content" class="page-content" style="display: none;">
+                    <!-- 템플릿으로 동적 로드 (static/templates/meal-pricing-section.html) -->
+                </div>
+                
+                <div id="ingredients-content" class="page-content" style="display: none;">
+                    <!-- 식자재 관리 모듈이 여기에 로드됩니다 -->
+                </div>
+
+                <div id="menu-recipes-content" class="page-content" style="display: none;">
+                    <!-- 메뉴/레시피 관리 모듈이 여기에 동적 로드됩니다 -->
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- 초기화 스크립트 (HTTP 환경에서만 작동) -->
+    <!-- <script src="static/js/admin-dashboard-init.js"></script> -->
+
+    <!-- CONFIG 및 초기화 스크립트 -->
+    <script>
+        // 최소한의 CONFIG 설정 (폴백용)
+        window.CONFIG = {
+            API_BASE_URL: 'http://127.0.0.1:80',
+            API_TIMEOUT: 30000
+        };
+
+        // 서버 시작 함수
+        function startServer() {
+            const btn = document.querySelector('.server-btn');
+            btn.disabled = true;
+            btn.textContent = '서버 시작 중...';
+
+            // Windows 환경에서 새 콘솔 창으로 서버 실행
+            const cmd = 'start cmd /k python test_samsung_api.py';
+
+            // 실제 서버 시작 명령 실행 (로컬 환경에서만 동작)
+            fetch('http://127.0.0.1:8080/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            })
+            .then(response => {
+                if (response.ok) {
+                    btn.style.background = '#8bc34a';
+                    btn.textContent = '서버 실행 중';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error('서버 시작 실패');
+                }
+            })
+            .catch(error => {
+                // 로컬에서 직접 실행 시도
+                alert('서버를 직접 실행해주세요:\npython test_samsung_api.py');
+                btn.disabled = false;
+                btn.textContent = '서버 시작';
+            });
+        }
+    </script>
+
+    <!-- 브랜딩 시스템 -->
+    <script src="config.js"></script>
+    <script src="static/js/branding.js"></script>
+
+    <!-- 메인 초기화 스크립트 -->
+    <script src="static/js/dashboard-init-complete.js"></script>
+
+    <!-- 브랜딩 적용 -->
+    <script>
+        // 페이지 로드 완료 후 브랜딩 적용
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof BrandingManager !== 'undefined') {
+                BrandingManager.applyBranding('관리자 대시보드');
+                console.log('✅ 브랜딩 시스템 적용 완료');
+            } else {
+                console.warn('⚠️ BrandingManager를 찾을 수 없습니다.');
+            }
+        });
+    </script>
+
+    <!-- 개선된 사용자 관리 모듈은 dashboard-init-complete.js에서 자동 로드됨 -->
+
+</body>
+</html>

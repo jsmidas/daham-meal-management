@@ -1,0 +1,25 @@
+{
+  "comment": "다함 급식관리 시스템 포트 설정",
+  "services": {
+    "api_server": {
+      "port": 8010,
+      "description": "통합 메인 API 서버 (★test_samsung_api.py) - 모든 기능 통합",
+      "status": "active"
+    },
+    "web_server": {
+      "port": 3000,
+      "description": "웹 서버 (정적 파일 서빙)",
+      "status": "inactive"
+    },
+    "backup_ports": [8010, 8011, 8012, 8013, 8014],
+    "reserved_ports": [8080, 9000]
+  },
+  "last_updated": "2025-09-18",
+  "notes": [
+    "API 서버가 변경될 때는 다음 파일들을 함께 수정해야 함:",
+    "1. menu_recipe_management.html (window.CONFIG)",
+    "2. static/modules/menu-recipes/menu-recipes.js (fallback CONFIG)",
+    "3. ★test_samsung_api.py (기본 포트)",
+    "또는 환경변수 API_PORT 사용"
+  ]
+}

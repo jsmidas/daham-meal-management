@@ -7,9 +7,9 @@ echo 1. 모든 Python 프로세스 종료 중...
 taskkill /F /IM python.exe >nul 2>&1
 timeout /t 3 >nul
 
-echo 2. API 서버 시작 중 (포트 8015)...
-set API_PORT=8015
-start /B python test_samsung_api.py
+echo 2. API 서버 시작 중 (포트 8010)...
+set API_PORT=8010
+start /B python ★test_samsung_api.py
 
 echo 3. 서버 시작 대기 중...
 timeout /t 10 >nul
@@ -21,7 +21,7 @@ echo 5. 웹 서버 시작 대기 중...
 timeout /t 5 >nul
 
 echo 6. 관리자 대시보드 열기...
-start http://127.0.0.1:9000/admin_dashboard.html
+start http://127.0.0.1:8010/admin_dashboard.html
 
 echo.
 echo 완료! 브라우저에서 대시보드가 열립니다.
